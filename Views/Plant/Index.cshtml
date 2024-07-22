@@ -1,0 +1,95 @@
+﻿@model AuthenticationServer.Models.Shipment
+@{
+    ViewBag.Title = "Index";
+}
+<main>
+    <div class="row d-flex">
+        <a class="links text-end">? help</a>
+    </div>
+    <div class="row">
+        <center>
+            <img src="/Content/img/wiseLogo.jpg" />
+        </center>
+    </div>
+    @using (Html.BeginForm("SubmitShipment", "Plant", FormMethod.Post))
+    {
+        @Html.HiddenFor(model => model.PlantId)
+        <div class="row">
+
+
+            <div class="col-md-4">
+                <div><label for="AcctNum">Acct:</label></div>
+                <div>Address:</div>
+                <div>City:</div>
+                <div>State:</div>
+                <div>Zip:</div>
+                <div>Country:</div>
+                <div># Packages:</div>
+                <div>Package Weight (each)</div>
+                <div>Last Package Weight</div>
+                <div>Delivery /Sig Reg'd?</div>
+                <div>Rate from Multiple Locations?</div>
+                <div>Include Ground Freight Rate?</div>
+                <div>Include LTL Rates?</div>
+            </div>
+            <div class="col-lg-8">
+                <div>
+                    @Html.TextBoxFor(model => model.AcctNum)
+                    @Html.ValidationMessageFor(model => model.AcctNum)
+                </div>
+                <div>
+                    @Html.TextBoxFor(model => model.Address)
+                    @Html.ValidationMessageFor(model => model.Address)
+                </div>
+                <div>
+                    @Html.TextBoxFor(model => model.City)
+                    @Html.ValidationMessageFor(model => model.City)
+                </div>
+                <div>
+                    @Html.TextBoxFor(model => model.State)
+                    @Html.ValidationMessageFor(model => model.State)
+                </div>
+                <div>
+                    @Html.TextBoxFor(model => model.Zip)
+                    @Html.ValidationMessageFor(model => model.Zip)
+                </div>
+                <div>
+                    @Html.TextBoxFor(model => model.Country)
+                    @Html.ValidationMessageFor(model => model.Country)
+                </div>
+                <div>
+                    @Html.TextBoxFor(model => model.number_of_packages)
+                    @Html.ValidationMessageFor(model => model.number_of_packages)
+                </div>
+                <div>
+                    @Html.TextBoxFor(model => model.package_weight)
+                    @Html.ValidationMessageFor(model => model.package_weight)
+                </div>
+                <div>
+                    @Html.TextBoxFor(model => model.last_package_weight)
+                    @Html.ValidationMessageFor(model => model.last_package_weight)
+                </div>
+                <div>
+                    @Html.TextBoxFor(model => model.delivery_signature_required)
+                    @Html.ValidationMessageFor(model => model.delivery_signature_required)
+                </div>
+                <div>
+                    @Html.TextBoxFor(model => model.multiple_location_rate)
+                    @Html.ValidationMessageFor(model => model.multiple_location_rate)
+                </div>
+                <div>
+                    @Html.TextBoxFor(model => model.include_ground_rate)
+                    @Html.ValidationMessageFor(model => model.include_ground_rate)
+                </div>
+                <div>
+                    @Html.TextBoxFor(model => model.include_ltl_rate)
+                    @Html.ValidationMessageFor(model => model.include_ltl_rate)
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div><button type="submit">Get Rates</button></div>
+        </div>
+    }
+</main>
+

@@ -1,8 +1,59 @@
-﻿/* Set padding to keep content from hitting the edges */
+﻿.alt {
+        background: #E8E8E8;
+
+}
 .body-content {
-    margin-top: 15px;
-    padding-left: 15px;
-    padding-right: 15px;
+    margin: 20px 0;
+    padding: 0;
+    background: #f5f5f5;
+    font-family: "Lucida Grande", Lucida, Verdana, sans-serif;
+    font-size: 11px;
+}
+
+.btn {
+    background: #333;
+    border: none;
+    color: #FFF;
+    padding: 4px;
+    margin: 5px;
+    width: 200px;   
+}
+
+.btn:hover {
+    background: #CCC;
+    color: #333;
+}
+
+.containerTable {
+    background: #FFF;
+    padding: 15px;
+    border: 1px solid #d5d5d5;
+    margin: 0 auto;
+    width: 790px;
+}
+
+.internalTable {
+    padding: 0;
+    margin: 0 auto;
+}
+
+.links {
+    padding: 5px;
+    vertical-align: top;
+    line-height: 1.3em;
+}
+
+.shipGrid {
+    width: 100%;
+    background-color: #FFF;
+    margin: 5px 0 10px 0;
+}
+
+.shipGrid th {
+    background-color: #424242;
+    color: #FFF;
+    padding: 5px;
+    text-align: left;
 }
 
 /* Set width on the form input elements since they're 100% wide by default */
@@ -10,4 +61,10 @@ input,
 select,
 textarea {
     max-width: 280px;
+}
+
+a {
+    color: #A83333;
+    text-decoration: none;
+    font-size: 11px;
 }

@@ -1,0 +1,71 @@
+﻿@model AuthenticationServer.Models.Shipment
+@{
+    ViewBag.Title = "ShipmentConfirmation";
+    int rowIndex = 0;
+}
+
+<main>
+    <div class="row d-flex">
+        <a href="/Help#rates" class="links text-end">? Help</a>
+    </div>
+    <div class="row">
+        <div class="col-10">
+            @if (Model != null)
+            {
+                <div>@Model.Address</div>
+                <div>@Model.City,  @Model.State  @Model.Zip</div>
+
+                <br />
+                <div>Delivery / Sig Req'd: @Model.delivery_signature_required</div>
+
+                <br />
+                <div>Address is: </div>
+                <div>Billing weight: @Model.billing_weight lbs. ( @Model.number_of_packages pkgs)</div>
+            }
+        </div>
+        <div class="col-1">
+            <img src="/Content/img/wiseLogo.jpg" />
+        </div>
+    </div>
+    <div class="row d-flex">
+        <div class="text-center">The address was automatically corrected to match what UPS had on file.  Please make note of the changes.</div>
+    </div>
+
+    <table class="containerTable">
+        <tbody>
+            <tr>
+                <td>
+                    <table class="shipGrid">
+                        <thead>
+                            <tr>
+                                <th scope="col">Ship From</th>
+                                <th scope="col">Service</th>
+                                <th scope="col">Rate</th>
+                                <th scope="col">CWT?</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var service in Model.shopRateResponse.UPSServices)
+                            {
+                                var rowClass = rowIndex++ % 2 == 0 ? "" : "alt";
+                                rowIndex++;
+                                <tr class="@rowClass">
+                                    <td>@service.ShipFrom</td>
+                                    <td>@service.ServiceName</td>
+                                    <td>@service.Rate</td>
+                                    <td>@service.CWT</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </td>
+                <td align="center">
+                    <img src="~/Content/img/LOGO_L.gif" />
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="row d-flex">
+        <div class="text-center">UPS, the UPS brand mark, and the Color Brown are trademarks of the United Parcel Service of America, Inc. All Rights Reserved</div>
+    </div>
+</main>

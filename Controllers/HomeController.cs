@@ -14,5 +14,11 @@ namespace AuthenticationServer.Controllers
 
             return View();
         }
+
+        public ActionResult RedirectToPlant(string loc)
+        {
+            string targetUrl = Url.Action("Index", "Plant", new { loc = loc });
+            return Redirect(targetUrl);
+        }
     }
 }
