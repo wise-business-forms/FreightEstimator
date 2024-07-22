@@ -2,6 +2,8 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
+using System.Collections;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -278,7 +280,7 @@ namespace AuthenticationServer.Controllers
             try
             {
                 // Create HttpWebRequest
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(Configuration.UPSAddressValidationURL);
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(Configuration.UPSShopRatesURL);
                 request.Method = "POST";
                 request.ContentType = "application/json";
                 request.Headers.Add("Authorization", "Bearer " + GetToken());
@@ -287,7 +289,7 @@ namespace AuthenticationServer.Controllers
                 using (var streamWriter = new StreamWriter(request.GetRequestStream()))
                 {
                     string s = RateRequest(shipment);
-                    streamWriter.Write(RateRequest(shipment));
+                    streamWriter.Write(s);
                 }
 
                 // Get the response
@@ -302,7 +304,15 @@ namespace AuthenticationServer.Controllers
                             dynamic data = JObject.Parse(result);
 
                             // Check for each key's existence and assign values accordingly
-                            
+                            IList<JToken> services = data.SelectToken("RateResponse.RatedShipment");
+                            var serviceIndex = 0;
+                            foreach( var service in services)
+                            {
+                                UPSService uPSService = new UPSService();
+                                uPSService.ServiceName = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "-";
+                                serviceIndex++;
+                                shopRateResponse.UPSServices[serviceIndex] = uPSService;
+                            }
                         }
                     }
                     else
@@ -346,7 +356,7 @@ namespace AuthenticationServer.Controllers
         private string RateRequest(Shipment shipment)
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append("RateRequest\":");
+            sb.Append("{\"RateRequest\":");
             sb.Append("{\"Request\":");
             sb.Append("{\"TransactionReference\":");
             sb.Append("{\"CustomerContext\": \"CustomerContext\"}");
@@ -395,13 +405,17 @@ namespace AuthenticationServer.Controllers
             sb.Append("\"CountryCode\": \"US\"");
             sb.Append("}");
             sb.Append("},"); // ShipFrom
-            sb.Append("\"PaymentDetails\":");
-            sb.Append("{\"ShipmentCharge\":");
-            sb.Append("{\"Type\": \"01\",");
-            sb.Append("\"BillShipper\":");
-            sb.Append("{\"AccountNumber\": \"" + Configuration.ShipFromShipperNumber + "\"}");
-            sb.Append("}");
-            sb.Append("},"); // PaymentDetails
+                             //            sb.Append("\"PaymentDetails\":");
+                             //            sb.Append("{\"ShipmentCharge\":");
+                             //            sb.Append("{\"Type\": \"01\",");
+                             //            sb.Append("\"BillShipper\":");
+                             //            sb.Append("{\"AccountNumber\": \"" + Configuration.ShipFromShipperNumber + "\"}");
+                             //            sb.Append("}");
+                             //            sb.Append("},"); // PaymentDetails
+            sb.Append("\"ShipmentRatingOptions\": {");
+            sb.Append("\"TPFCNegotiatedRatesIndicator\": \"Y\",");
+            sb.Append("\"NegotiatedRatesIndicator\": \"Y\"");
+            sb.Append("},");    
             sb.Append("\"Service\":");                
             sb.Append("{\"Code\": \"03\",");
             sb.Append("\"Description\": \"Ground\"");
@@ -431,6 +445,7 @@ namespace AuthenticationServer.Controllers
             sb.Append("\"Description\": \"Pounds\"");
             sb.Append("},");
             sb.Append("\"Weight\": \"" + shipment.billing_weight + "\"");
+            sb.Append("}");
             sb.Append("}");
             sb.Append("}");
             sb.Append("}");
