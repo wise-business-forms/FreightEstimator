@@ -20,7 +20,25 @@ namespace AuthenticationServer.Controllers
         public ActionResult Index(string loc)
         {
             ViewBag.Param1 = loc;
+            if(string.IsNullOrEmpty(loc) || !Configuration.PlantLocations.ContainsKey(loc.ToUpper()))
+            {
+                return View("Error");
+            }
+            var plantName = Configuration.PlantLocations[loc.ToUpper()];            
             var model = new Models.Shipment { };
+
+            // Setup default values for the shipment
+            model.PlantId = loc.ToUpper();
+            model.PlantName = plantName;
+
+            model.delivery_signature_required = Configuration.DeliverySignatureRequiredSelection;
+            model.multiple_location_rate = new List<SelectListItem> { new SelectListItem { Text = "No", Value = "No" }, new SelectListItem { Text = "Yes", Value = "Yes" } };
+            model.include_ground_rate = new List<SelectListItem> { new SelectListItem { Text = "Yes", Value = "Yes" }, new SelectListItem { Text = "No", Value = "No" } };
+            model.include_ltl_rate = new List<SelectListItem> { new SelectListItem { Text = "Yes", Value = "Yes" }, new SelectListItem { Text = "No", Value = "No" } };
+
+            model.multiple_location_rate_selection = "No";
+            model.include_ground_rate_selection = "No";
+            model.include_ltl_rate_selection = "No";
 
             return View(model);
         }

@@ -36,6 +36,11 @@
     margin: 0 auto;
 }
 
+.label {
+    font-weight: bold;
+    padding: 4px 10px;    
+}
+
 .links {
     padding: 5px;
     vertical-align: top;
@@ -53,6 +58,13 @@
     color: #FFF;
     padding: 5px;
     text-align: left;
+}
+
+.shipTo {
+    padding: 20px 0 5px 0;
+    color: #0063A5;
+    font-weight: bold;
+    text-align:center;
 }
 
 /* Set width on the form input elements since they're 100% wide by default */

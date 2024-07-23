@@ -193,7 +193,6 @@
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\PlantController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
-    <Compile Include="Controllers\ViewController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
@@ -281,7 +280,6 @@
     <Content Include="Views\Shared\_Layout.cshtml" />
     <Content Include="Views\Plant\Index.cshtml" />
     <Content Include="Views\Plant\ShipmentConfirmation.cshtml" />
-    <Content Include="Views\View\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

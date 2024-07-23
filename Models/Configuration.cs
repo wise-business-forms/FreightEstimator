@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
+using System.Web.Mvc;
 
 namespace AuthenticationServer.Models
 {
@@ -50,12 +51,23 @@ namespace AuthenticationServer.Models
             {"86", "UPS Today Express Saver"}
         };
 
+        static Dictionary<string, string> __plantLocations = new Dictionary<string, string>()
+        {
+            {"ALP", "Alpharetta"},
+            {"BUT", "Butler"},
+            {"FTW", "Fort Wayne"},
+            {"PDT", "Piedmont"},
+            {"POR", "Portland"},
+            {"BMK", "Brandmark"},
+            {"COR", "Corporate"},
+            {"CIN", "Cincinnati"},
+            {"EBT", "East Butler"}
+        };
+
         static string _ShipFromShipperNumber = "391287";
 
         static string _NetworkDomain = "WISENT";
 
-        //static string[] _PlantCodes = { "ALP", "BUT", "FTW", "PDT", "POR", "BMK", "COR" };
-        static string[] _PlantCodes = { "ALP", "BUT", "FTW", "POR", "BMK", "COR", "CIN", "EBT" };
         static string[] _PlantCodesMultiRate = { "ALP", "BUT", "FTW", "POR", "BMK" };
 
         static double _MinCWTWeightGround = 200;
@@ -101,6 +113,14 @@ namespace AuthenticationServer.Models
             _PlantNames.Add("EBT", "East Butler");
 
         }
+
+        private static List<SelectListItem> _delivery_signature_required_selection = new List<SelectListItem>()
+        {
+            new SelectListItem() { Text = "None", Value = "None" },
+            new SelectListItem() { Text = "Delivery Confirmation", Value = "Delivery Confirmation" },
+            new SelectListItem() { Text = "Del Conf / Signature Req'd", Value = "Delivery Confirmation / Signature Required" },
+            new SelectListItem() { Text = "Del Conf / Adult Sig Req'd", Value = "Delivery Confirmation / Adult Signature Required" }
+        };
 
         public static string UPSAccessKey
         {
@@ -166,9 +186,13 @@ namespace AuthenticationServer.Models
         {
             get { return _NetworkDomain; }
         }
-        public static string[] PlantCodes
+        public static Dictionary<string, string> PlantLocations
         {
-            get { return _PlantCodes; }
+            get { return __plantLocations; }
+        }
+        public static List<SelectListItem> DeliverySignatureRequiredSelection
+        {
+            get { return _delivery_signature_required_selection; }
         }
         public static string[] PlantCodesMultiRate
         {
