@@ -36,6 +36,7 @@ namespace AuthenticationServer.Controllers
             model.include_ground_rate = new List<SelectListItem> { new SelectListItem { Text = "Yes", Value = "Yes" }, new SelectListItem { Text = "No", Value = "No" } };
             model.include_ltl_rate = new List<SelectListItem> { new SelectListItem { Text = "Yes", Value = "Yes" }, new SelectListItem { Text = "No", Value = "No" } };
 
+            model.delivery_signature_required_selction = "No";
             model.multiple_location_rate_selection = "No";
             model.include_ground_rate_selection = "No";
             model.include_ltl_rate_selection = "No";
@@ -49,7 +50,7 @@ namespace AuthenticationServer.Controllers
             if (ModelState.IsValid)
             {
                 // Save the shipment to the database
-                return RedirectToAction("ShipmentConfirmation");
+                return RedirectToAction("ShipmentConfirmation", shipment);
             }
             return View("Shipment", shipment);
         }
@@ -312,7 +313,8 @@ namespace AuthenticationServer.Controllers
                     // Write data to request stream
                     using (var streamWriter = new StreamWriter(request.GetRequestStream()))
                     {
-                        streamWriter.Write(RateRequest(shipment));
+                        var rr = RateRequest(shipment);
+                        streamWriter.Write(rr);
                     }
 
                     // Get the response
@@ -332,6 +334,7 @@ namespace AuthenticationServer.Controllers
                                 foreach (var service in services)
                                 {
                                     UPSService uPSService = new UPSService();
+                                    uPSService.ShipFrom = shipment.PlantId;
                                     var serviceCode = service.SelectToken("Service")?.SelectToken("Code")?.ToString() ?? "No Service Code";
                                     switch (serviceCode)
                                     {
@@ -443,99 +446,97 @@ namespace AuthenticationServer.Controllers
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("{\"RateRequest\":");
-            sb.Append("{\"Request\":");
-            sb.Append("{\"TransactionReference\":");
-            sb.Append("{\"CustomerContext\": \"CustomerContext\"}");
-            sb.Append("},"); // TransactionReference
-            sb.Append("\"Shipment\":");
-            sb.Append("{\"Shipper\":");
-            sb.Append("{\"Name\": \"" + Configuration.UPSShipFromName + "\",");
-            sb.Append("\"ShipperNumber\": \"" + Configuration.ShipFromShipperNumber + "\",");
-            sb.Append("\"Address\":");
-            sb.Append("{\"AddressLine\": [");
-            sb.Append("\"" + Configuration.UPSShipFromAddress + "\",");
-            sb.Append("\"\",");
-            sb.Append("\"\"");
-            sb.Append("],");
-            sb.Append("\"City\": \"" + Configuration.UPSShipFromCity + "\",");
-            sb.Append("\"StateProvinceCode\": \"" + Configuration.UPSShipFromState + "\",");
-            sb.Append("\"PostalCode\": \"" + Configuration.UPSShipFromZip + "\",");
-            sb.Append("\"CountryCode\": \"US\"");
-            sb.Append("}");
-            sb.Append("},"); // Shipper
-            sb.Append("\"ShipTo\":");
-            sb.Append("{\"Name\": \"" + shipment.AcctNum + "\",");
-            sb.Append("\"Address\":");
-            sb.Append("{\"AddressLine\": [");
-            sb.Append("\"" + shipment.Address + "\",");
-            sb.Append("\"\",");
-            sb.Append("\"\"");
-            sb.Append("],");
-            sb.Append("\"City\": \""+ shipment.City + "\",");
-            sb.Append("\"StateProvinceCode\": \"" + shipment.State + "\",");
-            sb.Append("\"PostalCode\": \"" + shipment.Zip + "\",");
-            sb.Append("\"CountryCode\": \"US\"");
-            sb.Append("}");
-            sb.Append("},"); // ShipTo
+
+                sb.Append("{\"Request\":");
+                sb.Append("{\"TransactionReference\":{\"CustomerContext\": \"Verify Success response\"}"); // TransactionReference
+                sb.Append("},"); // Request
+
+                sb.Append("\"Shipment\":");
+                    sb.Append("{\"Shipper\":");
+                        sb.Append("{\"Name\": \"" + Configuration.UPSShipFromName + "\",");
+                        sb.Append("\"ShipperNumber\": \"" + Configuration.ShipFromShipperNumber + "\",");
+                        sb.Append("\"Address\":");
+                            sb.Append("{\"AddressLine\": [");
+                                sb.Append("\"" + Configuration.UPSShipFromAddress + "\",");
+                                sb.Append("\"\",");
+                                sb.Append("\"\"");
+                            sb.Append("],"); // AddressLine
+                            sb.Append("\"City\": \"" + Configuration.UPSShipFromCity + "\",");
+                            sb.Append("\"StateProvinceCode\": \"" + Configuration.UPSShipFromState + "\",");
+                            sb.Append("\"PostalCode\": \"" + Configuration.UPSShipFromZip + "\",");
+                            sb.Append("\"CountryCode\": \"US\"");
+                        sb.Append("}"); // Address
+                    sb.Append("},"); // Shipper
+
+                sb.Append("\"ShipTo\":");
+                    sb.Append("{\"Name\": \"" + shipment.AcctNum + "\",");
+                    sb.Append("\"Address\":");
+                        sb.Append("{\"AddressLine\": [");
+                            sb.Append("\"" + shipment.Address + "\",");
+                            sb.Append("\"\",");
+                            sb.Append("\"\"");
+                            sb.Append("],");
+                        sb.Append("\"City\": \""+ shipment.City + "\",");
+                        sb.Append("\"StateProvinceCode\": \"" + shipment.State + "\",");
+                        sb.Append("\"PostalCode\": \"" + shipment.Zip + "\",");
+                        sb.Append("\"CountryCode\": \"US\"");
+                    sb.Append("}"); // Address
+                sb.Append("},"); // ShipTo
+
             sb.Append("\"ShipFrom\":");
-            sb.Append("{\"Name\": \"" + Configuration.UPSShipFromName + "\",");
-            sb.Append("\"Address\":");
-            sb.Append("{\"AddressLine\": [");
-            sb.Append("\"" + Configuration.UPSShipFromAddress + "\",");
-            sb.Append("\"\",");
-            sb.Append("\"\"");
-            sb.Append("],");
-            sb.Append("\"City\": \"" + Configuration.UPSShipFromCity + "\",");
-            sb.Append("\"StateProvinceCode\": \"" + Configuration.UPSShipFromState + "\",");
-            sb.Append("\"PostalCode\": \"" + Configuration.UPSShipFromZip + "\",");
-            sb.Append("\"CountryCode\": \"US\"");
-            sb.Append("}");
+                sb.Append("{\"Name\": \"" + Configuration.UPSShipFromName + "\",");
+                sb.Append("\"Address\":");
+                    sb.Append("{\"AddressLine\": [");
+                        sb.Append("\"" + Configuration.UPSShipFromAddress + "\",");
+                        sb.Append("\"\",");
+                        sb.Append("\"\"");
+                        sb.Append("],");
+                    sb.Append("\"City\": \"" + Configuration.UPSShipFromCity + "\",");
+                sb.Append("\"StateProvinceCode\": \"" + Configuration.UPSShipFromState + "\",");
+                sb.Append("\"PostalCode\": \"" + Configuration.UPSShipFromZip + "\",");
+                sb.Append("\"CountryCode\": \"US\"");
+                sb.Append("}"); // Address
             sb.Append("},"); // ShipFrom
-                             //            sb.Append("\"PaymentDetails\":");
-                             //            sb.Append("{\"ShipmentCharge\":");
-                             //            sb.Append("{\"Type\": \"01\",");
-                             //            sb.Append("\"BillShipper\":");
-                             //            sb.Append("{\"AccountNumber\": \"" + Configuration.ShipFromShipperNumber + "\"}");
-                             //            sb.Append("}");
-                             //            sb.Append("},"); // PaymentDetails
+
             sb.Append("\"ShipmentRatingOptions\": {");
-            sb.Append("\"TPFCNegotiatedRatesIndicator\": \"Y\",");
-            sb.Append("\"NegotiatedRatesIndicator\": \"Y\"");
-            sb.Append("},");    
+                sb.Append("\"TPFCNegotiatedRatesIndicator\": \"Y\",");
+                sb.Append("\"NegotiatedRatesIndicator\": \"Y\"");
+            sb.Append("},"); // ShipmentRatingOptions
+
             sb.Append("\"Service\":");                
-            sb.Append("{\"Code\": \"03\",");
-            sb.Append("\"Description\": \"Ground\"");
+                sb.Append("{\"Code\": \"03\",");
+                sb.Append("\"Description\": \"UPS Worldwide Economy DDU\"");
             sb.Append("},"); // Service
+
+
             sb.Append("\"NumOfPieces\": \"" + shipment.number_of_packages + "\",");
             sb.Append("\"Package\":");
-            sb.Append("{\"SimpleRate\":");
-            sb.Append("{\"Description\": \"SimpleRateDescription\",");
-            sb.Append("\"Code\": \"XS\"");
+                sb.Append("{\"PackagingType\":");
+                    sb.Append("{\"Code\": \"02\",");
+                    sb.Append("\"Description\": \"Packaging\"");
+                sb.Append("},"); // PackagingType
+                sb.Append("\"Dimensions\":");
+                    sb.Append("{\"UnitOfMeasurement\":");
+                        sb.Append("{\"Code\": \"IN\",");
+                        sb.Append("\"Description\": \"Inches\"");
+                    sb.Append("},");
+                    sb.Append("\"Length\": \"5\",");
+                    sb.Append("\"Width\": \"5\",");
+                    sb.Append("\"Height\": \"5\"");
+                    sb.Append("},");
+                sb.Append("\"PackageWeight\":");
+                    sb.Append("{\"UnitOfMeasurement\":");
+                    sb.Append("{\"Code\": \"LBS\",");
+                    sb.Append("\"Description\": \"Ounces\"");
+                sb.Append("},");
+                sb.Append("\"Weight\": \"" + shipment.billing_weight + "\"");
             sb.Append("},");
-            sb.Append("\"PackagingType\":");
-            sb.Append("{\"Code\": \"02\",");
-            sb.Append("\"Description\": \"Packaging\"");
-            sb.Append("},");
-            sb.Append("\"Dimensions\":");
-            sb.Append("{\"UnitOfMeasurement\":");
-            sb.Append("{\"Code\": \"IN\",");
-            sb.Append("\"Description\": \"Inches\"");
-            sb.Append("},");
-            sb.Append("\"Length\": \"5\",");
-            sb.Append("\"Width\": \"5\",");
-            sb.Append("\"Height\": \"5\"");
-            sb.Append("},");
-            sb.Append("\"PackageWeight\":");
-            sb.Append("{\"UnitOfMeasurement\":");
-            sb.Append("{\"Code\": \"LBS\",");
-            sb.Append("\"Description\": \"Pounds\"");
-            sb.Append("},");
-            sb.Append("\"Weight\": \"" + shipment.billing_weight + "\"");
-            sb.Append("}");
-            sb.Append("}");
-            sb.Append("}");
-            sb.Append("}");
-            sb.Append("}");
+                sb.Append("\"OversizeIndicator\": \"X\",");
+                sb.Append("\"MinimumBillableWeightIndicator\": \"X\"");
+            sb.Append("}"); // RateRequest.Shipment.Package
+            sb.Append("}"); // RateRequest.Shipment
+            sb.Append("}"); // RateRequest
+            sb.Append("}"); // ROOT
             return sb.ToString();
         }        
     }

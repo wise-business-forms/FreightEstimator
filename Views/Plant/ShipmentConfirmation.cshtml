@@ -16,7 +16,7 @@
                 <div>@Model.City,  @Model.State  @Model.Zip</div>
 
                 <br />
-                <div>Delivery / Sig Req'd: @Model.delivery_signature_required</div>
+                <div>Delivery / Sig Req'd: @Model.delivery_signature_required_selction</div>
 
                 <br />
                 <div>Address is: </div>
@@ -47,14 +47,14 @@
                         <tbody>
                             @foreach (var service in Model.shopRateResponse.UPSServices)
                             {
-                                var rowClass = rowIndex++ % 2 == 0 ? "" : "alt";
-                                rowIndex++;
+                                var rowClass = rowIndex % 2 == 0 ? "" : "alt";
                                 <tr class="@rowClass">
                                     <td>@service.ShipFrom</td>
                                     <td>@service.ServiceName</td>
                                     <td>@service.Rate</td>
                                     <td>@service.CWT</td>
                                 </tr>
+                                rowIndex++;
                             }
                         </tbody>
                     </table>
@@ -66,6 +66,18 @@
         </tbody>
     </table>
     <div class="row d-flex">
+        <button onclick="goBack()">Back</button><button onclick="goHome()">Start Over</button>
+    </div>
+    <div class="row d-flex">
         <div class="text-center">UPS, the UPS brand mark, and the Color Brown are trademarks of the United Parcel Service of America, Inc. All Rights Reserved</div>
     </div>
 </main>
+<script type="text/javascript">
+    function goBack() {
+        window.history.back();
+    }
+
+    function goHome() {
+        window.location.href = "/Home";
+    }
+</script>
