@@ -27,7 +27,28 @@ namespace AuthenticationServer.Models
         //static string _UPSAuthorizationURL = "https://wwwcie.ups.com/security/v1/oauth/authorize"; // TEST
         //static string _UPSGenerateTokenURL = "https://wwwcie.ups.com/security/v1/oauth/token"; // TEST
         static string _UPSAddressValidationURL = "https://wwwcie.ups.com/api/addressvalidation/v1/3"; // TEST  {version}/{requestOption}
-        static string _UPSShopRatesURL = "https://wwwcie.ups.com/rating/v2403/Shop"; // TEST {version}/{requestoption}
+        static string _UPSShopRatesURL = "https://wwwcie.ups.com/api/rating/v2403/Shop"; // TEST {version}/{requestoption}
+
+        static Dictionary<string, string> _UPSRateCode = new Dictionary<string, string>()
+        {
+            {"01", "UPS Next Day Air"},
+            {"02", "UPS 2nd Day Air"},
+            {"03", "UPS Ground"},
+            {"07", "UPS Worldwide Express"},
+            {"08", "UPS Worldwide Expedited"},
+            {"11", "UPS Standard"},
+            {"12", "UPS 3 Day Select"},
+            {"13", "Next Day Air Saver"},
+            {"14", "Next Day Air Early AM"},
+            {"54", "Express Plus"},
+            {"59", "2nd Day Air AM"},
+            {"65", "UPS Saver"},
+            {"82", "UPS Today Standard"},
+            {"83", "UPS Today Dedicated Courier"},
+            {"84", "UPS Today Intercity"},
+            {"85", "UPS Today Express"},
+            {"86", "UPS Today Express Saver"}
+        };
 
         static string _ShipFromShipperNumber = "391287";
 

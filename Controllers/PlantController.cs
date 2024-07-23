@@ -10,6 +10,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Web.Mvc;
+using System.Linq;
 
 namespace AuthenticationServer.Controllers
 {
@@ -47,7 +48,7 @@ namespace AuthenticationServer.Controllers
 
             shipment.billing_weight = shipment.number_of_packages * shipment.package_weight;
 
-            ShopRateResponse(shipment);
+            shipment.shopRateResponse = ShopRateResponse(shipment);
 
             return View(shipment);
         }
@@ -276,76 +277,143 @@ namespace AuthenticationServer.Controllers
         private ShopRateResponse ShopRateResponse(Shipment shipment)
         {
             ShopRateResponse shopRateResponse = new ShopRateResponse();
+            shopRateResponse.UPSServices = new UPSService[10]; // More than needed. 10 is arbitrary
 
-            try
+            using (HttpClient client = new HttpClient())
             {
-                // Create HttpWebRequest
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(Configuration.UPSShopRatesURL);
-                request.Method = "POST";
-                request.ContentType = "application/json";
-                request.Headers.Add("Authorization", "Bearer " + GetToken());
+                client.DefaultRequestHeaders.Add("Authorization", "Bearer " + GetToken());
 
-                // Write data to request stream
-                using (var streamWriter = new StreamWriter(request.GetRequestStream()))
+                try
                 {
-                    string s = RateRequest(shipment);
-                    streamWriter.Write(s);
-                }
+                    // Create HttpWebRequest
+                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(Configuration.UPSShopRatesURL);
+                    request.Method = "POST";
+                    request.ContentType = "application/json";
+                    request.Headers.Add("Authorization", "Bearer " + GetToken());
 
-                // Get the response
-                using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-                {
-                    if (response.StatusCode == HttpStatusCode.OK)
+                    // Write data to request stream
+                    using (var streamWriter = new StreamWriter(request.GetRequestStream()))
                     {
-                        using (var streamReader = new StreamReader(response.GetResponseStream()))
+                        streamWriter.Write(RateRequest(shipment));
+                    }
+
+                    // Get the response
+                    using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                    {
+                        if (response.StatusCode == HttpStatusCode.OK)
                         {
-                            string result = streamReader.ReadToEnd();
-
-                            dynamic data = JObject.Parse(result);
-
-                            // Check for each key's existence and assign values accordingly
-                            IList<JToken> services = data.SelectToken("RateResponse.RatedShipment");
-                            var serviceIndex = 0;
-                            foreach( var service in services)
+                            using (var streamReader = new StreamReader(response.GetResponseStream()))
                             {
-                                UPSService uPSService = new UPSService();
-                                uPSService.ServiceName = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "-";
-                                serviceIndex++;
-                                shopRateResponse.UPSServices[serviceIndex] = uPSService;
+                                string result = streamReader.ReadToEnd();
+
+                                dynamic data = JObject.Parse(result);
+
+                                // Check for each key's existence and assign values accordingly
+                                IList<JToken> services = data.SelectToken("RateResponse.RatedShipment");
+                                var serviceIndex = 0;
+                                foreach (var service in services)
+                                {
+                                    UPSService uPSService = new UPSService();
+                                    var serviceCode = service.SelectToken("Service")?.SelectToken("Code")?.ToString() ?? "No Service Code";
+                                    switch (serviceCode)
+                                    {
+                                        case "01":
+                                            uPSService.ServiceName = UPSService.ServiceCode.UPSNextDayAir.ToString();
+                                            break;
+                                        case "02":
+                                            uPSService.ServiceName = UPSService.ServiceCode.UPS2ndDayAir.ToString();
+                                            break;
+                                        case "03":
+                                            uPSService.ServiceName = UPSService.ServiceCode.UPSGround.ToString();
+                                            break;
+                                        case "07":
+                                            uPSService.ServiceName = UPSService.ServiceCode.UPSWorldwideExpress.ToString();
+                                            break;
+                                        case "08":
+                                            uPSService.ServiceName = UPSService.ServiceCode.UPSWorldwideExpedited.ToString();
+                                            break;
+                                        case "11":
+                                            uPSService.ServiceName = UPSService.ServiceCode.UPSStandard.ToString();
+                                            break;
+                                        case "12":
+                                            uPSService.ServiceName = UPSService.ServiceCode.UPS3DaySelect.ToString();
+                                            break;
+                                        case "13":
+                                            uPSService.ServiceName = UPSService.ServiceCode.NextDayAirSaver.ToString();
+                                            break;
+                                        case "14":
+                                            uPSService.ServiceName = UPSService.ServiceCode.NextDayAirEarlyAM.ToString();
+                                            break;
+                                        case "54":
+                                            uPSService.ServiceName = UPSService.ServiceCode.ExpressPlus.ToString();
+                                            break;
+                                        case "59":
+                                            uPSService.ServiceName = UPSService.ServiceCode.SecondDayAirAM.ToString();
+                                            break;
+                                        case "65":
+                                            uPSService.ServiceName = UPSService.ServiceCode.UPSSaver.ToString();
+                                            break;
+                                        case "82":
+                                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayStandard.ToString();
+                                            break;
+                                        case "83":
+                                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayDedicatedCourier.ToString();
+                                            break;
+                                        case "84":
+                                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayIntercity.ToString();
+                                            break;
+                                        case "85":
+                                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayExpress.ToString();
+                                            break;
+                                        case "86":
+                                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayExpressSaver.ToString();
+                                            break;
+                                        default:
+                                            uPSService.ServiceName = "No Service Name";
+                                            break;
+                                    }
+                                    uPSService.Rate = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "-";
+                                    uPSService.CWT = "TBD";
+                                    shopRateResponse.UPSServices[serviceIndex] = uPSService;
+                                    serviceIndex++;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Error: {response.StatusCode} - {response.StatusDescription}");
+                        }
+                    }
+                 }
+                catch (WebException ex)
+                {
+                    if (ex.Response != null)
+                    {
+                        using (var errorResponse = (HttpWebResponse)ex.Response)
+                        {
+                            using (var reader = new StreamReader(errorResponse.GetResponseStream()))
+                            {
+                                string error = reader.ReadToEnd();
+                                Console.WriteLine("Error response JSON:");
+                                Console.WriteLine(error);
                             }
                         }
                     }
                     else
                     {
-                        Console.WriteLine($"Error: {response.StatusCode} - {response.StatusDescription}");
+                        Console.WriteLine("WebException: " + ex.Message);
                     }
                 }
-            }
-            catch (WebException ex)
-            {
-                if (ex.Response != null)
+                catch (Exception ex)
                 {
-                    using (var errorResponse = (HttpWebResponse)ex.Response)
-                    {
-                        using (var reader = new StreamReader(errorResponse.GetResponseStream()))
-                        {
-                            string error = reader.ReadToEnd();
-                            Console.WriteLine("Error response JSON:");
-                            Console.WriteLine(error);
-                        }
-                    }
+                    Console.WriteLine("Exception: " + ex.Message);
                 }
-                else
-                {
-                    Console.WriteLine("WebException: " + ex.Message);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Exception: " + ex.Message);
-            }
 
-            return shopRateResponse;
+                // Remove extra (null) UPS Services values slots from the array.
+                shopRateResponse.UPSServices = shopRateResponse.UPSServices.Where(x => x != null).ToArray();
+
+                return shopRateResponse;
+            }           
         }
 
         /// <summary>
@@ -451,6 +519,6 @@ namespace AuthenticationServer.Controllers
             sb.Append("}");
             sb.Append("}");
             return sb.ToString();
-        }
+        }        
     }
 }
