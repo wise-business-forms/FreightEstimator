@@ -26,105 +26,106 @@
 
     @using (Html.BeginForm("SubmitShipment", "Plant", FormMethod.Post))
     {
-        @Html.HiddenFor(model => model.PlantId)
-        <div class="row">
-            <form>
-                <div class="form-group row">
-                    <label for="AcctNum" class="col-sm-2 col-form-label">Acct:</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.AcctNum, new { @class = "form-control" })
-                        @Html.ValidationMessageFor(model => model.AcctNum)
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="Address" class="col-sm-2 col-form-label">Address:</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.Address, new { @class = "form-control" })
-                        @Html.ValidationMessageFor(model => model.Address)
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="City" class="col-sm-2 col-form-label">City:</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.City, new { @class = "form-control" })
-                        @Html.ValidationMessageFor(model => model.City)
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="State" class="col-sm-2 col-form-label">State:</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.State, new { @class = "form-control" })
-                        @Html.ValidationMessageFor(model => model.State)
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="Zip" class="col-sm-2 col-form-label">Zip:</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.Zip, new { @class = "form-control" })
-                        @Html.ValidationMessageFor(model => model.Zip)
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="Country" class="col-sm-2 col-form-label">Country:</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.Country, new { @class = "form-control" })
-                        @Html.ValidationMessageFor(model => model.Country)
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="number_of_packages" class="col-sm-2 col-form-label"># Packages:</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.number_of_packages, new { @class = "form-control" })
-                        @Html.ValidationMessageFor(model => model.number_of_packages)
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="package_weight" class="col-sm-2 col-form-label">Package Weight (each):</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.package_weight, new { @class = "form-control" })
-                        @Html.ValidationMessageFor(model => model.package_weight)
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="last_package_weight" class="col-sm-2 col-form-label">Last Package Weight:</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.last_package_weight, new { @class = "form-control" })
-                        @Html.ValidationMessageFor(model => model.last_package_weight)
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="delivery_signature_required" class="col-sm-2 col-form-label">Delivery /Sig Reg'd?</label>
-                    <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.delivery_signature_required_selction, Model.delivery_signature_required, "None", new {@class = "form-control"})                        
-                        @Html.ValidationMessageFor(model => model.delivery_signature_required)
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="multiple_location_rate" class="col-sm-2 col-form-label">Rate from Multiple Locations?</label>
-                    <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.multiple_location_rate_selection, Model.multiple_location_rate, new { @class = "form-control" })
-                        @Html.ValidationMessageFor(model => model.multiple_location_rate)
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="include_ground_rate" class="col-sm-2 col-form-label">Include Ground Freight Rate?</label>
-                    <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.include_ground_rate_selection, Model.include_ground_rate, new { @class = "form-control" })
-                        @Html.ValidationMessageFor(model => model.include_ground_rate)
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="include_ltl_rate" class="col-sm-2 col-form-label">Include LTL Rates?</label>
-                    <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.include_ltl_rate_selection, Model.include_ltl_rate, new { @class = "form-control" })
-                        @Html.ValidationMessageFor(model => model.include_ltl_rate)
-                    </div>
-                </div>
-            </form>
+        @Html.HiddenFor(model => model.PlantId)<form>
+    <div class="row">
+
+        <div class="form-group row">
+            <label for="AcctNum" class="col-sm-2 col-form-label">Acct:</label>
+            <div class="col-sm-10">
+                @Html.TextBoxFor(model => model.AcctNum, new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.AcctNum)
+            </div>
         </div>
-        <div class="row">
-            <div><button type="submit">Get Rates</button></div>
+        <div class="form-group row">
+            <label for="Address" class="col-sm-2 col-form-label">Address:</label>
+            <div class="col-sm-10">
+                @Html.TextBoxFor(model => model.Address, new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.Address)
+            </div>
         </div>
+        <div class="form-group row">
+            <label for="City" class="col-sm-2 col-form-label">City:</label>
+            <div class="col-sm-10">
+                @Html.TextBoxFor(model => model.City, new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.City)
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="State" class="col-sm-2 col-form-label">State:</label>
+            <div class="col-sm-10">
+                @Html.TextBoxFor(model => model.State, new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.State)
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="Zip" class="col-sm-2 col-form-label">Zip:</label>
+            <div class="col-sm-10">
+                @Html.TextBoxFor(model => model.Zip, new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.Zip)
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="Country" class="col-sm-2 col-form-label">Country:</label>
+            <div class="col-sm-10">
+                @Html.TextBoxFor(model => model.Country, new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.Country)
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="number_of_packages" class="col-sm-2 col-form-label"># Packages:</label>
+            <div class="col-sm-10">
+                @Html.TextBoxFor(model => model.number_of_packages, new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.number_of_packages)
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="package_weight" class="col-sm-2 col-form-label">Package Weight (each):</label>
+            <div class="col-sm-10">
+                @Html.TextBoxFor(model => model.package_weight, new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.package_weight)
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="last_package_weight" class="col-sm-2 col-form-label">Last Package Weight:</label>
+            <div class="col-sm-10">
+                @Html.TextBoxFor(model => model.last_package_weight, new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.last_package_weight)
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="delivery_signature_required" class="col-sm-2 col-form-label">Delivery /Sig Reg'd?</label>
+            <div class="col-sm-10">
+                @Html.DropDownListFor(model => model.delivery_signature_required_selction, Model.delivery_signature_required, "None", new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.delivery_signature_required)
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="multiple_location_rate" class="col-sm-2 col-form-label">Rate from Multiple Locations?</label>
+            <div class="col-sm-10">
+                @Html.DropDownListFor(model => model.multiple_location_rate_selection, Model.multiple_location_rate, new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.multiple_location_rate)
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="include_ground_rate" class="col-sm-2 col-form-label">Include Ground Freight Rate?</label>
+            <div class="col-sm-10">
+                @Html.DropDownListFor(model => model.include_ground_rate_selection, Model.include_ground_rate, new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.include_ground_rate)
+            </div>
+        </div>
+        <div class="form-group row">
+            <label for="include_ltl_rate" class="col-sm-2 col-form-label">Include LTL Rates?</label>
+            <div class="col-sm-10">
+                @Html.DropDownListFor(model => model.include_ltl_rate_selection, Model.include_ltl_rate, new { @class = "form-control" })
+                @Html.ValidationMessageFor(model => model.include_ltl_rate)
+            </div>
+        </div>
+
+    </div>
+    <div class="row">
+        <div><button type="submit">Get Rates</button></div>
+    </div>
+</form>
     }
 </main>
 
