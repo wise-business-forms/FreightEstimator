@@ -1,0 +1,75 @@
+{
+  "RateRequest": {
+    "Request": { "TransactionReference": { "CustomerContext": "CustomerContext" } },
+    "Shipment": {
+      "Shipper": {
+        "Name": "Wise Alpharetta",
+        "ShipperNumber": "391287",
+        "Address": {
+          "AddressLine": [ "1000 Union Center Drive", "", "" ],
+          "City": "Alpharetta",
+          "StateProvinceCode": "GA",
+          "PostalCode": "30004",
+          "CountryCode": "US"
+        }
+      },
+      "ShipTo": {
+        "Name": "",
+        "Address": {
+          "AddressLine": [ "1600 PENNSYLVANIA AVE NW", "", "" ],
+          "City": "WASHINGTON",
+          "StateProvinceCode": "DC",
+          "PostalCode": "20500",
+          "CountryCode": "US"
+        }
+      },
+      "ShipFrom": {
+        "Name": "Wise Alpharetta",
+        "Address": {
+          "AddressLine": [ "1000 Union Center Drive", "", "" ],
+          "City": "Alpharetta",
+          "StateProvinceCode": "GA",
+          "PostalCode": "30004",
+          "CountryCode": "US"
+        }
+      },
+      "PaymentDetails": {
+        "ShipmentCharge": {
+          "Type": "01",
+          "BillShipper": { "AccountNumber": "391287" }
+        }
+      },
+      "Service": {
+        "Code": "03",
+        "Description": "Ground"
+      },
+      "NumOfPieces": "0",
+      "Package": {
+        "SimpleRate": {
+          "Description": "SimpleRateDescription",
+          "Code": "XS"
+        },
+        "PackagingType": {
+          "Code": "02",
+          "Description": "Packaging"
+        },
+        "Dimensions": {
+          "UnitOfMeasurement": {
+            "Code": "IN",
+            "Description": "Inches"
+          },
+          "Length": "5",
+          "Width": "5",
+          "Height": "5"
+        },
+        "PackageWeight": {
+          "UnitOfMeasurement": {
+            "Code": "LBS",
+            "Description": "Pounds"
+          },
+          "Weight": "0"
+        }
+      }
+    }
+  }
+}

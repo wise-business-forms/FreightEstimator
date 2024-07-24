@@ -262,6 +262,7 @@
     <Content Include="Content\img\Thumbs.db" />
     <Content Include="sampleShopResponse.json" />
     <Content Include="sampleAddressValidationRequest.json" />
+    <Content Include="sampleShopRequest.json" />
     <None Include="Scripts\jquery-3.7.0.intellisense.js" />
     <Content Include="Scripts\jquery-3.7.0.js" />
     <Content Include="Scripts\jquery-3.7.0.min.js" />
