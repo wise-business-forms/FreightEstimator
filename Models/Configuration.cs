@@ -30,8 +30,8 @@ namespace AuthenticationServer.Models
         static string _UPSAddressValidationURL = "https://wwwcie.ups.com/api/addressvalidation/v1/3"; // TEST  {version}/{requestOption}
         static string _UPSShopRatesURL = "https://wwwcie.ups.com/api/rating/v2403/Shop"; // TEST {version}/{requestoption}
 
-        static string _UpsRateSqlConnection = "Data Source=AZUREDB01;Intial Catalog=UpsRate;uid=sa;pwd=95Montana!!!;";
-        static string _WiseLinkSqlConnection = "Data Source=AZUREDB01;Intial Catalog=WBFDOTCOM;uid=sa;pwd=95Montana!!!;";
+        static string _UpsRateSqlConnection = "Server=AZUREDB01\\AZUREDB01;Intial Catalog=UpsRate;uid=sa;pwd=95Montana!!!;";
+        static string _WiseLinkSqlConnection = "Data Source=AZUREDB01\\AZUREDB01;Intial Catalog=WBFDOTCOM;uid=sa;pwd=95Montana!!!;";
 
         static Dictionary<string, string> _UPSRateCode = new Dictionary<string, string>()
         {

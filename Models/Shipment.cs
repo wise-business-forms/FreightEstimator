@@ -28,6 +28,23 @@ namespace AuthenticationServer.Models
         public string include_ltl_rate_selection { get; set; }
         public List<SelectListItem> include_ltl_rate { get; set; }
 
+        // LTL information
+        public List<SelectListItem> freight_class {  get; set; }
+        public int freight_class_selected { get; set; }
+        public DateTime pick_up_date { get; set; }
+        public bool notify_before_delivery {  get; set; }
+        public bool liftgate_pickup {  get; set; }
+        public bool liftgate_delivery {  get; set; }
+        public bool limited_access_pickup { get; set; }
+        public bool limited_access_delivery { get; set; }
+        public bool residential_pickup { get; set; }
+        public bool residential_delivery { get; set; }
+        public bool inside_pickup { get; set; }
+        public bool inside_delivery { get; set; }
+        public bool sort_and_segregate { get; set; }
+        public bool stopoff_charge {  get; set; }
+
+        // Calculated values
         public float billing_weight { get; set; }
 
         public ShopRateResponse shopRateResponse { get; set; }

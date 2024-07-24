@@ -12,11 +12,17 @@ using System.Text.Json;
 using System.Web.Mvc;
 using System.Linq;
 using AuthenticationServer.Models.Service;
+using System.Data.SqlClient;
+using Microsoft.Win32.SafeHandles;
+using System.Data;
 
 namespace AuthenticationServer.Controllers
 {
     public class PlantController : Controller
     {
+        private string _request;
+        private string _response;
+
         // GET: Plant
         public ActionResult Index(string loc)
         {
@@ -25,6 +31,12 @@ namespace AuthenticationServer.Controllers
             {
                 return View("Error");
             }
+
+            if (loc == "ALP")
+            {
+                ViewBag.AccountMessage = "Required for Shipments from ALP\r\nor \"Rate from Multiple Locations\"";
+            }
+
             var plantName = Configuration.PlantLocations[loc.ToUpper()];            
             var model = new Models.Shipment { };
 
@@ -50,6 +62,7 @@ namespace AuthenticationServer.Controllers
         {
             if (ModelState.IsValid)
             {
+                ShowLTLRates(shipment, _request, _response);
                 // Save the shipment to the database
                 return RedirectToAction("ShipmentConfirmation", shipment);
             }
@@ -122,6 +135,124 @@ namespace AuthenticationServer.Controllers
             }
         }
 
+        private void ShowLTLRates(Shipment shipment, string uPSRequest, string uPSResponse)
+        {
+            try
+            {
+                #region -- Define Per Package Charge and Per Shipment charge dictionaries for LTL (chare per plant) --
+                Dictionary<string, double> dPerPackageChargeLTL = new Dictionary<string, double>();
+                Dictionary<string, double> dPerShipmentChargeLTL = new Dictionary<string, double>();
+                Dictionary<string, double> dUpchargeLTL = new Dictionary<string, double>();
+
+                SqlConnection sqlConnection = new SqlConnection(Configuration.UpsRateSqlConnection);
+                sqlConnection.Open();
+
+                SqlCommand cmdCharges = sqlConnection.CreateCommand();
+                cmdCharges.CommandText = "GetPlantCharges";
+                cmdCharges.CommandType = System.Data.CommandType.StoredProcedure;
+                cmdCharges.Parameters.Add("@Carrer", System.Data.SqlDbType.VarChar, 50).Value = "M33";
+                cmdCharges.Parameters.Add("@AcctNumber", System.Data.SqlDbType.Int).Value = shipment.AcctNum;
+
+                SqlDataReader drCharges = cmdCharges.ExecuteReader();
+
+                while (drCharges.Read())
+                {
+                    dPerPackageChargeLTL.Add(drCharges["PlantCode"].ToString(), Convert.ToDouble(drCharges["PerPackageCharge"].ToString()));
+                    dPerShipmentChargeLTL.Add(drCharges["PlantCode"].ToString(), Convert.ToDouble(drCharges["PerShipmentCharge"].ToString()));
+                    dUpchargeLTL.Add(drCharges["PlantCode"].ToString(), Convert.ToDouble(drCharges["Ground"].ToString()));
+                }
+                #endregion
+
+                StringBuilder sbResults = new StringBuilder();
+                string url = Configuration.TransPlaceUrl;
+                string token = Configuration.TransPlaceToken;
+                string fullPostData = "";
+                string pickupDate = "";
+
+                try
+                {
+                    DateTime datePickup = DateTime.Parse(shipment.pick_up_date.ToString());
+                    pickupDate = datePickup.Year.ToString() + "-" + datePickup.Month.ToString() + "-" + datePickup.Day.ToString();
+                }
+                catch
+                {
+                    pickupDate = DateTime.Now.Year.ToString() + "-" + DateTime.Now.Month.ToString() + "-" + DateTime.Now.Day.ToString();
+                }
+                string ltlClass = shipment.freight_class_selected.ToString();
+
+                #region -- Define dtLTLServices to hold rate data --
+                DataSet dsLTLServices = new DataSet();
+                DataTable dtLTLServices = dsLTLServices.Tables.Add();
+
+                dtLTLServices.Columns.Add("Plant", typeof(string));
+                dtLTLServices.Columns.Add("Service", typeof(string));
+                dtLTLServices.Columns.Add("Rate", typeof(double));
+                dtLTLServices.Columns.Add("TransitDays", typeof(int));
+                dtLTLServices.Columns.Add("Direct", typeof(string));
+                #endregion
+
+                string[] plantCodes = { "" };
+
+                if(shipment.PlantId == "ALL")
+                {
+                    plantCodes = Configuration.PlantCodesMultiRate;
+                }
+                else
+                {
+                    plantCodes[0] = shipment.PlantId;
+                }
+
+                string combinedResponses = "";
+                foreach (string plantCode in plantCodes)
+                {
+                    // Lines 502 - 676
+                }
+
+                #region -- log results --
+                try
+                {
+                    string UserName = "TBD";
+
+                    SqlConnection conlog = new SqlConnection(Configuration.UpsRateSqlConnection);
+                    conlog.Open();
+
+                    SqlCommand cmdLog = new SqlCommand();
+                    cmdLog.Connection = conlog;
+                    cmdLog.CommandType = CommandType.StoredProcedure;
+                    cmdLog.CommandText = "LogResultsLTL";
+
+                    SqlParameter pPlantCode = new SqlParameter("@PlantCode", SqlDbType.VarChar, 10);
+                    SqlParameter pUserName = new SqlParameter("@UserName", SqlDbType.VarChar, 10);
+                    SqlParameter pFullRequest = new SqlParameter("@FullRequest", SqlDbType.NText);
+                    SqlParameter pFullResults = new SqlParameter("@FullResults", SqlDbType.NText);
+                    SqlParameter pXmlResponse = new SqlParameter("@XmlResponse", SqlDbType.NText);
+
+                    pPlantCode.Value = shipment.PlantId;
+                    pUserName.Value = UserName;
+                    pFullRequest.Value = uPSRequest.ToString();
+                    pFullResults.Value = uPSResponse.ToString();
+                    pXmlResponse.Value = string.Empty;
+
+                    cmdLog.Parameters.Add(pPlantCode);
+                    cmdLog.Parameters.Add(pUserName);
+                    cmdLog.Parameters.Add(pFullRequest);
+                    cmdLog.Parameters.Add(pFullResults);
+                    cmdLog.Parameters.Add(pXmlResponse);
+
+                    cmdLog.ExecuteNonQuery();
+                    conlog.Close();
+                }
+                catch(Exception ex)
+                {
+                    // TODO
+                }
+                #endregion
+            }
+            catch (Exception ex)
+            {
+                //TODO
+            }
+        }
         private string GetToken()
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
@@ -267,8 +398,8 @@ namespace AuthenticationServer.Controllers
                     // Write data to request stream
                     using (var streamWriter = new StreamWriter(request.GetRequestStream()))
                     {
-                        var rr = RateRequest(shipment);
-                        streamWriter.Write(rr);
+                        _request = RateRequest(shipment);
+                        streamWriter.Write(_request);
                     }
 
                     // Get the response
@@ -278,9 +409,9 @@ namespace AuthenticationServer.Controllers
                         {
                             using (var streamReader = new StreamReader(response.GetResponseStream()))
                             {
-                                string result = streamReader.ReadToEnd();
+                                _response = streamReader.ReadToEnd();
 
-                                dynamic data = JObject.Parse(result);
+                                dynamic data = JObject.Parse(_response);
 
                                 // Check for each key's existence and assign values accordingly
                                 IList<JToken> services = data.SelectToken("RateResponse.RatedShipment");

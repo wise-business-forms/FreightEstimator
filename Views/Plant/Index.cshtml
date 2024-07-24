@@ -36,6 +36,7 @@
                         @Html.TextBoxFor(model => model.AcctNum, new { @class = "form-control" })
                         @Html.ValidationMessageFor(model => model.AcctNum)
                     </div>
+                    <div>@ViewBag.AccountMessage</div>
                 </div>
                 <div class="form-group row">
                     <label for="Address" class="col-sm-2 col-form-label">Address:</label>
