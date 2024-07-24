@@ -11,6 +11,7 @@ using System.Text;
 using System.Text.Json;
 using System.Web.Mvc;
 using System.Linq;
+using AuthenticationServer.Models.Service;
 
 namespace AuthenticationServer.Controllers
 {
@@ -60,7 +61,7 @@ namespace AuthenticationServer.Controllers
             //ValidateStateForCWT(shipment);            
             AddressKeyFormat response = AddressValidation(shipment);
 
-            shipment.Address = response.AddressLine;
+            shipment.Address = response.AddressLine[0];
             shipment.City = response.PoliticalDivision2;
             shipment.State = response.PoliticalDivision1;
             shipment.Zip = response.PostcodePrimaryLow;
@@ -165,52 +166,11 @@ namespace AuthenticationServer.Controllers
 
         private AddressKeyFormat AddressValidation(Shipment shipment)
         {
+            string addressValidationRequest = AddressValidationRequest(shipment);
             using (HttpClient client = new HttpClient())
             {
                 client.DefaultRequestHeaders.Add("Authorization", "Bearer " + GetToken());
 
-                JObject jObjShipment = new JObject(
-                    new JProperty("XAVRequest",
-                        new JObject(
-                            new JProperty("AddressKeyFormat",
-                                new JObject(
-                                    new JProperty("ConsigneeName", ""),
-                                    new JProperty("BuildingName", ""),
-                                    new JProperty("AddressLine", new JArray("1600 Pensenvalyia Ave", "", "")),
-                                    new JProperty("Region", "Washington,DC,20500"),
-                                    new JProperty("PoliticalDivision2", "ALISO VIEJO"),
-                                    new JProperty("PoliticalDivision1", "CA"),
-                                    new JProperty("PostcodePrimaryLow", "92656"),
-                                    new JProperty("PostcodeExtendedLow", "1521"),
-                                    new JProperty("Urbanization", "porto arundal"),
-                                    new JProperty("CountryCode", "US")
-                                )
-                            )
-                        )
-                    )
-                );
-                /*
-                JObject jObject = JObject.Parse(@"{
-                XAVRequest: {
-                    AddressKeyFormat: {
-                        ConsigneeName: '',
-                        BuildingName: '',
-                        AddressLine: [
-                            '1600 Pensenvalyia Ave',
-                            '',
-                            ''
-                        ],
-                        Region: 'Washington,DC,20500',
-                        PoliticalDivision2: 'ALISO VIEJO',
-                        PoliticalDivision1: 'CA',
-                        PostcodePrimaryLow: '92656',
-                        PostcodeExtendedLow: '1521',
-                        Urbanization: 'porto arundal',
-                        CountryCode: 'US'
-                    }
-                }
-                }");
-                */
                 try
                 {
                     // Create HttpWebRequest
@@ -222,7 +182,7 @@ namespace AuthenticationServer.Controllers
                     // Write data to request stream
                     using (var streamWriter = new StreamWriter(request.GetRequestStream()))
                     {
-                        streamWriter.Write(jObjShipment);
+                        streamWriter.Write(addressValidationRequest);
                     }
 
                     // Get the response
@@ -539,5 +499,33 @@ namespace AuthenticationServer.Controllers
             sb.Append("}"); // ROOT
             return sb.ToString();
         }        
+
+
+        /// <summary>
+        /// Builds the JSON address request for the UPS API
+        /// </summary>
+        /// <param name="shipment"></param>
+        /// <returns></returns>
+        private string AddressValidationRequest(Shipment shipment)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.Append("{\"XAVRequest\":");
+            stringBuilder.Append("{\"AddressKeyFormat\": ");
+            stringBuilder.Append("{\"ConsigneeName\": \"\",");
+            stringBuilder.Append("\"BuildingName\": \"\",");
+            stringBuilder.Append("\"AddressLine\": [\"" + shipment.Address + "\",\"\",\"\"],");  // Only using the first line of the array.
+            stringBuilder.Append("\"Region\": \"" + shipment.City + "," + shipment.State + "," + shipment.Zip + "\",");
+            stringBuilder.Append("\"PoliticalDivision2\": \"\",");
+            stringBuilder.Append("\"PoliticalDivision1\": \"" + shipment.State + "\",");
+            stringBuilder.Append("\"PostcodePrimaryLow\": \"" + shipment.Zip + "\",");
+            stringBuilder.Append("\"PostcodeExtendedLow\": \"\",");
+            stringBuilder.Append("\"Urbanization\": \"\",");
+            stringBuilder.Append("\"CountryCode\": \"" + shipment.Country + "\"");
+            stringBuilder.Append("}"); // Consignee
+            stringBuilder.Append("}"); // AddressKeyFormat
+            stringBuilder.Append("}"); // ROOT
+
+            return stringBuilder.ToString();
+        }
     }
 }

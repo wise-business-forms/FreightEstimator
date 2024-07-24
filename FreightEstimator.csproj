@@ -197,7 +197,10 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Models\Configuration.cs" />
+    <Compile Include="Models\Data\Request.cs" />
     <Compile Include="Models\Plant.cs" />
+    <Compile Include="Models\Service\UPSRequest.cs" />
+    <Compile Include="Models\Service\XAVResponse.cs" />
     <Compile Include="Models\UPSService.cs" />
     <Compile Include="Models\ShopRateResponse.cs" />
     <Compile Include="Models\Shipment.cs" />
@@ -258,6 +261,7 @@
     <Content Include="Areas\HelpPage\Views\Help\Api.cshtml" />
     <Content Include="Content\img\Thumbs.db" />
     <Content Include="sampleShopResponse.json" />
+    <Content Include="sampleAddressValidationRequest.json" />
     <None Include="Scripts\jquery-3.7.0.intellisense.js" />
     <Content Include="Scripts\jquery-3.7.0.js" />
     <Content Include="Scripts\jquery-3.7.0.min.js" />

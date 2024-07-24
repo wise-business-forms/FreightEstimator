@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
+using AuthenticationServer.Models.Service;
+
 namespace AuthenticationServer.Models
 {
     public class ResponseStatus
@@ -24,12 +26,15 @@ namespace AuthenticationServer.Models
 
     public class AddressKeyFormat
     {
-        public string AddressLine { get; set; }
+        public string ConsigneeName { get; set; }
+        public string BuildingName { get; set; }
+        public string[] AddressLine { get; set; }
         public string PoliticalDivision2 { get; set; }
         public string PoliticalDivision1 { get; set; }
         public string PostcodePrimaryLow { get; set; }
         public string PostcodeExtendedLow { get; set; }
-        public string Region { get; set; }
+        public string[] Region { get; set; }
+        public string Urbanization {  get; set; }
         public string CountryCode { get; set; }
     }
 
@@ -37,14 +42,6 @@ namespace AuthenticationServer.Models
     {
         public AddressClassification AddressClassification { get; set; }
         public AddressKeyFormat AddressKeyFormat { get; set; }
-    }
-
-    public class XAVResponse
-    {
-        public Response Response { get; set; }
-        public string ValidAddressIndicator { get; set; }
-        public AddressClassification AddressClassification { get; set; }
-        public Candidate Candidate { get; set; }
     }
 
     public class UPSResponse

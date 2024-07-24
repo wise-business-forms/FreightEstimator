@@ -30,6 +30,9 @@ namespace AuthenticationServer.Models
         static string _UPSAddressValidationURL = "https://wwwcie.ups.com/api/addressvalidation/v1/3"; // TEST  {version}/{requestOption}
         static string _UPSShopRatesURL = "https://wwwcie.ups.com/api/rating/v2403/Shop"; // TEST {version}/{requestoption}
 
+        static string _UpsRateSqlConnection = "Data Source=AZUREDB01;Intial Catalog=UpsRate;uid=sa;pwd=95Montana!!!;";
+        static string _WiseLinkSqlConnection = "Data Source=AZUREDB01;Intial Catalog=WBFDOTCOM;uid=sa;pwd=95Montana!!!;";
+
         static Dictionary<string, string> _UPSRateCode = new Dictionary<string, string>()
         {
             {"01", "UPS Next Day Air"},
@@ -157,6 +160,14 @@ namespace AuthenticationServer.Models
         public static string UPSShopRatesURL
         {
             get { return _UPSShopRatesURL; }
+        }
+        public static string UpsRateSqlConnection
+        {
+            get { return _UpsRateSqlConnection; }
+        }
+        public static string WiseLinkSqlConnection
+        {
+            get { return _WiseLinkSqlConnection; }
         }
         public static string UPSShipFromName
         {

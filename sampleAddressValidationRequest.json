@@ -1,0 +1,20 @@
+{
+  "XAVRequest": {
+    "AddressKeyFormat": {
+      "ConsigneeName": "RITZ CAMERA CENTERS-1749",
+      "BuildingName": "Innoplex",
+      "AddressLine": [
+        "26601 ALISO CREEK ROAD",
+        "STE D",
+        "ALISO VIEJO TOWN CENTER"
+      ],
+      "Region": "ROSWELL,GA,30076-1521",
+      "PoliticalDivision2": "ALISO VIEJO",
+      "PoliticalDivision1": "CA",
+      "PostcodePrimaryLow": "92656",
+      "PostcodeExtendedLow": "1521",
+      "Urbanization": "porto arundal",
+      "CountryCode": "US"
+    }
+  }
+}
