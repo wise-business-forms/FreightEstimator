@@ -59,12 +59,6 @@ namespace AuthenticationServer.Controllers
         public ActionResult ShipmentConfirmation(Shipment shipment)
         {
             //ValidateStateForCWT(shipment);            
-            AddressKeyFormat response = AddressValidation(shipment);
-
-            shipment.Address = response.AddressLine[0];
-            shipment.City = response.PoliticalDivision2;
-            shipment.State = response.PoliticalDivision1;
-            shipment.Zip = response.PostcodePrimaryLow;
 
             shipment.billing_weight = shipment.number_of_packages * shipment.package_weight;
 
@@ -408,7 +402,7 @@ namespace AuthenticationServer.Controllers
             sb.Append("{\"RateRequest\":");
 
                 sb.Append("{\"Request\":");
-                sb.Append("{\"TransactionReference\":{\"CustomerContext\": \"Verify Success response\"}"); // TransactionReference
+                sb.Append("{\"TransactionReference\":{\"CustomerContext\": \"CustomerContext\"}"); // TransactionReference
                 sb.Append("},"); // Request
 
                 sb.Append("\"Shipment\":");
