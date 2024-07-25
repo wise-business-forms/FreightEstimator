@@ -15,13 +15,14 @@ using AuthenticationServer.Models.Service;
 using System.Data.SqlClient;
 using Microsoft.Win32.SafeHandles;
 using System.Data;
+using System.Drawing.Printing;
 
 namespace AuthenticationServer.Controllers
 {
     public class PlantController : Controller
     {
-        private string _request;
-        private string _response;
+        private string _upsRequest = string.Empty;
+        private string _upsResponse = string.Empty;
 
         // GET: Plant
         public ActionResult Index(string loc)
@@ -62,7 +63,7 @@ namespace AuthenticationServer.Controllers
         {
             if (ModelState.IsValid)
             {
-                ShowLTLRates(shipment, _request, _response);
+                
                 // Save the shipment to the database
                 return RedirectToAction("ShipmentConfirmation", shipment);
             }
@@ -75,7 +76,11 @@ namespace AuthenticationServer.Controllers
 
             shipment.billing_weight = shipment.number_of_packages * shipment.package_weight;
 
-            shipment.shopRateResponse = ShopRateResponse(shipment);
+            shipment.shopRateResponse = ShopRateResponse(shipment); 
+            shipment.requestMessage = _upsRequest;
+            shipment.responseMessage = _upsResponse;
+
+            ShowLTLRates(shipment);
 
             return View(shipment);
         }
@@ -135,7 +140,7 @@ namespace AuthenticationServer.Controllers
             }
         }
 
-        private void ShowLTLRates(Shipment shipment, string uPSRequest, string uPSResponse)
+        private void ShowLTLRates(Shipment shipment)
         {
             try
             {
@@ -150,7 +155,7 @@ namespace AuthenticationServer.Controllers
                 SqlCommand cmdCharges = sqlConnection.CreateCommand();
                 cmdCharges.CommandText = "GetPlantCharges";
                 cmdCharges.CommandType = System.Data.CommandType.StoredProcedure;
-                cmdCharges.Parameters.Add("@Carrer", System.Data.SqlDbType.VarChar, 50).Value = "M33";
+                cmdCharges.Parameters.Add("@Carrier", System.Data.SqlDbType.VarChar, 50).Value = "M33";
                 cmdCharges.Parameters.Add("@AcctNumber", System.Data.SqlDbType.Int).Value = shipment.AcctNum;
 
                 SqlDataReader drCharges = cmdCharges.ExecuteReader();
@@ -229,8 +234,8 @@ namespace AuthenticationServer.Controllers
 
                     pPlantCode.Value = shipment.PlantId;
                     pUserName.Value = UserName;
-                    pFullRequest.Value = uPSRequest.ToString();
-                    pFullResults.Value = uPSResponse.ToString();
+                    pFullRequest.Value = shipment.requestMessage;
+                    pFullResults.Value = shipment.responseMessage;
                     pXmlResponse.Value = string.Empty;
 
                     cmdLog.Parameters.Add(pPlantCode);
@@ -398,8 +403,8 @@ namespace AuthenticationServer.Controllers
                     // Write data to request stream
                     using (var streamWriter = new StreamWriter(request.GetRequestStream()))
                     {
-                        _request = RateRequest(shipment);
-                        streamWriter.Write(_request);
+                        _upsRequest = RateRequest(shipment);
+                        streamWriter.Write(_upsRequest);
                     }
 
                     // Get the response
@@ -409,9 +414,9 @@ namespace AuthenticationServer.Controllers
                         {
                             using (var streamReader = new StreamReader(response.GetResponseStream()))
                             {
-                                _response = streamReader.ReadToEnd();
+                                _upsResponse = streamReader.ReadToEnd();
 
-                                dynamic data = JObject.Parse(_response);
+                                dynamic data = JObject.Parse(_upsResponse);
 
                                 // Check for each key's existence and assign values accordingly
                                 IList<JToken> services = data.SelectToken("RateResponse.RatedShipment");
@@ -495,6 +500,7 @@ namespace AuthenticationServer.Controllers
                 {
                     if (ex.Response != null)
                     {
+                        
                         using (var errorResponse = (HttpWebResponse)ex.Response)
                         {
                             using (var reader = new StreamReader(errorResponse.GetResponseStream()))
@@ -502,6 +508,7 @@ namespace AuthenticationServer.Controllers
                                 string error = reader.ReadToEnd();
                                 Console.WriteLine("Error response JSON:");
                                 Console.WriteLine(error);
+                                _upsResponse = error;
                             }
                         }
                     }

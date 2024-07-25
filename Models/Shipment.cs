@@ -46,7 +46,10 @@ namespace AuthenticationServer.Models
 
         // Calculated values
         public float billing_weight { get; set; }
-
         public ShopRateResponse shopRateResponse { get; set; }
+
+        // Logging
+        public string requestMessage { get; set; }
+        public string responseMessage { get; set; }
     }
 }
