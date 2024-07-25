@@ -40,6 +40,7 @@ namespace AuthenticationServer.Controllers
 
             ViewBag.States = Geography.States();
             ViewBag.Countries = Geography.Countries();
+            
 
             var plantName = Configuration.PlantLocations[loc.ToUpper()];            
             var model = new Models.Shipment { };
@@ -52,7 +53,16 @@ namespace AuthenticationServer.Controllers
             model.delivery_signature_required = Configuration.DeliverySignatureRequiredSelection;
             model.multiple_location_rate = new List<SelectListItem> { new SelectListItem { Text = "No", Value = "No" }, new SelectListItem { Text = "Yes", Value = "Yes" } };
             model.include_ground_rate = new List<SelectListItem> { new SelectListItem { Text = "Yes", Value = "Yes" }, new SelectListItem { Text = "No", Value = "No" } };
-            model.include_ltl_rate = new List<SelectListItem> { new SelectListItem { Text = "Yes", Value = "Yes" }, new SelectListItem { Text = "No", Value = "No" } };
+            model.include_ltl_rate = new List<SelectListItem> { new SelectListItem { Text = "No", Value = "No" }, new SelectListItem { Text = "Yes", Value = "Yes" } };
+
+            model.freight_class = new List<SelectListItem>
+            {
+                new SelectListItem { Text = "50", Value = "50"},
+                new SelectListItem { Text = "55", Value = "55"},
+                new SelectListItem { Text = "60", Value = "60"},
+                new SelectListItem { Text = "65", Value = "65"}
+
+            };
 
             model.delivery_signature_required_selction = "No";
             model.multiple_location_rate_selection = "No";
@@ -71,7 +81,13 @@ namespace AuthenticationServer.Controllers
                 // Save the shipment to the database
                 return RedirectToAction("ShipmentConfirmation", shipment);
             }
+            ViewBag.DropdownItems = new List<SelectListItem> { new SelectListItem { Text = "Yes", Value = "Yes" }, new SelectListItem { Text = "No", Value = "No" } };
             return View("Shipment", shipment);
+        }
+
+        public ActionResult LoadAdditionalOptions(Shipment shipment)
+        {
+            return PartialView("_AdditionalOptions", shipment);
         }
 
         public ActionResult ShipmentConfirmation(Shipment shipment)

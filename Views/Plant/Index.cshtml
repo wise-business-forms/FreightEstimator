@@ -55,7 +55,7 @@
                 <div class="form-group row">
                     <label for="State" class="col-sm-2 col-form-label">State:</label>
                     <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.State, ViewBag.States as SelectList, "", new { @class = "form-control"})
+                        @Html.DropDownListFor(model => model.State, ViewBag.States as SelectList, "", new { @class = "form-control" })
                         @Html.ValidationMessageFor(model => model.State)
                     </div>
                 </div>
@@ -118,17 +118,118 @@
                 <div class="form-group row">
                     <label for="include_ltl_rate" class="col-sm-2 col-form-label">Include LTL Rates?</label>
                     <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.include_ltl_rate_selection, Model.include_ltl_rate, new { @class = "form-control" })
+                        @Html.DropDownListFor(model => model.include_ltl_rate, Model.include_ltl_rate, new { @class = "form-control" })
                         @Html.ValidationMessageFor(model => model.include_ltl_rate)
                     </div>
                 </div>
+                
+                <div id="ltlFields">
+                    <div class="form-group row">
+                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Freight Class</label>
+                        <div class="col-sm-10">
+                            @Html.DropDownListFor(model => model.freight_class, Model.freight_class, new { @class = "form-control" })
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Pickup Date</label>
+                        <div class="col-sm-10">
+                            @Html.TextBoxFor(model => model.pick_up_date, Model.pick_up_date, new { @class = "form-control"})
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Notify Before Delivery</label>
+                        <div class="col-sm-10">
+                            @Html.CheckBoxFor(model => model.notify_before_delivery)
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Liftgate Pickup</label>
+                        <div class="col-sm-10">
+                            @Html.CheckBoxFor(model => model.liftgate_pickup)
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Liftgate Delivery</label>
+                        <div class="col-sm-10">
+                            @Html.CheckBoxFor(model => model.liftgate_delivery)
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Limited Access Pickup</label>
+                        <div class="col-sm-10">
+                            @Html.CheckBoxFor(model => model.limited_access_pickup)
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Limited Access Delivery</label>
+                        <div class="col-sm-10">
+                            @Html.CheckBoxFor(model => model.limited_access_delivery)
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Residential Pickup</label>
+                        <div class="col-sm-10">
+                            @Html.CheckBoxFor(model => model.residential_pickup)
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Residential Delivery</label>
+                        <div class="col-sm-10">
+                            @Html.CheckBoxFor(model => model.residential_delivery)
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Inside Pickup</label>
+                        <div class="col-sm-10">
+                            @Html.CheckBoxFor(model => model.inside_pickup)
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Inside Delivery</label>
+                        <div class="col-sm-10">
+                            @Html.CheckBoxFor(model => model.inside_delivery)
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Sort and Segregate</label>
+                        <div class="col-sm-10">
+                            @Html.CheckBoxFor(model => model.sort_and_segregate)
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Stopoff Charge</label>
+                        <div class="col-sm-10">
+                            @Html.CheckBoxFor(model => model.stopoff_charge)
+                        </div>
+                    </div>
+                </div>
 
-            </div>
-            <div class="row">
-                <div><button type="submit">Get Rates</button></div>
-            </div>
-        </form>
+                <div class="row">
+                    <div><button type="submit">Get Rates</button></div>
+                </div>
+</form>
+    }
+
+</main>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+    <script type="text/javascript">
+        $(document).ready(function () {
+            toggleLTLFields();
+            $('#include_ltl_rate').change(function () {
+                toggleLTLFields();
+            })
+        });
+
+        function toggleLTLFields() {
+            var ltlRates = $('#include_ltl_rate').val();
+            if (ltlRates === 'Yes') {
+                $('#ltlFields').show();
             }
-        
-    </main>
-
+            else {
+                $('#ltlFields').hide();
+            }
+        }
+    </script>
+    }
