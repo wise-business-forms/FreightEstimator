@@ -48,7 +48,7 @@ namespace AuthenticationServer.Controllers
             // Setup default values for the shipment
             model.PlantId = loc.ToUpper();
             model.PlantName = plantName;
-            model.Country = "US";
+            model.Country_selection = "United States";
 
             model.delivery_signature_required = Configuration.DeliverySignatureRequiredSelection;
             model.multiple_location_rate = new List<SelectListItem> { new SelectListItem { Text = "No", Value = "No" }, new SelectListItem { Text = "Yes", Value = "Yes" } };
@@ -75,14 +75,14 @@ namespace AuthenticationServer.Controllers
         [HttpPost]
         public ActionResult SubmitShipment(Shipment shipment)
         {
-            if (ModelState.IsValid)
+            //if (ModelState.IsValid)
             {
                 
                 // Save the shipment to the database
                 return RedirectToAction("ShipmentConfirmation", shipment);
             }
-            ViewBag.DropdownItems = new List<SelectListItem> { new SelectListItem { Text = "Yes", Value = "Yes" }, new SelectListItem { Text = "No", Value = "No" } };
-            return View("Shipment", shipment);
+            
+            //return View("Index", shipment);
         }
 
         public ActionResult LoadAdditionalOptions(Shipment shipment)
@@ -100,8 +100,14 @@ namespace AuthenticationServer.Controllers
             shipment.requestMessage = _upsRequest;
             shipment.responseMessage = _upsResponse;
 
-            ShowLTLRates(shipment);
-
+            if (shipment.include_ltl_rate_selection == "Yes")
+            {
+                ShowLTLRates(shipment);
+            }
+            else
+            {
+                ShopRateResponse(shipment);
+            }
             return View(shipment);
         }
 
@@ -152,7 +158,7 @@ namespace AuthenticationServer.Controllers
             }
 
             if (IsHundredWeight) {
-                StateIsValid = (shipment.State.Length >= 2);
+                StateIsValid = (shipment.State_selection.Length >= 2);
             }
             else
             {
@@ -576,7 +582,7 @@ namespace AuthenticationServer.Controllers
                             sb.Append("\"City\": \"" + Configuration.UPSShipFromCity + "\",");
                             sb.Append("\"StateProvinceCode\": \"" + Configuration.UPSShipFromState + "\",");
                             sb.Append("\"PostalCode\": \"" + Configuration.UPSShipFromZip + "\",");
-                            sb.Append("\"CountryCode\": \"US\"");
+                            sb.Append("\"CountryCode\": \"" + shipment.Country_selection + "\"");
                         sb.Append("}"); // Address
                     sb.Append("},"); // Shipper
 
@@ -589,9 +595,9 @@ namespace AuthenticationServer.Controllers
                             sb.Append("\"\"");
                             sb.Append("],");
                         sb.Append("\"City\": \""+ shipment.City + "\",");
-                        sb.Append("\"StateProvinceCode\": \"" + shipment.State + "\",");
+                        sb.Append("\"StateProvinceCode\": \"" + shipment.State_selection + "\",");
                         sb.Append("\"PostalCode\": \"" + shipment.Zip + "\",");
-                        sb.Append("\"CountryCode\": \"US\"");
+                        sb.Append("\"CountryCode\": \"" + shipment.Country_selection + "\"");
                     sb.Append("}"); // Address
                 sb.Append("},"); // ShipTo
 
@@ -606,7 +612,7 @@ namespace AuthenticationServer.Controllers
                     sb.Append("\"City\": \"" + Configuration.UPSShipFromCity + "\",");
                 sb.Append("\"StateProvinceCode\": \"" + Configuration.UPSShipFromState + "\",");
                 sb.Append("\"PostalCode\": \"" + Configuration.UPSShipFromZip + "\",");
-                sb.Append("\"CountryCode\": \"US\"");
+                sb.Append("\"CountryCode\": \""+ shipment.Country_selection + "\"");
                 sb.Append("}"); // Address
             sb.Append("},"); // ShipFrom
 
@@ -666,13 +672,13 @@ namespace AuthenticationServer.Controllers
             stringBuilder.Append("{\"ConsigneeName\": \"\",");
             stringBuilder.Append("\"BuildingName\": \"\",");
             stringBuilder.Append("\"AddressLine\": [\"" + shipment.Address + "\",\"\",\"\"],");  // Only using the first line of the array.
-            stringBuilder.Append("\"Region\": \"" + shipment.City + "," + shipment.State + "," + shipment.Zip + "\",");
+            stringBuilder.Append("\"Region\": \"" + shipment.City + "," + shipment.State_selection + "," + shipment.Zip + "\",");
             stringBuilder.Append("\"PoliticalDivision2\": \"\",");
-            stringBuilder.Append("\"PoliticalDivision1\": \"" + shipment.State + "\",");
+            stringBuilder.Append("\"PoliticalDivision1\": \"" + shipment.State_selection + "\",");
             stringBuilder.Append("\"PostcodePrimaryLow\": \"" + shipment.Zip + "\",");
             stringBuilder.Append("\"PostcodeExtendedLow\": \"\",");
             stringBuilder.Append("\"Urbanization\": \"\",");
-            stringBuilder.Append("\"CountryCode\": \"" + shipment.Country + "\"");
+            stringBuilder.Append("\"CountryCode\": \"" + shipment.Country_selection + "\"");
             stringBuilder.Append("}"); // Consignee
             stringBuilder.Append("}"); // AddressKeyFormat
             stringBuilder.Append("}"); // ROOT

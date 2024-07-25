@@ -13,9 +13,11 @@ namespace AuthenticationServer.Models
         public string AcctNum { get; set; }
         public string Address { get; set; }
         public string City { get; set; }
-        public string State { get; set; }
+        public string State_selection { get; set; }
+        public List<SelectListItem> state {  get; set; }
         public string Zip { get; set; }
-        public string Country { get; set; }
+        public string Country_selection { get; set; }
+        public List<SelectListItem> country { get; set; }
         public int number_of_packages { get; set; }
         public float package_weight { get; set; }
         public float last_package_weight { get; set; }
