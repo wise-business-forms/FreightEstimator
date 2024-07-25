@@ -38,12 +38,16 @@ namespace AuthenticationServer.Controllers
                 ViewBag.AccountMessage = "Required for Shipments from ALP\r\nor \"Rate from Multiple Locations\"";
             }
 
+            ViewBag.States = Geography.States();
+            ViewBag.Countries = Geography.Countries();
+
             var plantName = Configuration.PlantLocations[loc.ToUpper()];            
             var model = new Models.Shipment { };
 
             // Setup default values for the shipment
             model.PlantId = loc.ToUpper();
             model.PlantName = plantName;
+            model.Country = "US";
 
             model.delivery_signature_required = Configuration.DeliverySignatureRequiredSelection;
             model.multiple_location_rate = new List<SelectListItem> { new SelectListItem { Text = "No", Value = "No" }, new SelectListItem { Text = "Yes", Value = "Yes" } };
