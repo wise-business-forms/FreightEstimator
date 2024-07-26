@@ -21,7 +21,7 @@ namespace AuthenticationServer.Models
         public int number_of_packages { get; set; }
         public float package_weight { get; set; }
         public float last_package_weight { get; set; }
-        public string delivery_signature_required_selction { get; set; }
+        public string delivery_signature_required_selection { get; set; }
         public List<SelectListItem> delivery_signature_required { get; set; }
         public string multiple_location_rate_selection { get; set; }
         public List<SelectListItem> multiple_location_rate { get; set; }
@@ -53,6 +53,8 @@ namespace AuthenticationServer.Models
         // Logging
         public string requestMessage { get; set; }
         public string responseMessage { get; set; }
+        public string results { get; set; }
+        public List<LTLService> LTLServices { get; set; }
     }
 
     public class SelectedItem

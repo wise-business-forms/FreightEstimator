@@ -237,6 +237,7 @@
     </Compile>
     <Compile Include="Models\Configuration.cs" />
     <Compile Include="Models\Data\Request.cs" />
+    <Compile Include="Models\LTLService.cs" />
     <Compile Include="Models\Plant.cs" />
     <Compile Include="Models\Service\UPSRequest.cs" />
     <Compile Include="Models\Service\XAVResponse.cs" />

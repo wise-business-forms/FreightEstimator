@@ -88,39 +88,40 @@
                 <div class="form-group row">
                     <label for="delivery_signature_required" class="col-sm-2 col-form-label">Delivery /Sig Reg'd?</label>
                     <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.delivery_signature_required, Model.delivery_signature_required, new { @class = "form-control" })
+                        @Html.DropDownListFor(model => model.delivery_signature_required_selection, Model.delivery_signature_required, new { @class = "form-control" })
                     </div>
                 </div>
                 <div class="form-group row">
                     <label for="multiple_location_rate" class="col-sm-2 col-form-label">Rate from Multiple Locations?</label>
                     <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.multiple_location_rate, Model.multiple_location_rate, new { @class = "form-control" })
+                        @Html.DropDownListFor(model => model.multiple_location_rate_selection, Model.multiple_location_rate, new { @class = "form-control" })
                     </div>
                 </div>
                 <div class="form-group row">
                     <label for="include_ground_rate" class="col-sm-2 col-form-label">Include Ground Freight Rate?</label>
                     <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.include_ground_rate, Model.include_ground_rate, new { @class = "form-control" })
+                        @Html.DropDownListFor(model => model.include_ground_rate_selection, Model.include_ground_rate, new { @class = "form-control" })
                     </div>
                 </div>
                 <div class="form-group row">
                     <label for="include_ltl_rate" class="col-sm-2 col-form-label">Include LTL Rates?</label>
                     <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.include_ltl_rate, Model.include_ltl_rate, new { @class = "form-control" })
+                        @Html.DropDownListFor(model => model.include_ltl_rate_selection, Model.include_ltl_rate, new { @class = "form-control" })
                     </div>
                 </div>
-                
-                <div id="ltlFields">
+                <!------------------------------------------------------>
+                <div></div>
+                <div>
                     <div class="form-group row">
                         <label for="include_ltl_rate" class="col-sm-2 col-form-label">Freight Class</label>
                         <div class="col-sm-10">
-                            @Html.DropDownListFor(model => model.freight_class, Model.freight_class, new { @class = "form-control" })
+                            @Html.DropDownListFor(model => model.freight_class, Model.freight_class, new { @id = "include_ltl_rate", @class = "form-control" })
                         </div>
                     </div>
                     <div class="form-group row">
                         <label for="include_ltl_rate" class="col-sm-2 col-form-label">Pickup Date</label>
                         <div class="col-sm-10">
-                            @Html.TextBoxFor(model => model.pick_up_date, Model.pick_up_date, new { @class = "form-control"})
+                            @Html.TextBoxFor(model => model.pick_up_date, "{0:MM-dd-yyyy}", new { @type ="date", @id="datepicker"})
                         </div>
                     </div>
                     <div class="form-group row">
@@ -202,11 +203,13 @@
 @section Scripts {
     @Scripts.Render("~/bundles/jqueryval")
     <script type="text/javascript">
-        $(document).ready(function () {
+        $document.getElementById("include_ltl_rate").addEventListener("change", function () {
             toggleLTLFields();
-            $('#include_ltl_rate').change(function () {
-                toggleLTLFields();
-            })
+        })
+
+        $(document).ready(function () {
+            $('#ltlFields').hide();
+            toggleLTLFields();
         });
 
         function toggleLTLFields() {

@@ -17,7 +17,7 @@
                 <div>@Model.Country_selection</div>
 
                 <br />
-                <div>Delivery / Sig Req'd: @Model.delivery_signature_required_selction</div>
+                <div>Delivery / Sig Req'd: @Model.delivery_signature_required_selection</div>
 
                 <br />
                 <div>Address is: </div>
@@ -34,37 +34,75 @@
 
     <table class="containerTable">
         <tbody>
-            <tr>
-                <td>
-                    <table class="shipGrid">
-                        <thead>
-                            <tr>
-                                <th scope="col">Ship From</th>
-                                <th scope="col">Service</th>
-                                <th scope="col">Rate</th>
-                                <th scope="col">CWT?</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var service in Model.shopRateResponse.UPSServices)
-                            {
-                                var rowClass = rowIndex % 2 == 0 ? "" : "alt";
-                                <tr class="@rowClass">
-                                    <td>@service.ShipFrom</td>
-                                    <td>@service.ServiceName</td>
-                                    <td>@service.Rate</td>
-                                    <td>@service.CWT</td>
+            @if (Model.shopRateResponse.UPSServices.Length > 0)
+            {
+                <tr>
+                    <td>
+                        <table class="shipGrid">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Ship From</th>
+                                    <th scope="col">Service</th>
+                                    <th scope="col">Rate</th>
+                                    <th scope="col">CWT?</th>
                                 </tr>
-                                rowIndex++;
-                            }
-                        </tbody>
-                    </table>
-                </td>
-                <td align="center">
-                    <img src="~/Content/img/LOGO_L.gif" />
-                </td>
-            </tr>
-        </tbody>
+                            </thead>
+                            <tbody>
+                                @foreach (var service in Model.shopRateResponse.UPSServices)
+                                {
+                                    var rowClass = rowIndex % 2 == 0 ? "" : "alt";
+                                    <tr class="@rowClass">
+                                        <td>@service.ShipFrom</td>
+                                        <td>@service.ServiceName</td>
+                                        <td>@service.Rate</td>
+                                        <td>@service.CWT</td>
+                                    </tr>
+                                    rowIndex++;
+                                }
+                            </tbody>
+                        </table>
+                    </td>
+                    <td align="center">
+                        <img src="~/Content/img/LOGO_L.gif" />
+                    </td>
+                </tr>
+            }
+            @if (Model.LTLServices.Count > 0)
+            {
+                <tr>
+                    <td>
+                        <table class="shipGrid">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Ship From</th>
+                                    <th scope="col">Service</th>
+                                    <th scope="col">Transit Days</th>
+                                    <th scope="col">Direct</th>
+                                    <th scope="col">Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var service in Model.LTLServices)
+                                {
+                                    var rowClass = rowIndex % 2 == 0 ? "" : "alt";
+                                    <tr class="@rowClass">
+                                        <td>@service.PlantCode</td>
+                                        <td>@service.Carrier</td>
+                                        <td>@service.TransitDays</td>
+                                        <td>@service.Direct</td>
+                                        <td>@service.Rate</td>
+                                    </tr>
+                                    rowIndex++;
+                                }
+                            </tbody>
+                        </table>                        
+                    </td>
+                    <td align="center">
+                        <img src="~/Content/img/m33logo.jpg" />
+                    </td>
+                </tr>
+            }
+            </tbody>
     </table>
     <div class="row d-flex">
         <button onclick="goBack()">Back</button><button onclick="goHome()">Start Over</button>

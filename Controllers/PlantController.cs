@@ -16,6 +16,8 @@ using System.Data.SqlClient;
 using Microsoft.Win32.SafeHandles;
 using System.Data;
 using System.Drawing.Printing;
+using System.Xml.Linq;
+using Microsoft.Ajax.Utilities;
 
 namespace AuthenticationServer.Controllers
 {
@@ -49,6 +51,7 @@ namespace AuthenticationServer.Controllers
             model.PlantId = loc.ToUpper();
             model.PlantName = plantName;
             model.Country_selection = "United States";
+            //model.pick_up_date = System.DateTime.Now.ToShortDateString();
 
             model.delivery_signature_required = Configuration.DeliverySignatureRequiredSelection;
             model.multiple_location_rate = new List<SelectListItem> { new SelectListItem { Text = "No", Value = "No" }, new SelectListItem { Text = "Yes", Value = "Yes" } };
@@ -64,7 +67,7 @@ namespace AuthenticationServer.Controllers
 
             };
 
-            model.delivery_signature_required_selction = "No";
+            model.delivery_signature_required_selection = "No";
             model.multiple_location_rate_selection = "No";
             model.include_ground_rate_selection = "No";
             model.include_ltl_rate_selection = "No";
@@ -92,22 +95,17 @@ namespace AuthenticationServer.Controllers
 
         public ActionResult ShipmentConfirmation(Shipment shipment)
         {
-            //ValidateStateForCWT(shipment);            
-
             shipment.billing_weight = shipment.number_of_packages * shipment.package_weight;
 
             shipment.shopRateResponse = ShopRateResponse(shipment); 
             shipment.requestMessage = _upsRequest;
             shipment.responseMessage = _upsResponse;
+            shipment.LTLServices = new List<LTLService>();
 
-            if (shipment.include_ltl_rate_selection == "Yes")
-            {
-                ShowLTLRates(shipment);
-            }
-            else
-            {
-                ShopRateResponse(shipment);
-            }
+            if (shipment.include_ltl_rate_selection == "Yes") { ShowLTLRates(shipment); }
+
+            ShopRateResponse(shipment);
+
             return View(shipment);
         }
 
@@ -236,8 +234,176 @@ namespace AuthenticationServer.Controllers
                 string combinedResponses = "";
                 foreach (string plantCode in plantCodes)
                 {
-                    // Lines 502 - 676
+                    WebRequest request = WebRequest.Create(url + "rate/quote?loginToken=" + token);
+                    request.Method = "POST";
+
+                    #region -- Load Plant Ship From Address --
+                    string shipFromCity = "";
+                    string shipFromState = "";
+                    string shipFromZip = "";
+                    string shipFromCountry = "";
+
+                    SqlConnection conn = new SqlConnection(Configuration.UpsRateSqlConnection);
+                    conn.Open();
+
+                    SqlCommand sqlCommand = conn.CreateCommand();
+                    sqlCommand.Connection = conn;
+                    sqlCommand.CommandType = CommandType.Text;
+                    sqlCommand.CommandText = "SELECT city, State, Zip Country, FROM Plants WHERE Plantcode = '" + plantCode + "'";
+
+                    SqlDataReader drResults = sqlCommand.ExecuteReader();
+
+                    if (drResults.Read())
+                    {
+                        shipFromCity = drResults["City"].ToString();
+                        shipFromState = drResults["State"].ToString();
+                        shipFromZip = drResults["Zip"].ToString();
+                        shipFromCountry = drResults["Country"].ToString();
+                    }
+                    else { 
+                        sbResults.Append("Unable to lookup address info for Plant " + plantCode + "'");
+                    }
+
+                    conn.Close();
+
+                    #endregion
+
+                    StringBuilder postData = new StringBuilder("<?xml version=\"1.0\"?>");
+                    postData.Append("<quote>");
+                    postData.Append("< requestedMode>LTL</requestedMode>");
+                    postData.Append("<requestedPickupDate>" + pickupDate + "</requestedPickupDate>");
+                    postData.Append("<shipper>");
+                    postData.Append("<city>" + shipFromCity + "</city>");
+                    postData.Append("<region>" + shipFromState + "</region>");
+                    postData.Append("<country>" + shipFromCountry + "</country>");
+                    postData.Append("<postalCode>" + shipFromZip + "</postalCode>");
+                    postData.Append("</shipper>");
+                    postData.Append("<consignee>");
+                    postData.Append("<city>" + shipment.City + "</city>");
+                    postData.Append("<region>" + shipment.State_selection + "</region>");
+                    postData.Append("<country>" + shipment.Country_selection + "</country>");
+                    postData.Append("<postalCode>" + shipment.Zip + "</postalCode>");
+                    postData.Append("</consignee>");
+                    postData.Append("<lineItems>");
+                    postData.Append("<lineItem>");
+                    postData.Append("<freightClass>" + ltlClass + "</freightClass>");
+                    postData.Append("<weight>" + shipment.billing_weight + "</weight>");
+                    postData.Append("<weightUnit>LB</weightUnit>");
+                    postData.Append("</lineItem>");
+                    postData.Append("</lineItems>");
+
+                    string accessorials = GetLTLAccessorials(shipment);
+                    if (accessorials.Length > 0)
+                    {
+                        postData.Append("<accessorials>");
+                        string[] accessorialArray = accessorials.Split(';');
+                        for (int i = 0; i < accessorialArray.Count(); i++)
+                        {
+                            postData.Append("<accessorial><type>" + accessorialArray[i] + "</type></accessorial>");
+                        }
+                        postData.Append("</accessorials>");
+                    }
+                    //postData += "<accessorials>";
+                    //postData += "<accessorial>";
+                    //postData += "<type>LIFTGATE-PICKUP</type>";
+                    //postData += "</accessorial>";
+                    //postData += "</accessorials>";
+                    postData.Append("</quote>");
+
+                    fullPostData += postData;
+
+                    byte[] byteArray = Encoding.UTF8.GetBytes(postData.ToString());
+                    // Set the ContentType property of the WebRequest.
+                    request.ContentType = "text/xml";
+                    // Set the ContentLength property of the WebRequest.
+                    request.ContentLength = byteArray.Length;
+                    // Get the request stream.
+                    Stream dataStream = request.GetRequestStream();
+                    // Write the data to the request stream.
+                    dataStream.Write(byteArray, 0, byteArray.Length);
+                    // Close the Stream object.
+                    dataStream.Close();
+
+                    StringBuilder results = new StringBuilder(postData.ToString());
+                    results.Append("\n\n\n");
+                    results.Append("<br/>" + url + "rate/quote?loginToken=" + token);
+                    results.Append("\n\n\n");
+                    // Get the response.
+                    WebResponse WebResponse = request.GetResponse();
+                    // Display the status.
+                    //Console.WriteLine(((HttpWebResponse)WebResponse).StatusDescription);
+                    // Get the stream containing content returned by the server.
+                    dataStream = WebResponse.GetResponseStream();
+                    // Open the stream using a StreamReader for easy access.
+                    StreamReader reader = new StreamReader(dataStream);
+                    // Read the content.
+                    string responseFromServer = reader.ReadToEnd();
+                    // Display the content.
+                    results.Append(responseFromServer);
+                    results.Append("\n\n\n");
+                    // Clean up the streams.
+                    reader.Close();
+                    dataStream.Close();
+                    WebResponse.Close();
+
+                    combinedResponses += responseFromServer;
+
+
+                    XDocument xmlDoc = XDocument.Parse(responseFromServer);
+
+                    foreach (var rate in xmlDoc.Descendants("rate"))
+                    {
+                        string carrier = rate.Element("carrier").Element("name").Value.Trim();
+                        string direct = rate.Element("direct").Value.Trim();
+                        int transitDays = Convert.ToInt16(rate.Element("transitDays").Value.Trim());
+                        double cost = double.Parse(rate.Element("cost").Element("totalAmount").Value.Trim());
+                        double totalCharges = 0;
+
+                        #region -- Define variables for markup calculations --
+                        double markupPercentage = 0;
+                        double perPackageCharge = 0;
+                        double perShipmentCharge = 0;
+                        #endregion
+
+                        results.Append("Cost is " + cost.ToString() + "\n");
+                        results.Append("Markup percentage is " + markupPercentage.ToString() + "\n");
+                        results.Append("Number of Packages is " + shipment.number_of_packages + "\n");
+                        results.Append("Per package charge is " + perPackageCharge.ToString() + "\n");
+                        results.Append("Per shipment charge is " + perShipmentCharge.ToString() + "\n");
+
+                        totalCharges = cost;
+                        totalCharges += ((markupPercentage / 100) * cost);
+                        totalCharges += (perPackageCharge * shipment.number_of_packages) + perShipmentCharge;
+
+                        results.Append("Calculated total charge is " + totalCharges.ToString() + "\n\n");
+
+                        //if ((carrier != "LTL BENCHMARK") || (Session["DefaultPlant"].ToString() == "POR"))
+                        if (carrier != "LTL BENCHMARK")
+                        {
+                            shipment.LTLServices.Add(new LTLService
+                            {
+                                PlantCode = plantCode,
+                                Carrier = carrier,
+                                TotalCharges = totalCharges,
+                                TransitDays = transitDays,
+                                Direct = direct
+                            });
+
+                        }
+                        else if (Session["DefaultPlant"].ToString() == "POR")
+                        {
+                            shipment.LTLServices.Add(new LTLService
+                            {
+                                PlantCode = plantCode,
+                                Carrier = carrier,
+                                Cost = cost,
+                                TransitDays = transitDays,
+                                Direct = direct
+                            });
+                        }
+                    }
                 }
+            
 
                 #region -- log results --
                 try
@@ -684,6 +850,57 @@ namespace AuthenticationServer.Controllers
             stringBuilder.Append("}"); // ROOT
 
             return stringBuilder.ToString();
+        }
+
+        private string GetLTLAccessorials(Shipment shipment)
+        {
+            StringBuilder fullList = new StringBuilder();
+
+            if(shipment.notify_before_delivery)
+            {
+                fullList.Append("NOTIFY-BEFORE-DELIVERY;");
+            }
+            if (shipment.liftgate_pickup)
+            {
+                fullList.Append("LIFTGATE-PICKUP;");
+            }
+            if (shipment.liftgate_delivery)
+            {
+                fullList.Append("LIFTGATE-DELIVERY;");
+            }
+            if (shipment.limited_access_pickup)
+            {
+                fullList.Append("LIMITED-ACCESS-PICKUP;");
+            }
+            if (shipment.limited_access_delivery)
+            {
+                fullList.Append("LIMITED-ACCESS-DELIVERY;");
+            }
+            if (shipment.residential_pickup)
+            {
+                fullList.Append("RESIDENTIAL-PICKUP;");
+            }
+            if (shipment.residential_delivery)
+            {
+                fullList.Append("RESIDENTIAL-DELIVERY;");
+            }
+            if (shipment.inside_pickup)
+            {
+                fullList.Append("INSIDE-PICKUP;");
+            }
+            if (shipment.inside_delivery)
+            {
+                fullList.Append("INSIDE-DELIVERY;");
+            }
+            if (shipment.sort_and_segregate)
+            {
+                fullList.Append("SORT-AND-SEGREGATE;");
+            }
+            if (shipment.stopoff_charge)
+            {
+                fullList.Append("STOPOFF-CHARGE;");
+            }
+            return fullList.ToString();
         }
     }
 }
