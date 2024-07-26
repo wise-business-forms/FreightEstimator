@@ -249,7 +249,7 @@ namespace AuthenticationServer.Controllers
                     SqlCommand sqlCommand = conn.CreateCommand();
                     sqlCommand.Connection = conn;
                     sqlCommand.CommandType = CommandType.Text;
-                    sqlCommand.CommandText = "SELECT city, State, Zip Country, FROM Plants WHERE Plantcode = '" + plantCode + "'";
+                    sqlCommand.CommandText = "SELECT city, State, Zip, Country FROM Plants WHERE Plantcode = '" + plantCode + "'";
 
                     SqlDataReader drResults = sqlCommand.ExecuteReader();
 
@@ -270,7 +270,7 @@ namespace AuthenticationServer.Controllers
 
                     StringBuilder postData = new StringBuilder("<?xml version=\"1.0\"?>");
                     postData.Append("<quote>");
-                    postData.Append("< requestedMode>LTL</requestedMode>");
+                    postData.Append("<requestedMode>LTL</requestedMode>");
                     postData.Append("<requestedPickupDate>" + pickupDate + "</requestedPickupDate>");
                     postData.Append("<shipper>");
                     postData.Append("<city>" + shipFromCity + "</city>");
