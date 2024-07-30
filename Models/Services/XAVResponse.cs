@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
-namespace AuthenticationServer.Models.Service
+namespace AuthenticationServer.Models.Services
 {
     public class XAVResponse
     {

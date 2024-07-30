@@ -7,6 +7,12 @@ namespace AuthenticationServer.Models
 {
     public class UPSService
     {
+        private Dictionary<string, string> _CWTCodes;
+
+        public string CWT { get; set; }   
+        public string Direct {  get; set; }
+        public string PlantCode { get; set; }
+        public string Rate { get; set; }
         public enum ServiceCode
         {
             UPSNextDayAir = 01,
@@ -27,9 +33,46 @@ namespace AuthenticationServer.Models
             UPSTodayExpress = 85,
             UPSTodayExpressSaver = 86
         }
-        public string ShipFrom { get; set; }
+        public Dictionary<string, string> CWTCodes
+        {
+            get
+            {
+                if (_CWTCodes == null)
+                {
+                    _CWTCodes = new Dictionary<string, string>
+                    {
+                        { "01","AIR" },
+                        { "02","AIR" },
+                        { "03","GROUND" },
+                        { "12","GROUND" },
+                        { "13","AIR" },
+                        { "14","AIR-NN" },
+                        { "59","AIR" },
+                        { "65","GROUND" },
+                    };
+                }
+                return _CWTCodes;
+            }
+        }
         public string ServiceName { get; set; }
-        public string Rate { get; set; }
-        public string CWT { get; set; }
+        public string ShipFrom { get; set; }   
+        public string TotalCost { get; set; }
+        public string TransitDays { get; set; }
+    }
+
+    public class UPSSort : IComparer<UPSService>
+    {
+        public int Compare(UPSService x, UPSService y)
+        {
+            int indexX = Configuration.UPSServiceCodeOrder.IndexOf(x.ServiceName);
+            int indexY = Configuration.UPSServiceCodeOrder.IndexOf(y.ServiceName);
+
+            if(indexX == -1 || indexY == -1)
+            {
+                throw new ArgumentException("String not found in custom order list.  Check the configfile.");
+            }
+
+            return indexX.CompareTo(indexY);
+        }
     }
 }

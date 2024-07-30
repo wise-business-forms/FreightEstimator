@@ -2,224 +2,246 @@
 @{
     ViewBag.Title = "Index";
 }
-<main>
-    <div class="row d-flex">
-        <a class="links text-end">? help</a>
-    </div>
+<div class="container shadow min-vh-100 py-2 content-panel">
     <div class="row">
-        <center>
-            <img src="/Content/img/wiseLogo.jpg" />
-        </center>
-    </div>
-    <div class="row">
-        <center>
-            <div class="label">
-                Shipping From: @Model.PlantName (@Model.PlantId) <a href="@Url.Action("Index", "Home")">[change plant]</a>
-            </div>
-        </center>
-        <br />
-        <center>
-            <div class="shipTo">- Ship To -</div>
-        </center>
-        <br />
-    </div>
-
-    @using (Html.BeginForm("SubmitShipment", "Plant", FormMethod.Post))
-    {
-        <form>
-            @Html.HiddenFor(model => model.PlantId)
-            <div class="row">
-
-                <div class="form-group row">
-                    <label for="AcctNum" class="col-sm-2 col-form-label">Acct:</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.AcctNum, new { @class = "form-control" })
-                    </div>
-                    <div>@ViewBag.AccountMessage</div>
+        <div class="col">
+            <main>
+                <div class="row d-flex">
+                    <a class="links text-end">? help</a>
                 </div>
-                <div class="form-group row">
-                    <label for="Address" class="col-sm-2 col-form-label">Address:</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.Address, new { @class = "form-control" })
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="City" class="col-sm-2 col-form-label">City:</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.City, new { @class = "form-control" })
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="State" class="col-sm-2 col-form-label">State:</label>
-                    <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.State_selection, ViewBag.States as SelectList, "", new { @class = "form-control" })
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="Zip" class="col-sm-2 col-form-label">Zip:</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.Zip, new { @class = "form-control" })
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="Country" class="col-sm-2 col-form-label">Country:</label>
-                    <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.Country_selection, ViewBag.Countries as SelectList, "", new { @class = "form-control" })
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="number_of_packages" class="col-sm-2 col-form-label"># Packages:</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.number_of_packages, new { @class = "form-control" })
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="package_weight" class="col-sm-2 col-form-label">Package Weight (each):</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.package_weight, new { @class = "form-control" })
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="last_package_weight" class="col-sm-2 col-form-label">Last Package Weight:</label>
-                    <div class="col-sm-10">
-                        @Html.TextBoxFor(model => model.last_package_weight, new { @class = "form-control" })
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="delivery_signature_required" class="col-sm-2 col-form-label">Delivery /Sig Reg'd?</label>
-                    <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.delivery_signature_required_selection, Model.delivery_signature_required, new { @class = "form-control" })
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="multiple_location_rate" class="col-sm-2 col-form-label">Rate from Multiple Locations?</label>
-                    <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.multiple_location_rate_selection, Model.multiple_location_rate, new { @class = "form-control" })
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="include_ground_rate" class="col-sm-2 col-form-label">Include Ground Freight Rate?</label>
-                    <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.include_ground_rate_selection, Model.include_ground_rate, new { @class = "form-control" })
-                    </div>
-                </div>
-                <div class="form-group row">
-                    <label for="include_ltl_rate" class="col-sm-2 col-form-label">Include LTL Rates?</label>
-                    <div class="col-sm-10">
-                        @Html.DropDownListFor(model => model.include_ltl_rate_selection, Model.include_ltl_rate, new { @class = "form-control" })
-                    </div>
-                </div>
-                <!------------------------------------------------------>
-                <div></div>
-                <div>
-                    <div class="form-group row">
-                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Freight Class</label>
-                        <div class="col-sm-10">
-                            @Html.DropDownListFor(model => model.freight_class, Model.freight_class, new { @id = "include_ltl_rate", @class = "form-control" })
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Pickup Date</label>
-                        <div class="col-sm-10">
-                            @Html.TextBoxFor(model => model.pick_up_date, "{0:MM-dd-yyyy}", new { @type ="date", @id="datepicker"})
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Notify Before Delivery</label>
-                        <div class="col-sm-10">
-                            @Html.CheckBoxFor(model => model.notify_before_delivery)
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Liftgate Pickup</label>
-                        <div class="col-sm-10">
-                            @Html.CheckBoxFor(model => model.liftgate_pickup)
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Liftgate Delivery</label>
-                        <div class="col-sm-10">
-                            @Html.CheckBoxFor(model => model.liftgate_delivery)
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Limited Access Pickup</label>
-                        <div class="col-sm-10">
-                            @Html.CheckBoxFor(model => model.limited_access_pickup)
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Limited Access Delivery</label>
-                        <div class="col-sm-10">
-                            @Html.CheckBoxFor(model => model.limited_access_delivery)
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Residential Pickup</label>
-                        <div class="col-sm-10">
-                            @Html.CheckBoxFor(model => model.residential_pickup)
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Residential Delivery</label>
-                        <div class="col-sm-10">
-                            @Html.CheckBoxFor(model => model.residential_delivery)
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Inside Pickup</label>
-                        <div class="col-sm-10">
-                            @Html.CheckBoxFor(model => model.inside_pickup)
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Inside Delivery</label>
-                        <div class="col-sm-10">
-                            @Html.CheckBoxFor(model => model.inside_delivery)
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Sort and Segregate</label>
-                        <div class="col-sm-10">
-                            @Html.CheckBoxFor(model => model.sort_and_segregate)
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <label for="include_ltl_rate" class="col-sm-2 col-form-label">Stopoff Charge</label>
-                        <div class="col-sm-10">
-                            @Html.CheckBoxFor(model => model.stopoff_charge)
-                        </div>
-                    </div>
-                </div>
-
                 <div class="row">
-                    <div><button type="submit">Get Rates</button></div>
+                    <center>
+                        <img src="/Content/img/wiseLogo.jpg" />
+                    </center>
                 </div>
-</form>
-    }
+                <div class="row">
+                    <center>
+                        <div class="label">
+                            Shipping From: @Model.PlantName (@Model.PlantId) <a href="@Url.Action("Index", "Home")">[change plant]</a>
+                        </div>
+                    </center>
+                    <br />
+                    <center>
+                        <div class="shipTo">- Ship To -</div>
+                    </center>
+                    <br />
+                </div>
+                <div class="container">
+                    @using (Html.BeginForm("SubmitShipment", "Plant", FormMethod.Post))
+                    {
+                        <form>
+                            @Html.HiddenFor(model => model.PlantId)
+                            <div class="row">
+                                <div class="form-group row">
+                                    <label for="AcctNum" class="col-sm-3 col-form-label form-label ms-auto">Acct #:</label>
+                                    <div class="col-sm-5 me-auto">
+                                        @Html.TextBoxFor(model => model.AcctNum, new { @class = "form-control" })
+                                    </div>
+                                    <div>@ViewBag.AccountMessage</div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="Address" class="col-sm-3 col-form-label form-label ms-auto">Address:</label>
+                                    <div class="col-sm-5 me-auto">
+                                        @Html.TextBoxFor(model => model.Address, new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="City" class="col-sm-3 col-form-label form-label ms-auto">City:</label>
+                                    <div class="col-sm-5 me-auto">
+                                        @Html.TextBoxFor(model => model.City, new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="State" class="col-sm-3 col-form-label form-label ms-auto">State:</label>
+                                    <div class="col-sm-5 me-auto">
+                                        @Html.DropDownListFor(model => model.State_selection, ViewBag.States as SelectList, "", new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="Zip" class="col-sm-3 col-form-label form-label ms-auto">Zip:</label>
+                                    <div class="col-sm-5 me-auto">
+                                        @Html.TextBoxFor(model => model.Zip, new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="Country" class="col-sm-3 col-form-label form-label ms-auto">Country:</label>
+                                    <div class="col-sm-5 me-auto">
+                                        @Html.DropDownListFor(model => model.Country_selection, ViewBag.Countries as SelectList, "", new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="number_of_packages" class="col-sm-3 col-form-label form-label ms-auto"># Packages:</label>
+                                    <div class="col-sm-5 me-auto">
+                                        @Html.TextBoxFor(model => model.number_of_packages, new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="package_weight" class="col-sm-3 col-form-label form-label ms-auto">Package Weight (each):</label>
+                                    <div class="col-sm-5 me-auto">
+                                        @Html.TextBoxFor(model => model.package_weight, new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="last_package_weight" class="col-sm-3 col-form-label form-label ms-auto">Last Package Weight:</label>
+                                    <div class="col-sm-5 me-auto">
+                                        @Html.TextBoxFor(model => model.last_package_weight, new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="delivery_signature_required" class="col-sm-3 col-form-label form-label ms-auto">Delivery /Sig Reg'd?</label>
+                                    <div class="col-sm-5 me-auto">
+                                        @Html.DropDownListFor(model => model.delivery_signature_required_selection, Model.delivery_signature_required, new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="multiple_location_rate" class="col-sm-3 col-form-label form-label ms-auto">Rate from Multiple Locations?</label>
+                                    <div class="col-sm-5 me-auto">
+                                        @Html.DropDownListFor(model => model.multiple_location_rate_selection, Model.multiple_location_rate, new { @class = "form-control" })
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="include_ground_rate" class="col-sm-3 col-form-label form-label ms-auto">Include Ground Freight Rate?</label>
+                                    <div class="col-sm-5 me-auto">
+                                        @Html.DropDownListFor(model => model.include_ground_rate_selection, Model.include_ground_rate, new { @class = "form-control", id = "include_ground_freight_rate" })
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Include LTL Rates?</label>
+                                    <div class="col-sm-5 me-auto">
+                                        @Html.DropDownListFor(model => model.include_ltl_rate_selection, Model.include_ltl_rate, new { @class = "form-control", id = "include_ltl_rate" })
+                                    </div>
+                                </div>
+                                <!------------------------------------------------------>
+                                <div id="freightclass">
+                                    <div class="form-group row">
+                                        <label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Freight Class</label>
+                                        <div class="col-sm-5 me-auto">
+                                            @Html.DropDownListFor(model => model.freight_class, Model.freight_class, new { @id = "include_ltl_rate", @class = "form-control" })
+                                        </div>
+                                    </div>
+                                </div>
 
-</main>
+                                <div id="ltlFields">
+                                    <div class="form-group row">
+                                        <label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Pickup Date</label>
+                                        <div class="col-sm-5 me-auto">
+                                            @Html.TextBoxFor(model => model.pick_up_date, "{0:MM-dd-yyyy}", new { @type = "date", @id = "datepicker" })
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Notify Before Delivery</label>
+                                        <div class="col-sm-5 me-auto">
+                                            @Html.CheckBoxFor(model => model.notify_before_delivery)
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Liftgate Pickup</label>
+                                        <div class="col-sm-5 me-auto">
+                                            @Html.CheckBoxFor(model => model.liftgate_pickup)
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Liftgate Delivery</label>
+                                        <div class="col-sm-5 me-auto">
+                                            @Html.CheckBoxFor(model => model.liftgate_delivery)
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Limited Access Pickup</label>
+                                        <div class="col-sm-5 me-auto">
+                                            @Html.CheckBoxFor(model => model.limited_access_pickup)
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Limited Access Delivery</label>
+                                        <div class="col-sm-5 me-auto">
+                                            @Html.CheckBoxFor(model => model.limited_access_delivery)
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Residential Pickup</label>
+                                        <div class="col-sm-5 me-auto">
+                                            @Html.CheckBoxFor(model => model.residential_pickup)
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Residential Delivery</label>
+                                        <div class="col-sm-5 me-auto">
+                                            @Html.CheckBoxFor(model => model.residential_delivery)
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Inside Pickup</label>
+                                        <div class="col-sm-5 me-auto">
+                                            @Html.CheckBoxFor(model => model.inside_pickup)
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Inside Delivery</label>
+                                        <div class="col-sm-5 me-auto">
+                                            @Html.CheckBoxFor(model => model.inside_delivery)
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Sort and Segregate</label>
+                                        <div class="col-sm-5 me-auto">
+                                            @Html.CheckBoxFor(model => model.sort_and_segregate)
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Stopoff Charge</label>
+                                        <div class="col-sm-5 me-auto">
+                                            @Html.CheckBoxFor(model => model.stopoff_charge)
+                                        </div>
+                                    </div>
+                                </div>
 
-@section Scripts {
-    @Scripts.Render("~/bundles/jqueryval")
-    <script type="text/javascript">
-        $document.getElementById("include_ltl_rate").addEventListener("change", function () {
-            toggleLTLFields();
-        })
+                                <div class="form-group row">
+                                    <div class="col-sm-3 col-form-label form-label ms-auto"></div>
+                                    <div class="col-sm-5 me-auto"><button class="btn" type="submit">Get Rates</button></div>
+                                </div>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </main>
+        </div>
+    </div>
+</div>
 
-        $(document).ready(function () {
-            $('#ltlFields').hide();
-            toggleLTLFields();
-        });
+            @section Scripts {
+                <script type="text/javascript">
 
-        function toggleLTLFields() {
-            var ltlRates = $('#include_ltl_rate').val();
-            if (ltlRates === 'Yes') {
-                $('#ltlFields').show();
+                    $(document).ready(function () {
+                        $('#ltlFields').hide();
+                        toggleFreightFields();
+                        toggleLTLFields();
+
+                        const freightevent = document.getElementById('include_ground_freight_rate')
+                        freightevent.addEventListener('change', function () { toggleFreightFields(); });
+
+                        const ltlevent = document.getElementById('include_ltl_rate');
+                        ltlevent.addEventListener('change', function () { toggleLTLFields(); });
+                    });
+
+                    function toggleFreightFields() {
+                        var freightrates = $('#include_ground_freight_rate').val();
+                        if (freightrates === 'Yes') {
+                            $('#freightclass').show();
+                        }
+                        else {
+                            $('#freightclass').hide();
+                        }
+                    }
+
+                    function toggleLTLFields() {
+                        var ltlRates = $('#include_ltl_rate').val();
+                        if (ltlRates === 'Yes') {
+                            $('#ltlFields').show();
+                        }
+                        else {
+                            $('#ltlFields').hide();
+                        }
+                    }
+                </script>
             }
-            else {
-                $('#ltlFields').hide();
-            }
-        }
-    </script>
-    }

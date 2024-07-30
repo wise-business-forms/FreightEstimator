@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Web;
 
-namespace AuthenticationServer.Models.Service
+namespace AuthenticationServer.Models.Services
 {
     public class UPSRequest
     {

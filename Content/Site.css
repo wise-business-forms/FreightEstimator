@@ -23,12 +23,33 @@
     color: #333;
 }
 
-.containerTable {
-    background: #FFF;
-    padding: 15px;
-    border: 1px solid #d5d5d5;
-    margin: 0 auto;
-    width: 790px;
+.center-column {
+    text-align: center;
+}
+
+.confirmation-address {
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.confirmation-value {
+    color: #a83333;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.content-panel {
+    background: #ffffff;
+    margin: 10px 10px 10px 10px;
+}
+
+.form-label {
+    font-weight: bold;
+    width: 200px;
+    text-align: right;
+}
+.form-group{
+    margin: 3px 3px 3px 3px;
 }
 
 .internalTable {
@@ -65,13 +86,6 @@
     color: #0063A5;
     font-weight: bold;
     text-align:center;
-}
-
-/* Set width on the form input elements since they're 100% wide by default */
-input,
-select,
-textarea {
-    max-width: 280px;
 }
 
 a {

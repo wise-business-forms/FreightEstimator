@@ -117,6 +117,30 @@ namespace AuthenticationServer.Models
 
         }
 
+        private static List<string> _UPSServiceOrder = new List<string>()
+        {
+            "UPSGround",
+            "UPS3DaySelect",
+            "UPS2ndDayAir",
+            "SecondDayAirAM",
+            "NextDayAirSaver",
+            "UPSNextDayAir",
+            "NextDayAirEarlyAM",
+
+
+            "UPS2ndDayAir",                
+            "UPSWorldwideExpress",
+            "UPSWorldwideExpedited",
+            "UPSStandard",  
+            "ExpressPlus",            
+            "UPSSaver",
+            "UPSTodayStandard",
+            "UPSTodayDedicatedCourier",
+            "UPSTodayIntercity",
+            "UPSTodayExpress",
+            "UPSTodayExpressSaver"
+        };
+
         private static List<SelectListItem> _delivery_signature_required_selection = new List<SelectListItem>()
         {
             new SelectListItem() { Text = "None", Value = "None" },
@@ -188,6 +212,10 @@ namespace AuthenticationServer.Models
         public static string UPSShipFromZip
         {
             get { return _UPSShipFromZip; }
+        }
+        public static List<string> UPSServiceCodeOrder
+        {
+            get { return _UPSServiceOrder;  }
         }
         public static string ShipFromShipperNumber
         {

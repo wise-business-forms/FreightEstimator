@@ -1,47 +1,55 @@
-﻿@{ 
-    
+﻿@{
+
 }
-<main>
-    <div class="alert alert-danger" role="alert">If you return to the site and encounter server errors assume we are updating and try again in a few miniutes.  <br /><br />Send all other error information to pmenefee@wbf.com</div>
-    <div class="row d-flex">
-        <a class="links text-end">? Help</a>
-    </div>
+<div class="container shadow min-vh-100 py-2 content-panel">
     <div class="row">
-        <center>
-            <img src="/Content/img/wiseLogo.jpg" />
-        </center>
+        <div class="col">
+            <div class="content-panel">
+                <main>
+                    <div class="alert alert-danger" role="alert">If you return to the site and encounter server errors assume we are updating and try again in a few miniutes.  <br /><br />Send all other error information to pmenefee@wbf.com</div>
+                    <div class="row d-flex">
+                        <a class="links text-end">? Help</a>
+                    </div>
+                    <div class="row">
+                        <center>
+                            <img src="/Content/img/wiseLogo.jpg" />
+                        </center>
+                    </div>
+                    <div class="row">
+                        <center>
+                            <p>Please select a Plant to use as the "Ship From" location.</p>
+                        </center>
+                    </div>
+                    <div class="row">
+                        <div class="col-3">
+                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "ALP"})" class="btn btn-primary btn-main">Alpharetta (ALP)</a>
+                        </div>
+                        <div class="col-3">
+                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "BUT"})" class="btn btn-primary btn-main">Butler (BUT)</a>
+                        </div>
+                        <div class="col-3">
+                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "FTW"})" class="btn btn-primary btn-main">Fort Wayne (FTW)</a>
+                        </div>
+                        <div class="col-3">
+                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "FTW"})" class="btn btn-primary btn-main">Portland (POR)</a>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-3">
+                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "FTW"})" class="btn btn-primary btn-main">Anderson (AND)</a>
+                        </div>
+                        <div class="col-3">
+                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "COR"})" class="btn btn-primary btn-main">Corporate (COR)</a>
+                        </div>
+                        <div class="col-3">
+                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "CIN"})" class="btn btn-primary btn-main">Cincinnati (CIN)</a>
+                        </div>
+                        <div class="col-3">
+                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "EBT"})" class="btn btn-primary btn-main">East Butler (EBT)</a>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
     </div>
-    <div class="row">
-        <center>
-            <p>Please select a Plant to use as the "Ship From" location.</p>
-        </center>
-    </div>
-    <div class="row">
-        <div class="col-3">
-            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "ALP"})" class="btn btn-primary btn-main">Alpharetta (ALP)</a>
-        </div>
-        <div class="col-3">
-            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "BUT"})" class="btn btn-primary btn-main">Butler (BUT)</a>
-        </div>
-        <div class="col-3">
-            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "FTW"})" class="btn btn-primary btn-main">Fort Wayne (FTW)</a>
-        </div>
-        <div class="col-3">
-            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "FTW"})" class="btn btn-primary btn-main">Portland (POR)</a>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-3">
-            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "FTW"})" class="btn btn-primary btn-main">Anderson (AND)</a>
-        </div>
-        <div class="col-3">
-            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "COR"})" class="btn btn-primary btn-main">Corporate (COR)</a>
-        </div>
-        <div class="col-3">
-            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "CIN"})" class="btn btn-primary btn-main">Cincinnati (CIN)</a>
-        </div>
-        <div class="col-3">
-            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "EBT"})" class="btn btn-primary btn-main">East Butler (EBT)</a>
-        </div>
-    </div>
-</main>
+</div>

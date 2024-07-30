@@ -48,13 +48,31 @@ namespace AuthenticationServer.Models
 
         // Calculated values
         public float billing_weight { get; set; }
-        public ShopRateResponse shopRateResponse { get; set; }
+        public string Corrected_Address { get; set; }
+        public string Corrected_City { get; set; }
+        public string Corrected_State_selection { get; set; }
+        public string Corrected_state { get; set; }
+        public string Corrected_Zip { get; set; }
+        public string Corrected_Country { get; set; }
+
+        /// <summary>
+        /// GRID 1 - All service rates for plant.
+        /// </summary>
+        public ShopRateResponse shopCompareRates { get; set; } // TODO: Rename to somethign more default.
+        /// <summary>
+        /// GRID 2 - Ground Freight
+        /// </summary>
+        public ShopRateResponse shopGroundFreightResponse { get; set; }
+        /// <summary>
+        /// GRID 3 - Less Than Truckload (LTL) Rates
+        /// </summary>
+        public ShopRateResponse shopLessThanTruckloadResponse { get; set; }
 
         // Logging
         public string requestMessage { get; set; }
         public string responseMessage { get; set; }
         public string results { get; set; }
-        public List<LTLService> LTLServices { get; set; }
+        public string user_name { get; set; }
     }
 
     public class SelectedItem

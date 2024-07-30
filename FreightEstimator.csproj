@@ -232,6 +232,7 @@
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\PlantController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
+    <Compile Include="Controllers\TestController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
@@ -239,8 +240,11 @@
     <Compile Include="Models\Data\Request.cs" />
     <Compile Include="Models\LTLService.cs" />
     <Compile Include="Models\Plant.cs" />
-    <Compile Include="Models\Service\UPSRequest.cs" />
-    <Compile Include="Models\Service\XAVResponse.cs" />
+    <Compile Include="Models\PlantCharges.cs" />
+    <Compile Include="Models\Services\Log.cs" />
+    <Compile Include="Models\Services\RateCalculations.cs" />
+    <Compile Include="Models\Services\UPSRequest.cs" />
+    <Compile Include="Models\Services\XAVResponse.cs" />
     <Compile Include="Models\Geography.cs" />
     <Compile Include="Models\UPSService.cs" />
     <Compile Include="Models\ShopRateResponse.cs" />
@@ -326,9 +330,11 @@
     <Content Include="Views\Shared\_Layout.cshtml" />
     <Content Include="Views\Plant\Index.cshtml" />
     <Content Include="Views\Plant\ShipmentConfirmation.cshtml" />
+    <Content Include="Views\Test\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
+    <Folder Include="Views\View\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Scripts\bootstrap.min.js.map" />
