@@ -1,0 +1,56 @@
+@startuml
+
+class UPSResponse {
+  + XAVResponse : XAVResponse
+}
+
+class ResponseStatus {
+  + Code : string
+}
+
+class Response {
+    + ResponseStatus : ResponseStatus
+}
+
+class AddressClassification {
+    + Code : string
+    + Description : string
+}
+
+class AddressKeyFormat {
+    + ConsigneeName : string 
+    + BuildingName : string 
+    +  AddressLine : string []
+    + PoliticalDivision2 : string 
+    + PoliticalDivision1 : string 
+    + PostcodePrimaryLow : string
+    + PostcodeExtendedLow : string 
+    + Region : string[]
+    + Urbanization : string
+    + CountryCode : string
+}
+
+class Candidate {
+    + AddressClassification : AddressClassification
+    + AddressKeyFormat : AddressKeyFormat    
+}
+
+class XAVResponse {
+  + Response : Response
+  + ValidAddressIndicator : string
+  + AddressClassification : AddressClassification
+  + Candidate : Candidate
+}
+
+' Only for visual layout purposes
+Candidate -[hidden]-> AddressKeyFormat
+Candidate -[hidden]-> AddressClassification
+
+Response -[hidden]-> ResponseStatus
+
+UPSResponse -[hidden]-> XAVResponse
+
+XAVResponse -[hidden]-> Response
+XAVResponse -[hidden]-> AddressClassification
+XAVResponse -[hidden]-> Candidate
+@enduml
