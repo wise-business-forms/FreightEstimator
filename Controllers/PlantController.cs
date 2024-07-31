@@ -13,6 +13,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.NetworkInformation;
+using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -27,7 +28,6 @@ namespace AuthenticationServer.Controllers
         private string _upsRequest = string.Empty;
         private string _upsResponse = string.Empty;
 
-        [Authorize]
         public ActionResult Index(string loc)
         {
             ViewBag.Param1 = loc;            if(string.IsNullOrEmpty(loc) || !Configuration.PlantLocations.ContainsKey(loc.ToUpper()))
@@ -156,7 +156,13 @@ namespace AuthenticationServer.Controllers
             }
             else
             {
-                shipment.shopCompareRates = GetCompareRates(shipment);
+                ShopRateResponse shopRateResponse = new ShopRateResponse();
+                shopRateResponse = GetCompareRates(shipment);
+                foreach(UPSService service in shopRateResponse.UPSServices)
+                {                    
+                    service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
+                }
+                shipment.shopCompareRates = shopRateResponse;
             }
 
             // GRID 2 - Ground Rate
@@ -168,6 +174,7 @@ namespace AuthenticationServer.Controllers
             // GRID 3 - LTL Rates
             if (shipment.include_ltl_rate_selection == "Yes") { 
                 shipment.shopLessThanTruckloadResponse = GetLessThanTruckloadRates(shipment); }
+
             
             ViewBag.plants = Plant.Plants();
 
@@ -228,242 +235,36 @@ namespace AuthenticationServer.Controllers
                 StateIsValid = true;
             }
         }
-        
+
         /// <summary>
         /// GRID 1 - Compare Rates
+        /// Note the "Shop" request option appended to the path.
+        /// https://developer.ups.com/api/reference?loc=en_US#tag/Rating_other
         /// </summary>
         /// <param name="shipment"></param>
         /// <returns></returns>
         private ShopRateResponse GetCompareRates(Shipment shipment)
         {
             ShopRateResponse shopRateResponse = new ShopRateResponse();
-            shopRateResponse.UPSServices = new UPSService[10]; // More than needed. 10 is arbitrary
-
-            using (HttpClient client = new HttpClient())
-            {
-                client.DefaultRequestHeaders.Add("Authorization", "Bearer " + GetToken());
-
-                try
-                {
-                    // Create HttpWebRequest
-                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(Configuration.UPSShopRatesURL);
-                    request.Method = "POST";
-                    request.ContentType = "application/json";
-                    request.Headers.Add("Authorization", "Bearer " + GetToken());
-
-                    // Write data to request stream
-                    using (var streamWriter = new StreamWriter(request.GetRequestStream()))
-                    {
-                        _upsRequest = RateRequest(shipment);
-                        streamWriter.Write(_upsRequest);
-                    }
-
-                    // Get the response
-                    using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-                    {
-                        if (response.StatusCode == HttpStatusCode.OK)
-                        {
-                            using (var streamReader = new StreamReader(response.GetResponseStream()))
-                            {
-                                _upsResponse = streamReader.ReadToEnd();
-
-                                dynamic data = JObject.Parse(_upsResponse);
-
-                                // Check for each key's existence and assign values accordingly
-                                IList<JToken> services = data.SelectToken("RateResponse.RatedShipment");
-                                var serviceIndex = 0;
-                                List<UPSService> serviceSort = new List<UPSService>();
-                                foreach (var service in services)
-                                {
-                                    UPSService uPSService = new UPSService();
-                                    uPSService.ShipFrom = shipment.PlantId;
-                                    var serviceCode = service.SelectToken("Service")?.SelectToken("Code")?.ToString() ?? "No Service Code";
-                                    switch (serviceCode)
-                                    {
-                                        case "01":
-                                            uPSService.ServiceName = UPSService.ServiceCode.UPSNextDayAir.ToString();
-                                            break;
-                                        case "02":
-                                            uPSService.ServiceName = UPSService.ServiceCode.UPS2ndDayAir.ToString();
-                                            break;
-                                        case "03":
-                                            uPSService.ServiceName = UPSService.ServiceCode.UPSGround.ToString();
-                                            break;
-                                        case "07":
-                                            uPSService.ServiceName = UPSService.ServiceCode.UPSWorldwideExpress.ToString();
-                                            break;
-                                        case "08":
-                                            uPSService.ServiceName = UPSService.ServiceCode.UPSWorldwideExpedited.ToString();
-                                            break;
-                                        case "11":
-                                            uPSService.ServiceName = UPSService.ServiceCode.UPSStandard.ToString();
-                                            break;
-                                        case "12":
-                                            uPSService.ServiceName = UPSService.ServiceCode.UPS3DaySelect.ToString();
-                                            break;
-                                        case "13":
-                                            uPSService.ServiceName = UPSService.ServiceCode.NextDayAirSaver.ToString();
-                                            break;
-                                        case "14":
-                                            uPSService.ServiceName = UPSService.ServiceCode.NextDayAirEarlyAM.ToString();
-                                            break;
-                                        case "54":
-                                            uPSService.ServiceName = UPSService.ServiceCode.ExpressPlus.ToString();
-                                            break;
-                                        case "59":
-                                            uPSService.ServiceName = UPSService.ServiceCode.SecondDayAirAM.ToString();
-                                            break;
-                                        case "65":
-                                            uPSService.ServiceName = UPSService.ServiceCode.UPSSaver.ToString();
-                                            break;
-                                        case "82":
-                                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayStandard.ToString();
-                                            break;
-                                        case "83":
-                                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayDedicatedCourier.ToString();
-                                            break;
-                                        case "84":
-                                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayIntercity.ToString();
-                                            break;
-                                        case "85":
-                                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayExpress.ToString();
-                                            break;
-                                        case "86":
-                                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayExpressSaver.ToString();
-                                            break;
-                                        default:
-                                            uPSService.ServiceName = "No Service Name";
-                                            break;
-                                    }
-                                    uPSService.Rate = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "-";
-                                    uPSService.CWT = "TBD";
-                                    serviceSort.Add(uPSService);
-                                    serviceIndex++;
-                                }
-
-                                // Not th ebest place to sort for presentation ... but here we are.
-                                serviceSort.Sort(new UPSSort());
-                                shopRateResponse.UPSServices = serviceSort.ToArray();
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Error: {response.StatusCode} - {response.StatusDescription}");
-                        }
-                    }
-                }
-                catch (WebException ex)
-                {
-                    if (ex.Response != null)
-                    {
-
-                        using (var errorResponse = (HttpWebResponse)ex.Response)
-                        {
-                            using (var reader = new StreamReader(errorResponse.GetResponseStream()))
-                            {
-                                string error = reader.ReadToEnd();
-                                Console.WriteLine("Error response JSON:");
-                                Console.WriteLine(error);
-                                _upsResponse = error;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("WebException: " + ex.Message);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Exception: " + ex.Message);
-                }
-
-                // Remove extra (null) UPS Services values slots from the array.
-                shopRateResponse.UPSServices = shopRateResponse.UPSServices.Where(x => x != null).ToArray();
-
-                
-
-                return shopRateResponse;
-            }
+            UPSRequest uPSRequest = new UPSRequest(shipment, new Plant { Id = shipment.PlantId }, UPSRequest.RequestOption.Shop);
+            var response = uPSRequest.Response();
+            shopRateResponse.UPSServices = uPSRequest.UPSServices;
+            return shopRateResponse;
         }
-        
+
         /// <summary>
         /// GRID 2 - Generate the Ground Freight Rates for each plant.
+        /// Note the "Rate" request option appended to the path.
+        /// https://developer.ups.com/api/reference?loc=en_US#tag/Rating_other
         /// </summary>
         /// <param name="shipment"></param>
         private ShopRateResponse GetGroundFreightRate(Shipment shipment)
         {
-            // SET UP DEFAULT VALUES
-            int acctNumber = 0;
-            Int32.TryParse(shipment.AcctNum, out acctNumber);
-            bool SoapError = false;
-            double shipmentWeight = 0;
-            int shipmentClassification = 0;
-            var plantCode = shipment.PlantId;
-
-            List<PlantCharges> allPlantCharges = new List<PlantCharges>();
-            ShopRateResponse plantRateResponse = new ShopRateResponse();
-
-            StringBuilder sbResults = new StringBuilder();
-            Dictionary<string, double> dPerPackageChargeGF = new Dictionary<string, double>();
-            Dictionary<string, double> dPerShipmentChargeGF = new Dictionary<string, double>();
-            Dictionary<string, double> dUpchargeGF = new Dictionary<string, double>();
-
-            int numPackages = Convert.ToInt16(shipment.number_of_packages);
-            string sPkgWeight = shipment.package_weight.ToString();
-            string sLastPkgWeight = shipment.last_package_weight.ToString();
-
-            if (sLastPkgWeight == "")
-            {
-                sLastPkgWeight = sPkgWeight;
-            }
-
-            int totalWeight = (Convert.ToInt16(sPkgWeight) * (numPackages - 1)) + Convert.ToInt16(sLastPkgWeight);
-
-            sbResults.Append("Total weight: " + totalWeight.ToString() + "<br/>");
-
-            #region 1. Get the charges for each plant from database. (drCharges)
-
-            SqlConnection connCharges = new SqlConnection(Configuration.UpsRateSqlConnection);
-            connCharges.Open();
-
-            SqlCommand cmdCharges = new SqlCommand();
-            cmdCharges.Connection = connCharges;
-
-            cmdCharges.CommandText = "GetPlantCharges";
-            cmdCharges.CommandType = CommandType.StoredProcedure;
-
-            cmdCharges.Parameters.Add("@Carrier", SqlDbType.VarChar, 50).Value = "GF";
-            cmdCharges.Parameters.Add("@AcctNumber", SqlDbType.Int).Value = acctNumber;
-
-            SqlDataReader drCharges = cmdCharges.ExecuteReader();
-
-            while (drCharges.Read())
-            {
-                PlantCharges plantCharges = new PlantCharges();
-                plantCharges.PlantId = drCharges["PlantCode"].ToString();
-                plantCharges.PerPackageCharge = Convert.ToDouble(drCharges["PerPackageCharge"].ToString());
-                plantCharges.PerShipmentCharge = Convert.ToDouble(drCharges["PerShipmentCharge"].ToString());
-                plantCharges.Ground = Convert.ToDouble(drCharges["Ground"].ToString());
-                allPlantCharges.Add(plantCharges);
-            }
-
-            connCharges.Close();
-            #endregion
-
-            #region 2. Loop through the plants as needed and call ShopRateResponse() for each.
-            if (shipment.multiple_location_rate_selection == "Yes")
-            {
-                plantRateResponse = CalculateGroundFreight(allPlantCharges, shipment);
-            }
-            else
-            {
-                var charges = allPlantCharges.Where(c => c.PlantId == shipment.PlantId).ToList();
-                plantRateResponse = CalculateGroundFreight(charges, shipment);
-            }
-            #endregion
-
-            return plantRateResponse;
+            ShopRateResponse shopRateResponse = new ShopRateResponse();
+            UPSRequest upsRequest = new UPSRequest(shipment, new Plant { Id=shipment.PlantId}, UPSRequest.RequestOption.Rate);
+            var response = upsRequest.Response();
+            shopRateResponse.UPSServices = upsRequest.UPSServices;
+            return shopRateResponse;
         }
 
         /// <summary>
@@ -766,48 +567,13 @@ namespace AuthenticationServer.Controllers
         }
 
         
-        private string GetToken()
-        {
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
-
-            string req = "grant_type=client_credentials";
-            byte[] data = Encoding.ASCII.GetBytes(req);
-            var accessID = Configuration.UPSClientId + ":" + Configuration.UPSClientSecret;
-            var base64 = Convert.ToBase64String(Encoding.Default.GetBytes(accessID));
-            string sResponse = "";
-            string sToken = "";
-            string url = Configuration.UPSGenerateTokenURL;
-
-            WebRequest oRequest = WebRequest.Create(url);
-            oRequest.Method = "POST";
-            oRequest.ContentType = "application/x-www-form-urlencoded";
-            oRequest.Headers.Add("Authorization", "Basic " + base64);
-            oRequest.Headers.Add("x-merchant-id", Configuration.ShipFromShipperNumber);
-
-            try
-            {
-                oRequest.GetRequestStream().Write(data, 0, data.Length);
-                HttpWebResponse oResponse = (HttpWebResponse)oRequest.GetResponse();
-                sResponse = new StreamReader(oResponse.GetResponseStream()).ReadToEnd();
-                using(JsonDocument doc = JsonDocument.Parse(sResponse))
-                {
-                    JsonElement root = doc.RootElement;
-                    sToken = root.GetProperty("access_token").GetString();
-                }
-            }catch (Exception ex)
-            {
-                sToken = ex.Message;
-            }
-
-            return sToken;
-        }
-
         private AddressKeyFormat AddressValidation(Shipment shipment)
         {
+            UPSRequest uPSRequest = new UPSRequest();
             string addressValidationRequest = AddressValidationRequest(shipment);
             using (HttpClient client = new HttpClient())
             {
-                client.DefaultRequestHeaders.Add("Authorization", "Bearer " + GetToken());
+                client.DefaultRequestHeaders.Add("Authorization", "Bearer " + uPSRequest.GetToken());
 
                 try
                 {
@@ -815,7 +581,7 @@ namespace AuthenticationServer.Controllers
                     HttpWebRequest request = (HttpWebRequest)WebRequest.Create(Configuration.UPSAddressValidationURL);
                     request.Method = "POST";
                     request.ContentType = "application/json";
-                    request.Headers.Add("Authorization", "Bearer " + GetToken());
+                    request.Headers.Add("Authorization", "Bearer " + uPSRequest.GetToken());
 
                     // Write data to request stream
                     using (var streamWriter = new StreamWriter(request.GetRequestStream()))
@@ -945,110 +711,7 @@ namespace AuthenticationServer.Controllers
 
         }
 
-        /// <summary>
-        /// Builds the JSON shipment request for the UPS Rate API
-        /// </summary>
-        /// <param name="shipment"></param>
-        /// <returns></returns>
-        private string RateRequest(Shipment shipment)
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.Append("{\"RateRequest\":");
-
-                sb.Append("{\"Request\":");
-                sb.Append("{\"TransactionReference\":{\"CustomerContext\": \"CustomerContext\"}"); // TransactionReference
-                sb.Append("},"); // Request
-
-                sb.Append("\"Shipment\":");
-                    sb.Append("{\"Shipper\":");
-                        sb.Append("{\"Name\": \"" + Configuration.UPSShipFromName + "\",");
-                        sb.Append("\"ShipperNumber\": \"" + Configuration.ShipFromShipperNumber + "\",");
-                        sb.Append("\"Address\":");
-                            sb.Append("{\"AddressLine\": [");
-                                sb.Append("\"" + Configuration.UPSShipFromAddress + "\",");
-                                sb.Append("\"\",");
-                                sb.Append("\"\"");
-                            sb.Append("],"); // AddressLine
-                            sb.Append("\"City\": \"" + Configuration.UPSShipFromCity + "\",");
-                            sb.Append("\"StateProvinceCode\": \"" + Configuration.UPSShipFromState + "\",");
-                            sb.Append("\"PostalCode\": \"" + Configuration.UPSShipFromZip + "\",");
-                            sb.Append("\"CountryCode\": \"" + shipment.Country_selection + "\"");
-                        sb.Append("}"); // Address
-                    sb.Append("},"); // Shipper
-
-                sb.Append("\"ShipTo\":");
-                    sb.Append("{\"Name\": \"" + shipment.AcctNum + "\",");
-                    sb.Append("\"Address\":");
-                        sb.Append("{\"AddressLine\": [");
-                            sb.Append("\"" + shipment.Address + "\",");
-                            sb.Append("\"\",");
-                            sb.Append("\"\"");
-                            sb.Append("],");
-                        sb.Append("\"City\": \""+ shipment.City + "\",");
-                        sb.Append("\"StateProvinceCode\": \"" + shipment.State_selection + "\",");
-                        sb.Append("\"PostalCode\": \"" + shipment.Zip + "\",");
-                        sb.Append("\"CountryCode\": \"" + shipment.Country_selection + "\"");
-                    sb.Append("}"); // Address
-                sb.Append("},"); // ShipTo
-
-            sb.Append("\"ShipFrom\":");
-                sb.Append("{\"Name\": \"" + Configuration.UPSShipFromName + "\",");
-                sb.Append("\"Address\":");
-                    sb.Append("{\"AddressLine\": [");
-                        sb.Append("\"" + Configuration.UPSShipFromAddress + "\",");
-                        sb.Append("\"\",");
-                        sb.Append("\"\"");
-                        sb.Append("],");
-                    sb.Append("\"City\": \"" + Configuration.UPSShipFromCity + "\",");
-                sb.Append("\"StateProvinceCode\": \"" + Configuration.UPSShipFromState + "\",");
-                sb.Append("\"PostalCode\": \"" + Configuration.UPSShipFromZip + "\",");
-                sb.Append("\"CountryCode\": \""+ shipment.Country_selection + "\"");
-                sb.Append("}"); // Address
-            sb.Append("},"); // ShipFrom
-
-            //sb.Append("\"ShipmentRatingOptions\": {");
-            //    sb.Append("\"TPFCNegotiatedRatesIndicator\": \"Y\",");
-            //    sb.Append("\"NegotiatedRatesIndicator\": \"Y\"");
-            //sb.Append("},"); // ShipmentRatingOptions
-
-            sb.Append("\"Service\":");                
-                sb.Append("{\"Code\": \"03\",");
-                sb.Append("\"Description\": \"UPS Worldwide Economy DDU\"");
-            sb.Append("},"); // Service
-
-
-            sb.Append("\"NumOfPieces\": \"" + shipment.number_of_packages + "\",");
-            sb.Append("\"Package\":");
-                sb.Append("{\"PackagingType\":");
-                    sb.Append("{\"Code\": \"02\",");
-                    sb.Append("\"Description\": \"Packaging\"");
-                sb.Append("},"); // PackagingType
-                sb.Append("\"Dimensions\":");
-                    sb.Append("{\"UnitOfMeasurement\":");
-                        sb.Append("{\"Code\": \"IN\",");
-                        sb.Append("\"Description\": \"Inches\"");
-                    sb.Append("},");
-                    sb.Append("\"Length\": \"5\",");
-                    sb.Append("\"Width\": \"5\",");
-                    sb.Append("\"Height\": \"5\"");
-                    sb.Append("},");
-                sb.Append("\"PackageWeight\":");
-                    sb.Append("{\"UnitOfMeasurement\":");
-                    sb.Append("{\"Code\": \"LBS\",");
-                    sb.Append("\"Description\": \"Ounces\"");
-                sb.Append("},");
-                sb.Append("\"Weight\": \"" + shipment.billing_weight + "\"");
-            sb.Append("},");
-                sb.Append("\"OversizeIndicator\": \"X\",");
-                sb.Append("\"MinimumBillableWeightIndicator\": \"X\"");
-            sb.Append("}"); // RateRequest.Shipment.Package
-            sb.Append("}"); // RateRequest.Shipment
-            sb.Append("}"); // RateRequest
-            sb.Append("}"); // ROOT
-            return sb.ToString();
-        }        
-
-
+        
         /// <summary>
         /// Builds the JSON address request for the UPS API
         /// </summary>
