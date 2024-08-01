@@ -92,6 +92,7 @@ namespace AuthenticationServer.Models.Services
                 }
             }
 
+            sqlConnection.Close();
         }
         public Dictionary<string, string> PerPackageCharge { get { return _PerPackageCharge; } }
         public Dictionary<string, string> PerShipmentCharge { get { return _PerShipmentCharge; } }

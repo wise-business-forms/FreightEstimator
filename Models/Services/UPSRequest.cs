@@ -17,7 +17,7 @@ namespace AuthenticationServer.Models.Services
         private string _response = string.Empty;
         private string _url = string.Empty;
         private UPSService[] _uPSServices = null;
-
+        private Shipment _shipment = null;
         public enum RequestOption { Rate, Shop, Ratetimeintransit, Shoptimeintransit };
 
         public UPSRequest() { }
@@ -29,9 +29,9 @@ namespace AuthenticationServer.Models.Services
         /// <param name="requestOption"></param>
         public UPSRequest(Shipment shipment, Plant plant, RequestOption requestOption)
         {
-            
-            _request = RateRequest(shipment, new Plant(plant.Id));
+            _request = RateRequest(shipment, new Plant(plant.Id), requestOption);
             _url = Configuration.UPSShopRatesURL + requestOption.ToString();
+            _shipment = shipment;
         }
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace AuthenticationServer.Models.Services
                         {
                             using (var streamReader = new StreamReader(response.GetResponseStream()))
                             {
-                                _response = streamReader.ReadToEnd();                                
+                                _response = streamReader.ReadToEnd();  
                             }
                         }
                         else
@@ -72,6 +72,9 @@ namespace AuthenticationServer.Models.Services
                             Console.WriteLine($"Error: {response.StatusCode} - {response.StatusDescription}");
                         }
                     }
+
+
+                    Log.LogRequest_Rate("paulm", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _request, _response, "");
                 }
                 catch (WebException ex)
                 {
@@ -93,87 +96,102 @@ namespace AuthenticationServer.Models.Services
             }
         }
 
+        private UPSService ParseUPSService(JToken service)
+        {
+            UPSService uPSService = new UPSService();
+            //uPSService.ShipFrom = shipment.PlantId;
+            var serviceCode = service.SelectToken("Service")?.SelectToken("Code")?.ToString() ?? "No Service Code";
+            switch (serviceCode)
+            {
+                case "01":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSNextDayAir.ToString();
+                    break;
+                case "02":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPS2ndDayAir.ToString();
+                    break;
+                case "03":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSGround.ToString();
+                    break;
+                case "07":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSWorldwideExpress.ToString();
+                    break;
+                case "08":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSWorldwideExpedited.ToString();
+                    break;
+                case "11":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSStandard.ToString();
+                    break;
+                case "12":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPS3DaySelect.ToString();
+                    break;
+                case "13":
+                    uPSService.ServiceName = UPSService.ServiceCode.NextDayAirSaver.ToString();
+                    break;
+                case "14":
+                    uPSService.ServiceName = UPSService.ServiceCode.NextDayAirEarlyAM.ToString();
+                    break;
+                case "54":
+                    uPSService.ServiceName = UPSService.ServiceCode.ExpressPlus.ToString();
+                    break;
+                case "59":
+                    uPSService.ServiceName = UPSService.ServiceCode.SecondDayAirAM.ToString();
+                    break;
+                case "65":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSSaver.ToString();
+                    break;
+                case "82":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSTodayStandard.ToString();
+                    break;
+                case "83":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSTodayDedicatedCourier.ToString();
+                    break;
+                case "84":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSTodayIntercity.ToString();
+                    break;
+                case "85":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSTodayExpress.ToString();
+                    break;
+                case "86":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSTodayExpressSaver.ToString();
+                    break;
+                default:
+                    uPSService.ServiceName = "No Service Name";
+                    break;
+            }
+            uPSService.PlantCode = _shipment.PlantId;
+            uPSService.Rate = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "-";
+            uPSService.CWT = "TBD";
+
+            return uPSService;
+        }
+
         public UPSService[] UPSServices { get {
                 dynamic data = JObject.Parse(_response);
 
-                // Check for each key's existence and assign values accordingly
-                IList<JToken> services = data.SelectToken("RateResponse.RatedShipment");
-                var serviceIndex = 0;
-                List<UPSService> serviceSort = new List<UPSService>();
-                foreach (var service in services)
+                JToken services = data.SelectToken("RateResponse.RatedShipment");
+                if (services.Type == JTokenType.Array)
                 {
-                    UPSService uPSService = new UPSService();
-                    //uPSService.ShipFrom = shipment.PlantId;
-                    var serviceCode = service.SelectToken("Service")?.SelectToken("Code")?.ToString() ?? "No Service Code";
-                    switch (serviceCode)
+                    // Check for each key's existence and assign values accordingly
+                    var serviceIndex = 0;
+                    List<UPSService> serviceSort = new List<UPSService>();
+                    foreach (var service in services)
                     {
-                        case "01":
-                            uPSService.ServiceName = UPSService.ServiceCode.UPSNextDayAir.ToString();
-                            break;
-                        case "02":
-                            uPSService.ServiceName = UPSService.ServiceCode.UPS2ndDayAir.ToString();
-                            break;
-                        case "03":
-                            uPSService.ServiceName = UPSService.ServiceCode.UPSGround.ToString();
-                            break;
-                        case "07":
-                            uPSService.ServiceName = UPSService.ServiceCode.UPSWorldwideExpress.ToString();
-                            break;
-                        case "08":
-                            uPSService.ServiceName = UPSService.ServiceCode.UPSWorldwideExpedited.ToString();
-                            break;
-                        case "11":
-                            uPSService.ServiceName = UPSService.ServiceCode.UPSStandard.ToString();
-                            break;
-                        case "12":
-                            uPSService.ServiceName = UPSService.ServiceCode.UPS3DaySelect.ToString();
-                            break;
-                        case "13":
-                            uPSService.ServiceName = UPSService.ServiceCode.NextDayAirSaver.ToString();
-                            break;
-                        case "14":
-                            uPSService.ServiceName = UPSService.ServiceCode.NextDayAirEarlyAM.ToString();
-                            break;
-                        case "54":
-                            uPSService.ServiceName = UPSService.ServiceCode.ExpressPlus.ToString();
-                            break;
-                        case "59":
-                            uPSService.ServiceName = UPSService.ServiceCode.SecondDayAirAM.ToString();
-                            break;
-                        case "65":
-                            uPSService.ServiceName = UPSService.ServiceCode.UPSSaver.ToString();
-                            break;
-                        case "82":
-                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayStandard.ToString();
-                            break;
-                        case "83":
-                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayDedicatedCourier.ToString();
-                            break;
-                        case "84":
-                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayIntercity.ToString();
-                            break;
-                        case "85":
-                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayExpress.ToString();
-                            break;
-                        case "86":
-                            uPSService.ServiceName = UPSService.ServiceCode.UPSTodayExpressSaver.ToString();
-                            break;
-                        default:
-                            uPSService.ServiceName = "No Service Name";
-                            break;
+                        serviceSort.Add(ParseUPSService(service));
+                        serviceIndex++;
                     }
-                    uPSService.Rate = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "-";
-                    uPSService.CWT = "TBD";
-                    serviceSort.Add(uPSService);
-                    serviceIndex++;
+
+                    // Remove extra (null) UPS Services values slots from the array.
+                    serviceSort.RemoveAll(service => service == null);
+
+                    // Not the best place to sort for presentation ... but here we are.
+                    serviceSort.Sort(new UPSSort());
+                    _uPSServices = serviceSort.ToArray();
+                } else
+                {
+                    List<UPSService> serviceSort = new List<UPSService>();
+                    serviceSort.Add(ParseUPSService(services));
+                    return serviceSort.ToArray();
                 }
-
-                // Not the best place to sort for presentation ... but here we are.
-                serviceSort.Sort(new UPSSort());
-                _uPSServices = serviceSort.ToArray();
-
-                // Remove extra (null) UPS Services values slots from the array.
-                //shopRateResponse.UPSServices = shopRateResponse.UPSServices.Where(x => x != null).ToArray();
                 return _uPSServices;
             }
         } 
@@ -229,7 +247,7 @@ namespace AuthenticationServer.Models.Services
         /// </summary>
         /// <param name="shipment"></param>
         /// <returns></returns>
-        private string RateRequest(Shipment shipment, Plant plant)
+        private string RateRequest(Shipment shipment, Plant plant, RequestOption requestOption)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("{\"RateRequest\":");
@@ -254,7 +272,7 @@ namespace AuthenticationServer.Models.Services
             sb.Append("\"CountryCode\": \"" + plant.Country + "\"");
             sb.Append("}"); // Address
             sb.Append("},"); // Shipper
-
+            
             sb.Append("\"ShipTo\":");
             sb.Append("{\"Name\": \"" + shipment.AcctNum + "\",");
             sb.Append("\"Address\":");
@@ -289,7 +307,6 @@ namespace AuthenticationServer.Models.Services
             //    sb.Append("\"TPFCNegotiatedRatesIndicator\": \"Y\",");
             //    sb.Append("\"NegotiatedRatesIndicator\": \"Y\"");
             //sb.Append("},"); // ShipmentRatingOptions
-
             sb.Append("\"Service\":");
             sb.Append("{\"Code\": \"03\",");
             sb.Append("\"Description\": \"UPS Worldwide Economy DDU\"");
@@ -318,6 +335,14 @@ namespace AuthenticationServer.Models.Services
             sb.Append("},");
             sb.Append("\"Weight\": \"" + shipment.billing_weight + "\"");
             sb.Append("},");
+
+            if(requestOption == RequestOption.Rate)
+            {
+                sb.Append("\"Commodity\":");
+                sb.Append("{\"FreightClass\": \"55\"");
+                //sb.Append("{\"FreightClass\": \"" + shipment.freight_class_selected + "\"");
+                sb.Append("},");
+            }
             //sb.Append("\"OversizeIndicator\": \"X\",");
             sb.Append("\"MinimumBillableWeightIndicator\": \"X\"");
             sb.Append("}"); // RateRequest.Shipment.Package

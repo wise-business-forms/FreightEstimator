@@ -67,11 +67,13 @@ namespace AuthenticationServer.Models
             int indexX = Configuration.UPSServiceCodeOrder.IndexOf(x.ServiceName);
             int indexY = Configuration.UPSServiceCodeOrder.IndexOf(y.ServiceName);
 
+            /*
+             *Only for detecting if a value is not in original list.
             if(indexX == -1 || indexY == -1)
             {
                 throw new ArgumentException("String not found in custom order list.  Check the configfile.");
             }
-
+            */
             return indexX.CompareTo(indexY);
         }
     }

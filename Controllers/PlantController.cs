@@ -27,6 +27,7 @@ namespace AuthenticationServer.Controllers
     {
         private string _upsRequest = string.Empty;
         private string _upsResponse = string.Empty;
+        private DataTable _multiView;
 
         public ActionResult Index(string loc)
         {
@@ -81,6 +82,9 @@ namespace AuthenticationServer.Controllers
                 new SelectListItem { Text = "500", Value = "500"},
 
             };
+            model.default_freight_class = "55";
+
+            model.pick_up_date = System.DateTime.Today;
 
             model.delivery_signature_required_selection = "No";
             model.multiple_location_rate_selection = "No";
@@ -118,7 +122,6 @@ namespace AuthenticationServer.Controllers
             // GRID 1 - Compare Rates
             if (shipment.multiple_location_rate_selection == "Yes")
             {
-                /*
                 List<UPSService>  serviceComparison = new List<UPSService>();
                 List<ShopRateResponse> plantServices = new List<ShopRateResponse>();
 
@@ -132,27 +135,17 @@ namespace AuthenticationServer.Controllers
                     shipmentResponse.PlantName = plant.Name;
                     shopRate = GetCompareRates(shipmentResponse);
 
+                    foreach (UPSService service in shopRate.UPSServices)
+                    {
+                        service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
+                    }
+
                     plantServices.Add(shopRate);
 
                 }
+                _multiView = MultiView(plantServices.ToArray());
 
-                // Add each plants rate for each service.
-                foreach (var serviceCode in Enum.GetValues(typeof(UPSService.ServiceCode)))
-                {
-                    foreach (ShopRateResponse service in plantServices)
-                    {
-                        var serviceInstance = service.UPSServices.FirstOrDefault(s => s.ServiceName == serviceCode.ToString());
-                        if (serviceInstance != null)
-                            serviceComparison.Add(serviceInstance);
-                    }
-                }
-                
-                ShopRateResponse shopRateResponse = new ShopRateResponse();
-                shipment.shopCompareRates = shopRateResponse;
-                shopRateResponse.UPSServices = serviceComparison.ToArray();
-                shipment.shopCompareRates = shopRateResponse;
-                */
-                
+                ViewBag.MultiView = _multiView;
             }
             else
             {
@@ -162,7 +155,8 @@ namespace AuthenticationServer.Controllers
                 {                    
                     service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
                 }
-                shipment.shopCompareRates = shopRateResponse;
+                List<ShopRateResponse> shopRates = new List<ShopRateResponse> { shopRateResponse };
+                shipment.shopCompareRates = shopRates.ToArray();
             }
 
             // GRID 2 - Ground Rate
@@ -269,6 +263,7 @@ namespace AuthenticationServer.Controllers
 
         /// <summary>
         /// GRID 3 - Less Than Truckload (LTL) Rates
+        /// Uses the Transplace API
         /// </summary>
         /// <param name="shipment"></param>
         /// <returns></returns>
@@ -309,7 +304,7 @@ namespace AuthenticationServer.Controllers
 
                 try
                 {
-                    DateTime datePickup = DateTime.Parse(shipment.pick_up_date.ToString());
+                    DateTime datePickup = shipment.pick_up_date;
                     pickupDate = datePickup.Year.ToString() + "-" + datePickup.Month.ToString() + "-" + datePickup.Day.ToString();
                 }
                 catch
@@ -675,8 +670,7 @@ namespace AuthenticationServer.Controllers
                     Shipment plantShipment = shipment;
                     plantShipment.PlantId = plantcharge.PlantId;
                     plantShipment.PlantName = plant.Name;
-                    plantShipment.shopCompareRates = GetCompareRates(plantShipment);
-
+                    plantShipment.shopCompareRates = new List<ShopRateResponse> { GetCompareRates(plantShipment) }.ToArray();
                     // -- log request --
                     try
                     {
@@ -711,6 +705,63 @@ namespace AuthenticationServer.Controllers
 
         }
 
+        private DataTable MultiView(ShopRateResponse[] plantServices)
+        { 
+            DataTable dataTable = new DataTable();
+            dataTable.Columns.Add("carrier");
+            dataTable.Columns.Add("ALP");
+            dataTable.Columns.Add("BUT");
+            dataTable.Columns.Add("FTW");
+            dataTable.Columns.Add("POR");
+            dataTable.Columns.Add("cwt");
+            
+            List<string> _alp_rate = new List<string>();
+            List<string> _but_rate = new List<string>();
+            List<string> _ftw_rate = new List<string>();
+            List<string> _por_rate = new List<string>();
+
+            List<string> supportedServices = new List<string>();
+            supportedServices.Add("UPSGround");
+            supportedServices.Add("UPS3DaySelect");
+            supportedServices.Add("SecondDayAirAM");
+            supportedServices.Add("NextDayAirSaver");
+            supportedServices.Add("UPSNextDayAir");
+            supportedServices.Add("NextDayAirEarlyAM");
+
+            foreach (ShopRateResponse shopRateResponse in plantServices)
+            {
+                foreach (UPSService uPSService in shopRateResponse.UPSServices)
+                {
+                    switch (uPSService.PlantCode)
+                    {
+                        case "ALP":
+                            _alp_rate.Add(uPSService.Rate);
+                            break;
+                        case "BUT":
+                            _but_rate.Add(uPSService.Rate);
+                            break;
+                        case "FTW":
+                            _ftw_rate.Add(uPSService.Rate);
+                            break;
+                        case "POR":
+                            _por_rate.Add(uPSService.Rate);
+                            break;
+                    }
+                }
+            }
+
+            int serviceCount = 0;
+            foreach (string service in Configuration.UPSServiceCodeOrder)
+            {
+               if(supportedServices.Contains(service))
+                {
+                    dataTable.Rows.Add(service, _alp_rate[serviceCount], _but_rate[serviceCount], _ftw_rate[serviceCount], _por_rate[serviceCount], "TBD");
+                    serviceCount++;
+                }
+            }
+            
+            return dataTable;
+        }
         
         /// <summary>
         /// Builds the JSON address request for the UPS API

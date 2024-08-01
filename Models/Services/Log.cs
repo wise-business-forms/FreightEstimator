@@ -4,6 +4,7 @@ using System.Data.SqlClient;
 using System.Data;
 using System.Linq;
 using System.Web;
+using System.IO;
 
 namespace AuthenticationServer.Models.Services
 {
@@ -58,5 +59,7 @@ namespace AuthenticationServer.Models.Services
 
             connLog.Close();
         }
+
+        
     }
 }

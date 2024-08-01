@@ -32,8 +32,9 @@ namespace AuthenticationServer.Models
 
         // LTL information
         public List<SelectListItem> freight_class {  get; set; }
+        public string default_freight_class { get; set; }
         public int freight_class_selected { get; set; }
-        public string pick_up_date { get; set; }
+        public DateTime pick_up_date { get; set; }
         public bool notify_before_delivery {  get; set; }
         public bool liftgate_pickup {  get; set; }
         public bool liftgate_delivery {  get; set; }
@@ -58,7 +59,8 @@ namespace AuthenticationServer.Models
         /// <summary>
         /// GRID 1 - All service rates for plant.
         /// </summary>
-        public ShopRateResponse shopCompareRates { get; set; } // TODO: Rename to somethign more default.
+        public ShopRateResponse[] shopCompareRates { get; set; }
+        public MultipleLocations MultipleLocations { get; set; }
         /// <summary>
         /// GRID 2 - Ground Freight
         /// </summary>
@@ -79,5 +81,15 @@ namespace AuthenticationServer.Models
     {
         public string Value { get; set; }
         public string Text { get; set; }
+    }
+
+    public class MultipleLocations
+    {
+        public string Service { get; set; } = string.Empty;
+        public string ALP { get; set; }
+        public string BUT { get; set; }
+        public string FTW { get; set; }
+        public string POR { get; set; }
+        public string CWT { get; set; }
     }
 }

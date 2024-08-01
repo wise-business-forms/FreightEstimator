@@ -1,6 +1,7 @@
 ﻿@model  AuthenticationServer.Models.Shipment
 @{
     ViewBag.Title = "ShipmentConfirmation";
+    System.Data.DataTable table= ViewBag.MultiView as System.Data.DataTable;
     int rowIndex = 0;
 
 
@@ -45,7 +46,7 @@
                     <div class="col-1"></div>
                     <div class="col-10">
                         <!-- GRID 1 - Compare Rates -->
-                        @if (Model.shopCompareRates.UPSServices.Length > 0 && Model.multiple_location_rate_selection == "No")
+                        @if (Model.multiple_location_rate_selection == "No")
                         {
                             <div class="container">
                                 <div class="row">
@@ -60,7 +61,7 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                @foreach (var service in Model.shopCompareRates.UPSServices)
+                                                @foreach (var service in Model.shopCompareRates[0].UPSServices)
                                                 {
                                                     var rowClass = rowIndex % 2 == 0 ? "" : "alt";
                                                     <tr class="@rowClass">
@@ -78,36 +79,28 @@
                                 </div>
                             </div>
                         }
-                        <!-- GRID 2 - UPS Ground Freight -->
-                        @if (Model.include_ground_rate_selection == "Yes" && Model.multiple_location_rate_selection == "Yes")
+                        else if (Model.multiple_location_rate_selection == "Yes")
                         {
                             <div class="container">
                                 <div class="row">
                                     <table class="shipGrid">
                                         <thead>
                                             <tr>
-                                                <th scope="col">Ship From</th>
-                                                @foreach (AuthenticationServer.Models.Plant plant in ViewBag.plants)
+                                                @foreach (System.Data.DataColumn column in table.Columns)
                                                 {
-                                                    <th scope="col">From @plant.Id</th>
-
+                                                    <th>@column.ColumnName</th>
                                                 }
-                                                <th scope="col">CWT?</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach (AuthenticationServer.Models.UPSService service in Model.shopCompareRates.UPSServices)
+                                            @foreach (System.Data.DataRow dataRow in table.Rows)
                                             {
-                                                var rowClass = rowIndex % 2 == 0 ? "" : "alt";
-                                                <tr class="@rowClass">
-                                                    <td>@service.ServiceName</td>
-                                                    @foreach (AuthenticationServer.Models.Plant plant in ViewBag.plants)
+                                                <tr>
+                                                    @foreach (var item in dataRow.ItemArray)
                                                     {
-                                                        <td>@service.Rate</td>
+                                                        <td>@item</td>
                                                     }
-                                                    <td>-</td>
                                                 </tr>
-                                                rowIndex++;
                                             }
                                         </tbody>
                                     </table>
@@ -115,38 +108,43 @@
                                 <div class="col"><img src="~/Content/img/LOGO_L.gif" /></div>
                             </div>
                         }
+                        <!-- GRID 2 - UPS Ground Freight -->
+                        @if (Model.include_ground_rate_selection == "Yes" && Model.multiple_location_rate_selection == "Yes")
+                        {
+
+                        }
                         else if (Model.include_ground_rate_selection == "Yes" && Model.multiple_location_rate_selection == "No")
                         {
                             <div class="container">
                                 <div class="row">
                                     <div class="col">
-                                    <table class="shipGrid">
-                                        <thead>
-                                            <tr>
-                                                <th scope="col">Ship From</th>
-                                                <th scope="col">Service</th>
-                                                <th scope="col">Rate</th>
-                                                <th scope="col">CWT?</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var service in Model.shopGroundFreightResponse.UPSServices)
-                                            {
-                                                var rowClass = rowIndex % 2 == 0 ? "" : "alt";
-                                                <tr class="@rowClass">
-                                                    <td>@service.ShipFrom</td>
-                                                    <td>@service.ServiceName</td>
-                                                    <td>@service.Rate</td>
-                                                    <td>@service.CWT</td>
+                                        <table class="shipGrid">
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col">Ship From</th>
+                                                    <th scope="col">Service</th>
+                                                    <th scope="col">Rate</th>
+                                                    <th scope="col">CWT?</th>
                                                 </tr>
-                                                rowIndex++;
-                                            }
-                                        </tbody>
-                                    </table>
-                                        </div>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var service in Model.shopGroundFreightResponse.UPSServices)
+                                                {
+                                                    var rowClass = rowIndex % 2 == 0 ? "" : "alt";
+                                                    <tr class="@rowClass">
+                                                        <td>@service.ShipFrom</td>
+                                                        <td>@service.ServiceName</td>
+                                                        <td>@service.Rate</td>
+                                                        <td>@service.CWT</td>
+                                                    </tr>
+                                                    rowIndex++;
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
                                     <div class="col"><img src="~/Content/img/LOGO_L.gif" /></div>
                                 </div>
-                                
+
                             </div>
                         }
 
@@ -190,7 +188,7 @@
                                         </table>
                                     </div>
                                     <div class="col"><img src="~/Content/img/m33logo.jpg" /></div>
-                                </div>                                
+                                </div>
                             </div>
                         }
 
