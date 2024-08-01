@@ -84,6 +84,7 @@ namespace AuthenticationServer.Models.Services
                         {
                             string error = reader.ReadToEnd();
                             _response = error;
+                            //Log.LogRequest_Rate("paulm", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _request, _response, "");
                         }
                     }
                 }

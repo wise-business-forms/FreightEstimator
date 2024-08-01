@@ -2,6 +2,7 @@
 @{
     ViewBag.Title = "ShipmentConfirmation";
     System.Data.DataTable table= ViewBag.MultiView as System.Data.DataTable;
+    System.Data.DataTable MultiGroundFreight = ViewBag.MultiGroundFreight as System.Data.DataTable;
     int rowIndex = 0;
 
 
@@ -83,35 +84,68 @@
                         {
                             <div class="container">
                                 <div class="row">
-                                    <table class="shipGrid">
-                                        <thead>
-                                            <tr>
-                                                @foreach (System.Data.DataColumn column in table.Columns)
-                                                {
-                                                    <th>@column.ColumnName</th>
-                                                }
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (System.Data.DataRow dataRow in table.Rows)
-                                            {
+                                    <div class="col">
+                                        <table class="shipGrid">
+                                            <thead>
                                                 <tr>
-                                                    @foreach (var item in dataRow.ItemArray)
+                                                    @foreach (System.Data.DataColumn column in table.Columns)
                                                     {
-                                                        <td>@item</td>
+                                                        <th>@column.ColumnName</th>
                                                     }
                                                 </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div class="col"><img src="~/Content/img/LOGO_L.gif" /></div>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (System.Data.DataRow dataRow in table.Rows)
+                                                {
+                                                    var rowClass = rowIndex % 2 == 0 ? "" : "alt";
+                                                    <tr class="@rowClass">
+                                                        @foreach (var item in dataRow.ItemArray)
+                                                        {
+                                                            <td>@item</td>
+                                                        }
+                                                    </tr>
+                                                    rowIndex++;
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="col"><img src="~/Content/img/LOGO_L.gif" /></div>
+                                </div>                                
                             </div>
                         }
                         <!-- GRID 2 - UPS Ground Freight -->
                         @if (Model.include_ground_rate_selection == "Yes" && Model.multiple_location_rate_selection == "Yes")
                         {
-
+                            <div class="container">
+                                <div class="row">
+                                    <div class="col">
+                                        <table class="shipGrid">
+                                            <thead>
+                                                <tr>
+                                                    @foreach (System.Data.DataColumn column in MultiGroundFreight.Columns)
+                                                    {
+                                                        <th>@column.ColumnName</th>
+                                                    }
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (System.Data.DataRow dataRow in MultiGroundFreight.Rows)
+                                                {
+                                                    var rowClass = rowIndex % 2 == 0 ? "" : "alt";
+                                                    <tr class="@rowClass">
+                                                        @foreach (var item in dataRow.ItemArray)
+                                                        {
+                                                            <td>@item</td>
+                                                        }
+                                                    </tr>
+                                                    rowIndex++;
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="col"><img src="~/Content/img/LOGO_L.gif" /></div>
+                                </div>
+                            </div>
                         }
                         else if (Model.include_ground_rate_selection == "Yes" && Model.multiple_location_rate_selection == "No")
                         {

@@ -28,6 +28,7 @@ namespace AuthenticationServer.Controllers
         private string _upsRequest = string.Empty;
         private string _upsResponse = string.Empty;
         private DataTable _multiView;
+        private DataTable _multiGroundFreight;
 
         public ActionResult Index(string loc)
         {
@@ -146,6 +147,28 @@ namespace AuthenticationServer.Controllers
                 _multiView = MultiView(plantServices.ToArray());
 
                 ViewBag.MultiView = _multiView;
+
+                if(shipment.include_ground_rate_selection == "Yes")
+                {
+                    DataTable dataTable = new DataTable();
+                    dataTable.Columns.Add("Ship From");
+                    dataTable.Columns.Add("Service");
+                    dataTable.Columns.Add("Rate");
+
+                    foreach(Plant plant in Plant.Plants())
+                    {
+                        Shipment gfShipment = new Shipment();
+                        gfShipment = shipment;
+                        gfShipment.PlantId = plant.Id;
+                        ShopRateResponse shopRate = GetGroundFreightRate(gfShipment);
+                        if (shopRate.UPSServices.Length > 0)
+                        {
+                            dataTable.Rows.Add(plant.Id, "Ground Freight", shopRate.UPSServices[0].Rate);
+                        }
+                    }
+
+                    ViewBag.MultiGroundFreight = dataTable;
+                }
             }
             else
             {
@@ -160,7 +183,7 @@ namespace AuthenticationServer.Controllers
             }
 
             // GRID 2 - Ground Rate
-            if (shipment.include_ground_rate_selection == "Yes") 
+            if (shipment.include_ground_rate_selection == "Yes" && shipment.multiple_location_rate_selection == "No") 
             { 
                 shipment.shopGroundFreightResponse = GetGroundFreightRate(shipment); 
             }
