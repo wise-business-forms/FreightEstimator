@@ -289,8 +289,7 @@ namespace AuthenticationServer.Models.Services
             }
             total = rate;
             total += ((markup / 100) * rate);
-            total += (perPackageCharge * noPackages) + perShipmentCharge;
-
+            total = (perPackageCharge * noPackages) + noPackages * rate;
             return total.ToString();
         }
 

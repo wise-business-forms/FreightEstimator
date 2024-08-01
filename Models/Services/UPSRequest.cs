@@ -332,9 +332,9 @@ namespace AuthenticationServer.Models.Services
             sb.Append("\"PackageWeight\":");
             sb.Append("{\"UnitOfMeasurement\":");
             sb.Append("{\"Code\": \"LBS\",");
-            sb.Append("\"Description\": \"Ounces\"");
+            sb.Append("\"Description\": \"Pounds\"");
             sb.Append("},");
-            sb.Append("\"Weight\": \"" + shipment.billing_weight + "\"");
+            sb.Append("\"Weight\": \"" + shipment.package_weight + "\"");
             sb.Append("},");
 
             if(requestOption == RequestOption.Rate)

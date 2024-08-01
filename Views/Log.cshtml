@@ -1,0 +1,26 @@
+﻿@model AuthenticationServer.Models.Response
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Log</title>
+</head>
+<body>
+    <div>
+        <h4>Response</h4>
+        <hr />
+        <dl class="dl-horizontal">
+        </dl>
+    </div>
+    <p>
+        @Html.ActionLink("Edit", "Edit", new { /* id = Model.PrimaryKey */ }) |
+        @Html.ActionLink("Back to List", "Index")
+    </p>
+</body>
+</html>

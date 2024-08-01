@@ -1,0 +1,82 @@
+{
+    "RateRequest": {
+        "Request": {
+            "TransactionReference": {
+                "CustomerContext": "CustomerContext"
+            }
+        },
+        "Shipment": {
+            "Shipper": {
+                "Name": "",
+                "ShipperNumber": "391287",
+                "Address": {
+                    "AddressLine": [
+                        "150 Kriess Road",
+                        "",
+                        ""
+                    ],
+                    "City": "Butler",
+                    "StateProvinceCode": "PA",
+                    "PostalCode": "16001",
+                    "CountryCode": "US"
+                }
+            },
+            "ShipTo": {
+                "Name": "12345",
+                "Address": {
+                    "AddressLine": [
+                        "1600 Pennsylvania Avenue NW",
+                        "",
+                        ""
+                    ],
+                    "City": "Washington",
+                    "StateProvinceCode": "DC",
+                    "PostalCode": "20500",
+                    "CountryCode": "US"
+                }
+            },
+            "ShipFrom": {
+                "Name": "",
+                "Address": {
+                    "AddressLine": [
+                        "150 Kriess Road",
+                        "",
+                        ""
+                    ],
+                    "City": "Butler",
+                    "StateProvinceCode": "PA",
+                    "PostalCode": "16001",
+                    "CountryCode": "US"
+                }
+            },
+            "Service": {
+                "Code": "03",
+                "Description": "UPS Worldwide Economy DDU"
+            },
+            "NumOfPieces": "2",
+            "Package": {
+                "PackagingType": {
+                    "Code": "00",
+                    "Description": "Packaging"
+                },
+                "Dimensions": {
+                    "UnitOfMeasurement": {
+                        "Code": "IN",
+                        "Description": "Inches"
+                    },
+                    "Length": "5",
+                    "Width": "5",
+                    "Height": "5"
+                },
+                "PackageWeight": {
+                    "UnitOfMeasurement": {
+                        "Code": "LBS",
+                        "Description": "Ounces"
+                    },
+                    "Weight": "2"
+                },
+                "MinimumBillableWeightIndicator": "X"
+            }
+        }
+    }
+}
