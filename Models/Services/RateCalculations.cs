@@ -8,6 +8,7 @@ using System.Web.Razor.Generator;
 
 namespace AuthenticationServer.Models.Services
 {
+
     public class RateCalculations
     {
         private Dictionary<string, string> _PerPackageCharge = new Dictionary<string, string>();
@@ -34,6 +35,12 @@ namespace AuthenticationServer.Models.Services
 
         public RateCalculations() { }
 
+
+        /// <summary>
+        /// Returns the rate table for each plant.
+        /// </summary>
+        /// <param name="accountNumber"></param>
+        /// <param name="CWT"></param>
         public RateCalculations(int accountNumber, bool CWT)
         {
             string _carrier = "UPSCWT";
@@ -161,12 +168,40 @@ namespace AuthenticationServer.Models.Services
             double total = 0.0;
             double markup = 0.0;
             double perPackageCharge = 0.0;
-            double perShipmentCharge = 0.0;
 
             RateCalculations rateCalculations = new RateCalculations();
 
             switch (serviceName)
             {
+                case "UPSGround":
+                    if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
+                    {
+                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), true);
+                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageChargeCWT[plantId]);
+                        markup = Convert.ToDouble(groundRate.UpchargeGroundCWT[plantId]);
+                    }
+                    else
+                    {
+                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), false);
+                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageCharge[plantId]);
+                        markup = Convert.ToDouble(groundRate.UpchargeGround[plantId]);
+                    }
+
+                    break;
+                case "UPS3DaySelect":
+                    if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
+                    {
+                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), true);
+                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageChargeCWT[plantId]);
+                        markup = Convert.ToDouble(groundRate.UpchargeThreeDaySelectCWT[plantId]);
+                    }
+                    else
+                    {
+                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), false);
+                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageCharge[plantId]);
+                        markup = Convert.ToDouble(groundRate._UpchargeThreeDaySelect[plantId]);
+                    }
+                    break;
                 case "UPSNextDayAir":
                     if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
                     {
@@ -209,35 +244,7 @@ namespace AuthenticationServer.Models.Services
                         markup = Convert.ToDouble(groundRate.UpchargeSecondDayAirAM[plantId]);
                     }
                     break;
-                case "UPS3DaySelect":
-                    if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
-                    {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), true);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageChargeCWT[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeThreeDaySelectCWT[plantId]);
-                    }
-                    else
-                    {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), false);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(groundRate._UpchargeThreeDaySelect[plantId]);
-                    }
-                    break;
-                case "UPSGround":                    
-                    if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
-                    {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), true);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageChargeCWT[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeGroundCWT[plantId]);
-                    }
-                    else
-                    {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), false);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeGround[plantId]);
-                    }
-                    
-                    break;
+
                 case "NextDayAirSaver":
                     if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
                     {
@@ -289,10 +296,18 @@ namespace AuthenticationServer.Models.Services
             }
             total = rate;
             total += ((markup / 100) * rate);
-            total = (perPackageCharge * noPackages) + noPackages * rate;
+            total = (perPackageCharge * noPackages) + rate;
             return total.ToString();
         }
 
+        /// <summary>
+        /// Determines whether or not the shipment is CWT eligible for the service.
+        /// </summary>
+        /// <param name="serviceCode"></param>
+        /// <param name="numberOfPackages"></param>
+        /// <param name="packageWeight"></param>
+        /// <param name="lastPackageWeight"></param>
+        /// <returns></returns>
         private bool HundredWeightEligable(UPSService.ServiceCode serviceCode, int numberOfPackages, string packageWeight, string lastPackageWeight)
         {
             bool _eligable = false;

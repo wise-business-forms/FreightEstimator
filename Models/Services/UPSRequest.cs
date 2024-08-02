@@ -100,7 +100,6 @@ namespace AuthenticationServer.Models.Services
         private UPSService ParseUPSService(JToken service)
         {
             UPSService uPSService = new UPSService();
-            //uPSService.ShipFrom = shipment.PlantId;
             var serviceCode = service.SelectToken("Service")?.SelectToken("Code")?.ToString() ?? "No Service Code";
             switch (serviceCode)
             {
@@ -308,6 +307,14 @@ namespace AuthenticationServer.Models.Services
             //    sb.Append("\"TPFCNegotiatedRatesIndicator\": \"Y\",");
             //    sb.Append("\"NegotiatedRatesIndicator\": \"Y\"");
             //sb.Append("},"); // ShipmentRatingOptions
+
+            sb.Append("\"PaymentDetails\":");
+            sb.Append("{\"ShipmentCharge\":");
+                sb.Append("{\"Type\": \"01\",");
+                sb.Append("\"BillShipper\": {\"AccountNumber\": \"" + Configuration.ShipFromShipperNumber + "\"}");
+                sb.Append("}"); // ShipmentCharge
+            sb.Append("},"); // PaymentDetails
+
             sb.Append("\"Service\":");
             sb.Append("{\"Code\": \"03\",");
             sb.Append("\"Description\": \"UPS Worldwide Economy DDU\"");
@@ -315,27 +322,30 @@ namespace AuthenticationServer.Models.Services
 
 
             sb.Append("\"NumOfPieces\": \"" + shipment.number_of_packages + "\",");
-            sb.Append("\"Package\":");
-            sb.Append("{\"PackagingType\":");
-            sb.Append("{\"Code\": \"00\",");
-            sb.Append("\"Description\": \"Packaging\"");
-            sb.Append("},"); // PackagingType
-            sb.Append("\"Dimensions\":");
-            sb.Append("{\"UnitOfMeasurement\":");
-            sb.Append("{\"Code\": \"IN\",");
-            sb.Append("\"Description\": \"Inches\"");
-            sb.Append("},");
-            sb.Append("\"Length\": \"5\",");
-            sb.Append("\"Width\": \"5\",");
-            sb.Append("\"Height\": \"5\"");
-            sb.Append("},");
-            sb.Append("\"PackageWeight\":");
-            sb.Append("{\"UnitOfMeasurement\":");
-            sb.Append("{\"Code\": \"LBS\",");
-            sb.Append("\"Description\": \"Pounds\"");
-            sb.Append("},");
-            sb.Append("\"Weight\": \"" + shipment.package_weight + "\"");
-            sb.Append("},");
+            
+            // Add the packages to the request but be mindful of the last package if it is different.
+            sb.Append("\"Package\":");            
+            sb.Append("[");            
+            if (shipment.package_weight != shipment.last_package_weight)
+            {
+                for (int p = 1; p <= shipment.number_of_packages-1; p++)
+                {
+                    sb.Append(Package(shipment.package_weight));
+                    sb.Append(", ");
+                }
+                // Add last package
+                sb.Append(Package(shipment.last_package_weight));
+            }
+            else  // all packages are the same weight.
+            {
+                for (int p = 1; p <= shipment.number_of_packages; p++)
+                {
+                    sb.Append(Package(shipment.package_weight));
+                    if (p < shipment.number_of_packages) sb.Append(", ");
+                }
+            }
+            sb.Append("],");
+            
 
             if(requestOption == RequestOption.Rate)
             {
@@ -346,10 +356,40 @@ namespace AuthenticationServer.Models.Services
             }
             //sb.Append("\"OversizeIndicator\": \"X\",");
             sb.Append("\"MinimumBillableWeightIndicator\": \"X\"");
-            sb.Append("}"); // RateRequest.Shipment.Package
             sb.Append("}"); // RateRequest.Shipment
             sb.Append("}"); // RateRequest
             sb.Append("}"); // ROOT
+            return sb.ToString();
+        }
+
+        private string Package(float package_weight)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("{\"PackagingType\":");
+
+                sb.Append("{\"Code\": \"02\",");
+                sb.Append("\"Description\": \"Packaging\"");
+                sb.Append("},"); // Code
+
+            sb.Append("\"Dimensions\":");
+                sb.Append("{\"UnitOfMeasurement\":");
+                    sb.Append("{\"Code\": \"IN\",");
+                        sb.Append("\"Description\": \"Inches\"");
+                    sb.Append("},");
+                    sb.Append("\"Length\": \"5\",");
+                    sb.Append("\"Width\": \"5\",");
+                    sb.Append("\"Height\": \"5\"");
+                sb.Append("},"); // Dimentions
+
+            sb.Append("\"PackageWeight\":");
+                sb.Append("{\"UnitOfMeasurement\":");
+                    sb.Append("{\"Code\": \"LBS\",");
+                    sb.Append("\"Description\": \"Pounds\"");
+                    sb.Append("},");  // UnitOfMeasurement
+                sb.Append("\"Weight\": \"" + package_weight + "\"");
+            sb.Append("}"); // PackageWeight
+
+            sb.Append("}"); // PackagingType
             return sb.ToString();
         }
     }
