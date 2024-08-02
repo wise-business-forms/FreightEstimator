@@ -115,7 +115,13 @@ namespace AuthenticationServer.Controllers
 
         public ActionResult ShipmentConfirmation(Shipment shipment)
         {
-            shipment.billing_weight = shipment.number_of_packages * shipment.package_weight;
+            if(shipment.package_weight != shipment.last_package_weight)
+            {
+                int _fullPackages = shipment.number_of_packages - 1;
+                shipment.billing_weight = (shipment.package_weight * _fullPackages) + shipment.last_package_weight;
+            }
+            else { shipment.billing_weight = shipment.number_of_packages * shipment.package_weight; }
+            
 
             shipment.requestMessage = _upsRequest;
             shipment.responseMessage = _upsResponse;
@@ -397,6 +403,7 @@ namespace AuthenticationServer.Controllers
 
                     #endregion
 
+                    #region Build XML Request
                     StringBuilder postData = new StringBuilder("<?xml version=\"1.0\"?>");
                     postData.Append("<quote>");
                     postData.Append("<requestedMode>LTL</requestedMode>");
@@ -438,7 +445,8 @@ namespace AuthenticationServer.Controllers
                     //postData += "</accessorial>";
                     //postData += "</accessorials>";
                     postData.Append("</quote>");
-
+                    #endregion
+                    
                     fullPostData += postData;
 
                     byte[] byteArray = Encoding.UTF8.GetBytes(postData.ToString());
@@ -477,7 +485,7 @@ namespace AuthenticationServer.Controllers
 
                     combinedResponses += responseFromServer;
 
-
+                    #region Parse response
                     XDocument xmlDoc = XDocument.Parse(responseFromServer);
 
                     foreach (var rate in xmlDoc.Descendants("rate"))
@@ -490,8 +498,8 @@ namespace AuthenticationServer.Controllers
 
                         #region -- Define variables for markup calculations --
                         double markupPercentage = 0;
-                        double perPackageCharge = 0;
-                        double perShipmentCharge = 0;
+                        double perPackageCharge = dPerPackageChargeLTL[plantCode];
+                        double perShipmentCharge = dPerShipmentChargeLTL[plantCode];
                         #endregion
 
                         results.Append("Cost is " + cost.ToString() + "\n");
@@ -501,8 +509,8 @@ namespace AuthenticationServer.Controllers
                         results.Append("Per shipment charge is " + perShipmentCharge.ToString() + "\n");
 
                         totalCharges = cost;
-                        totalCharges += ((markupPercentage / 100) * cost);
-                        totalCharges += (perPackageCharge * shipment.number_of_packages) + perShipmentCharge;
+                        if (dUpchargeLTL[plantCode] > 0) { totalCharges += ((dUpchargeLTL[plantCode] / 100) * cost); }
+                        if (perPackageCharge > 0) { totalCharges += (perPackageCharge * shipment.number_of_packages); }
 
                         results.Append("Calculated total charge is " + totalCharges.ToString() + "\n\n");
 
@@ -532,10 +540,14 @@ namespace AuthenticationServer.Controllers
 
                             ltlServices.Add (service);
                         }
+
+                        //List<Plant> plants = Plant.Plants();
+                        //foreach(var surcharge in )
                         response.UPSServices = ltlServices.ToArray();
                     }
+                    #endregion
                 }
-            
+
 
                 #region -- log results --
                 try

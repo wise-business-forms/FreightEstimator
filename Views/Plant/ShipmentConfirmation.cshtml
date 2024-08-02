@@ -206,15 +206,7 @@
                                                         <td>@service.ServiceName</td>
                                                         <td>@service.TransitDays</td>
                                                         <td>@service.Direct</td>
-                                                        @if (service.Rate.Length > 0)
-                                                        {
-                                                            <td>@service.Rate</td>
-                                                        }
-                                                        else
-                                                        {
-                                                            <td>@service.TotalCost</td>
-                                                        }
-
+                                                        <td>@service.TotalCost</td>
                                                     </tr>
                                                     rowIndex++;
                                                 }
