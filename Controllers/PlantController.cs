@@ -144,7 +144,7 @@ namespace AuthenticationServer.Controllers
 
                     foreach (UPSService service in shopRate.UPSServices)
                     {
-                        service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
+                        service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
                     }
 
                     plantServices.Add(shopRate);
@@ -182,7 +182,7 @@ namespace AuthenticationServer.Controllers
                 shopRateResponse = GetCompareRates(shipment);
                 foreach(UPSService service in shopRateResponse.UPSServices)
                 {                    
-                    service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
+                    service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
                 }
                 List<ShopRateResponse> shopRates = new List<ShopRateResponse> { shopRateResponse };
                 shipment.shopCompareRates = shopRates.ToArray();
@@ -192,7 +192,7 @@ namespace AuthenticationServer.Controllers
             if (shipment.include_ground_rate_selection == "Yes" && shipment.multiple_location_rate_selection == "No") 
             { 
                 shipment.shopGroundFreightResponse = GetGroundFreightRate(shipment);
-                shipment.shopGroundFreightResponse.UPSServices[0].Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, "UPSGroundFreight", shipment.shopGroundFreightResponse.UPSServices[0].Rate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString());
+                shipment.shopGroundFreightResponse.UPSServices[0].Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, "UPSGroundFreight", shipment.shopGroundFreightResponse.UPSServices[0].Rate, shipment.shopGroundFreightResponse.UPSServices[0].CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString());
             }
 
             // GRID 3 - LTL Rates

@@ -8,6 +8,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Web;
+using System.Web.Http.ExceptionHandling;
 
 namespace AuthenticationServer.Models.Services
 {
@@ -152,6 +153,7 @@ namespace AuthenticationServer.Models.Services
             }
             uPSService.PlantCode = _shipment.PlantId;
             uPSService.Rate = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "-";
+            uPSService.CWTRate = service.SelectToken("NegotiatedRateCharges.TotalCharge.MonetaryValue")?.ToString() ?? "-";
             uPSService.CWT = "TBD";
 
             return uPSService;
@@ -308,18 +310,20 @@ namespace AuthenticationServer.Models.Services
                 sb.Append("},"); // PaymentDetails
             }
 
+            sb.Append("\"ShipmentRatingOptions\": {");
+            //sb.Append("\"TPFCNegotiatedRatesIndicator\": \"Y\",");
+            
             // Ground Freight
             if (requestOption == RequestOption.Rate)
-            {
-                sb.Append("\"ShipmentRatingOptions\": {");
-                    //sb.Append("\"TPFCNegotiatedRatesIndicator\": \"Y\",");
-                    sb.Append("\"NegotiatedRatesIndicator\": \"\",");
-                    sb.Append("\"FRSShipmentIndicator\": \"\"");
-                sb.Append("},"); // ShipmentRatingOptions
+            {               
+               sb.Append("\"FRSShipmentIndicator\": \"\",");
             }
 
+            sb.Append("\"NegotiatedRatesIndicator\": \"\"");
+            sb.Append("},"); // ShipmentRatingOptions
 
-                sb.Append("\"Service\":");
+
+            sb.Append("\"Service\":");
             sb.Append("{\"Code\": \"03\",");
             sb.Append("\"Description\": \"UPS Worldwide Economy DDU\"");
             sb.Append("},"); // Service

@@ -11,6 +11,7 @@ namespace AuthenticationServer.Models.Services
 
     public class RateCalculations
     {
+        #region Private vars
         private Dictionary<string, string> _PerPackageCharge = new Dictionary<string, string>();
         private Dictionary<string, string> _PerShipmentCharge = new Dictionary<string, string>();
         private Dictionary<string, string> _UpchargeNextDayAir = new Dictionary<string, string>();
@@ -32,9 +33,32 @@ namespace AuthenticationServer.Models.Services
         private Dictionary<string, string> _UpchargeNextDayAirEarlyAMCWT = new Dictionary<string, string>();
         private Dictionary<string, string> _UpchargeSecondDayAirAMCWT = new Dictionary<string, string>();
         private Dictionary<string, string> _UpchargeSaverCWT = new Dictionary<string, string>();
+        #endregion
 
-        public RateCalculations() { }
+        public Dictionary<string, string> PerPackageCharge { get { return _PerPackageCharge; } }
+        public Dictionary<string, string> PerShipmentCharge { get { return _PerShipmentCharge; } }
+        public Dictionary<string, string> UpchargeNextDayAir { get { return _UpchargeNextDayAir; } }
+        public Dictionary<string, string> UpchargeSecondDayAir { get { return _UpchargeSecondDayAir; } }
+        public Dictionary<string, string> UpchargeGround { get { return _UpchargeGround; } }
+        public Dictionary<string, string> UpchargeThreeDaySelect { get { return _UpchargeThreeDaySelect; } }
+        public Dictionary<string, string> UpchargeNextDayAirSaver { get { return _UpchargeNextDayAirSaver; } }
+        public Dictionary<string, string> UpchargeNextDayAirEarlyAM { get { return _UpchargeNextDayAirEarlyAM; } }
+        public Dictionary<string, string> UpchargeSecondDayAirAM { get { return _UpchargeSecondDayAirAM; } }
+        public Dictionary<string, string> UpchargeSaver { get { return _UpchargeSaver; } }
 
+        public Dictionary<string, string> PerPackageChargeCWT { get { return _PerPackageChargeCWT; } }
+        public Dictionary<string, string> PerShipmentChargeCWT { get { return _PerShipmentChargeCWT; } }
+        public Dictionary<string, string> UpchargeNextDayAirCWT { get { return _UpchargeNextDayAirCWT; } }
+        public Dictionary<string, string> UpchargeSecondDayAirCWT { get { return _UpchargeSecondDayAirCWT; } }
+        public Dictionary<string, string> UpchargeGroundCWT { get { return _UpchargeGroundCWT; } }
+        public Dictionary<string, string> UpchargeThreeDaySelectCWT { get { return _UpchargeThreeDaySelectCWT; } }
+        public Dictionary<string, string> UpchargeNextDayAirSaverCWT { get { return _UpchargeNextDayAirSaverCWT; } }
+        public Dictionary<string, string> UpchargeNextDayAirEarlyAMCWT { get { return _UpchargeNextDayAirEarlyAMCWT; } }
+        public Dictionary<string, string> UpchargeSecondDayAirAMCWT { get { return _UpchargeSecondDayAirAMCWT; } }
+        public Dictionary<string, string> UpchargeSaverCWT { get { return _UpchargeSaverCWT; } }
+
+        // Default: if no parameters are given return the constructor override.
+        public RateCalculations() : this(0, false) { }
 
         /// <summary>
         /// Returns the rate table for each plant.
@@ -101,27 +125,7 @@ namespace AuthenticationServer.Models.Services
 
             sqlConnection.Close();
         }
-        public Dictionary<string, string> PerPackageCharge { get { return _PerPackageCharge; } }
-        public Dictionary<string, string> PerShipmentCharge { get { return _PerShipmentCharge; } }
-        public Dictionary<string, string> UpchargeNextDayAir { get { return _UpchargeNextDayAir; } }
-        public Dictionary<string, string> UpchargeSecondDayAir { get { return _UpchargeSecondDayAir; } }
-        public Dictionary<string, string> UpchargeGround { get { return _UpchargeGround; } }
-        public Dictionary<string, string> UpchargeThreeDaySelect { get { return _UpchargeThreeDaySelect; } }
-        public Dictionary<string, string> UpchargeNextDayAirSaver { get { return _UpchargeNextDayAirSaver; } }
-        public Dictionary<string, string> UpchargeNextDayAirEarlyAM { get { return _UpchargeNextDayAirEarlyAM; } }
-        public Dictionary<string, string> UpchargeSecondDayAirAM { get { return _UpchargeSecondDayAirAM; } }
-        public Dictionary<string, string> UpchargeSaver { get { return _UpchargeSaver; } }
-
-        public Dictionary<string, string> PerPackageChargeCWT { get { return _PerPackageChargeCWT; } }
-        public Dictionary<string, string> PerShipmentChargeCWT { get { return _PerShipmentChargeCWT; } }
-        public Dictionary<string, string> UpchargeNextDayAirCWT { get { return _UpchargeNextDayAirCWT; } }
-        public Dictionary<string, string> UpchargeSecondDayAirCWT { get { return _UpchargeSecondDayAirCWT;  } }
-        public Dictionary<string, string> UpchargeGroundCWT { get { return _UpchargeGroundCWT;  } }
-        public Dictionary<string, string> UpchargeThreeDaySelectCWT { get { return _UpchargeThreeDaySelectCWT; } }
-        public Dictionary<string, string> UpchargeNextDayAirSaverCWT { get { return _UpchargeNextDayAirSaverCWT;  } }
-        public Dictionary<string, string> UpchargeNextDayAirEarlyAMCWT { get { return _UpchargeNextDayAirEarlyAMCWT;  } }
-        public Dictionary<string, string> UpchargeSecondDayAirAMCWT { get { return _UpchargeSecondDayAirAMCWT; } }
-        public Dictionary<string, string> UpchargeSaverCWT { get { return _UpchargeSaverCWT; } }
+        
 
         /// <summary>
         /// Calulates the Centum Weight (CWT) eligibility for all UPS air services.
@@ -161,13 +165,16 @@ namespace AuthenticationServer.Models.Services
             return false;
         }
 
-        internal static string CalculateRate(string accountNumber, string plantId, string serviceName, string currentRate, int numberOfPackages, string packageWeight, string lastPackage)
+        internal static string CalculateRate(string accountNumber, string plantId, string serviceName, string currentRate, string CWTRate, int numberOfPackages, string packageWeight, string lastPackage)
         {
             double rate = Convert.ToDouble(currentRate);
+            double cwtRate = Convert.ToDouble(CWTRate);
             double noPackages = Convert.ToDouble(numberOfPackages);
             double total = 0.0;
             double markup = 0.0;
-            double perPackageCharge = 0.0;
+            double perPackageCharge = 0.0;            
+            double hundredWeightAdjustment = cwtRate / .7;
+            bool cwt = false;
 
             RateCalculations rateCalculations = new RateCalculations();
 
@@ -176,143 +183,141 @@ namespace AuthenticationServer.Models.Services
                 case "UPSGround":
                     if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), true);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageChargeCWT[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeGroundCWT[plantId]);
+                        cwt = true;
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeGroundCWT[plantId]);
                     }
                     else
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), false);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeGround[plantId]);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeGround[plantId]);
                     }
 
                     break;
                 case "UPS3DaySelect":
                     if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), true);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageChargeCWT[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeThreeDaySelectCWT[plantId]);
+                        cwt = true;
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeThreeDaySelectCWT[plantId]);
                     }
                     else
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), false);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(groundRate._UpchargeThreeDaySelect[plantId]);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
+                        markup = Convert.ToDouble(rateCalculations._UpchargeThreeDaySelect[plantId]);
                     }
                     break;
                 case "UPSNextDayAir":
-                    if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
+                    if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), true);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageChargeCWT[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeNextDayAirCWT[plantId]);
+                        cwt = true;
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAirCWT[plantId]);
                     }
                     else
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), false);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeNextDayAir[plantId]);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAir[plantId]);
                     }
                     break;
                 case "UPS2ndDayAir":
-                    if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
+                    if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), true);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageChargeCWT[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeSecondDayAirCWT[plantId]);
+                        cwt = true;
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeSecondDayAirCWT[plantId]);
                     }
                     else
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), false);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeSecondDayAir[plantId]);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeSecondDayAir[plantId]);
                     }
                     break;
                 case "SecondDayAirAM":
-                    if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
+                    if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), true);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageChargeCWT[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeSecondDayAirAMCWT[plantId]);
+                        cwt = true;
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeSecondDayAirAMCWT[plantId]);
                     }
                     else
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), false);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeSecondDayAirAM[plantId]);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeSecondDayAirAM[plantId]);
                     }
                     break;
-
                 case "NextDayAirSaver":
-                    if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
+                    if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), true);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageChargeCWT[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeNextDayAirSaverCWT[plantId]);
+                        cwt = true;
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAirSaverCWT[plantId]);
                     }
                     else
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), false);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeNextDayAirSaver[plantId]);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAirSaver[plantId]);
                     }
 
                     break;
-
-                case "NextDayAirEarlyAM":
-                    if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
-                    {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), true);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageChargeCWT[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeNextDayAirEarlyAMCWT[plantId]);
+                case "NextDayAirEarlyAM":                    
+                    if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
+                    {                        
+                        cwt = false; // Since no negotiated rate is returned and published rate are retuened the same we are not checking for CWT.
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAirSaverCWT[plantId]);
                     }
                     else
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), false);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeNextDayAirEarlyAM[plantId]);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAirSaver[plantId]);
                     }
                     break;
-
                 case "UPSSaver":
-                    if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
+                    if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), true);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageChargeCWT[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeSaverCWT[plantId]);
+                        cwt = true;
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeSaverCWT[plantId]);
                     }
                     else
                     {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), false);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeSaver[plantId]);
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeSaver[plantId]);
                     }
 
                     break;
-
-                case "UPSGroundFreight":
-                    if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
-                    {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), true);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageChargeCWT[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeSaverCWT[plantId]);
-                    }
-                    else
-                    {
-                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), false);
-                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(groundRate.UpchargeSaver[plantId]);
-                    }
+                case "UPSGroundFreight":                    
+                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
+                        markup = Convert.ToDouble(rateCalculations.UpchargeSaver[plantId]);
                     break;
 
 
             }
-            total = rate;
-            total += ((markup / 100) * rate);
-            total = (perPackageCharge * noPackages) + rate;
-            return total.ToString();
+
+            // Hundred weight adjustment
+            if (cwt  && serviceName != "UPSGroundFreight")
+            { 
+                total = hundredWeightAdjustment;
+                total += ((markup / 100) * hundredWeightAdjustment);
+                total = (perPackageCharge * noPackages) + hundredWeightAdjustment;
+            }
+            else { 
+                total = rate;
+                total += ((markup / 100) * rate);
+                total = (perPackageCharge * noPackages) + rate;
+            }       
+            
+            
+            return total.ToString("C");
         }
 
         /// <summary>
