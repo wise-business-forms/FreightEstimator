@@ -292,6 +292,21 @@ namespace AuthenticationServer.Models.Services
 
                     break;
 
+                case "UPSGroundFreight":
+                    if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
+                    {
+                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), true);
+                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageChargeCWT[plantId]);
+                        markup = Convert.ToDouble(groundRate.UpchargeSaverCWT[plantId]);
+                    }
+                    else
+                    {
+                        RateCalculations groundRate = new RateCalculations(int.Parse(accountNumber), false);
+                        perPackageCharge = Convert.ToDouble(groundRate.PerPackageCharge[plantId]);
+                        markup = Convert.ToDouble(groundRate.UpchargeSaver[plantId]);
+                    }
+                    break;
+
 
             }
             total = rate;

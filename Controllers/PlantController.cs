@@ -191,7 +191,8 @@ namespace AuthenticationServer.Controllers
             // GRID 2 - Ground Rate
             if (shipment.include_ground_rate_selection == "Yes" && shipment.multiple_location_rate_selection == "No") 
             { 
-                shipment.shopGroundFreightResponse = GetGroundFreightRate(shipment); 
+                shipment.shopGroundFreightResponse = GetGroundFreightRate(shipment);
+                shipment.shopGroundFreightResponse.UPSServices[0].Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, "UPSGroundFreight", shipment.shopGroundFreightResponse.UPSServices[0].Rate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString());
             }
 
             // GRID 3 - LTL Rates

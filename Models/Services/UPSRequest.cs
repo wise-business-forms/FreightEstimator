@@ -303,19 +303,31 @@ namespace AuthenticationServer.Models.Services
             sb.Append("}"); // Address
             sb.Append("},"); // ShipFrom
 
-            //sb.Append("\"ShipmentRatingOptions\": {");
-            //    sb.Append("\"TPFCNegotiatedRatesIndicator\": \"Y\",");
-            //    sb.Append("\"NegotiatedRatesIndicator\": \"Y\"");
-            //sb.Append("},"); // ShipmentRatingOptions
-
-            sb.Append("\"PaymentDetails\":");
-            sb.Append("{\"ShipmentCharge\":");
+            // Ground Freight
+            if(requestOption == RequestOption.Rate) {
+                sb.Append("\"FRSPaymentInformation\": {\"Type\": {\"Code\": \"01\"}},");
+            } else
+            {
+                sb.Append("\"PaymentDetails\":");
+                sb.Append("{\"ShipmentCharge\":");
                 sb.Append("{\"Type\": \"01\",");
                 sb.Append("\"BillShipper\": {\"AccountNumber\": \"" + Configuration.ShipFromShipperNumber + "\"}");
                 sb.Append("}"); // ShipmentCharge
-            sb.Append("},"); // PaymentDetails
+                sb.Append("},"); // PaymentDetails
+            }
 
-            sb.Append("\"Service\":");
+            // Ground Freight
+            if (requestOption == RequestOption.Rate)
+            {
+                sb.Append("\"ShipmentRatingOptions\": {");
+                    //sb.Append("\"TPFCNegotiatedRatesIndicator\": \"Y\",");
+                    sb.Append("\"NegotiatedRatesIndicator\": \"\",");
+                    sb.Append("\"FRSShipmentIndicator\": \"\"");
+                sb.Append("},"); // ShipmentRatingOptions
+            }
+
+
+                sb.Append("\"Service\":");
             sb.Append("{\"Code\": \"03\",");
             sb.Append("\"Description\": \"UPS Worldwide Economy DDU\"");
             sb.Append("},"); // Service
@@ -330,17 +342,17 @@ namespace AuthenticationServer.Models.Services
             {
                 for (int p = 1; p <= shipment.number_of_packages-1; p++)
                 {
-                    sb.Append(Package(shipment.package_weight));
+                    sb.Append(Package(shipment.package_weight, requestOption, shipment.freight_class_selected.ToString()));
                     sb.Append(", ");
                 }
                 // Add last package
-                sb.Append(Package(shipment.last_package_weight));
+                sb.Append(Package(shipment.last_package_weight, requestOption, shipment.freight_class_selected.ToString()));
             }
             else  // all packages are the same weight.
             {
                 for (int p = 1; p <= shipment.number_of_packages; p++)
                 {
-                    sb.Append(Package(shipment.package_weight));
+                    sb.Append(Package(shipment.package_weight, requestOption, shipment.freight_class_selected.ToString()));
                     if (p < shipment.number_of_packages) sb.Append(", ");
                 }
             }
@@ -362,7 +374,7 @@ namespace AuthenticationServer.Models.Services
             return sb.ToString();
         }
 
-        private string Package(float package_weight)
+        private string Package(float package_weight, RequestOption requestOption, string freightClass)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("{\"PackagingType\":");
@@ -386,8 +398,15 @@ namespace AuthenticationServer.Models.Services
                     sb.Append("{\"Code\": \"LBS\",");
                     sb.Append("\"Description\": \"Pounds\"");
                     sb.Append("},");  // UnitOfMeasurement
-                sb.Append("\"Weight\": \"" + package_weight + "\"");
+            sb.Append("\"Weight\": \"" + package_weight + "\"");            
             sb.Append("}"); // PackageWeight
+
+            // Ground Freight
+            if (requestOption == RequestOption.Rate)
+            {
+                //sb.Append(",\"Commodity\": {\"FreightClass\": \"" + freightClass + "\"}");
+                sb.Append(",\"Commodity\": {\"FreightClass\": \"55\"}");
+            }
 
             sb.Append("}"); // PackagingType
             return sb.ToString();
