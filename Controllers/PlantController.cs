@@ -521,8 +521,8 @@ namespace AuthenticationServer.Controllers
                             UPSService service = new UPSService();
                             service.PlantCode = plantCode;
                             service.ServiceName = carrier;
-                            service.Rate = cost.ToString();
-                            service.TotalCost = totalCharges.ToString();
+                            service.Rate = cost.ToString("C");
+                            service.TotalCost = totalCharges.ToString("C");
                             service.TransitDays = transitDays.ToString();
                             service.Direct = direct;
 
@@ -534,7 +534,7 @@ namespace AuthenticationServer.Controllers
                             UPSService service = new UPSService {
                                 PlantCode = plantCode,
                                 ServiceName = carrier,
-                                Rate = cost.ToString(),
+                                Rate = cost.ToString("C"),
                                 TransitDays = transitDays.ToString(),
                                 Direct = direct
                             };
