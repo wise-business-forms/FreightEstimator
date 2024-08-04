@@ -74,19 +74,11 @@ namespace AuthenticationServer.Models.Services
                     }
 
 
-                    Log.LogRequest_Rate("paulm", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _request, _response, "");
+                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _request, _response, "");
                 }
                 catch (WebException ex)
                 {
-                    using (var errorResponse = (HttpWebResponse)ex.Response)
-                    {
-                        using (var reader = new StreamReader(errorResponse.GetResponseStream()))
-                        {
-                            string error = reader.ReadToEnd();
-                            _response = error;
-                            //Log.LogRequest_Rate("paulm", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _request, _response, "");
-                        }
-                    }
+                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _request, ex.Message, "");
                 }
                 catch (Exception ex)
                 {

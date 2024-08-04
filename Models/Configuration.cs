@@ -18,7 +18,7 @@ namespace AuthenticationServer.Models
         static string _UPSAuthorizationURL = "https://onlinetools.ups.com/security/v1/oauth/authorize"; // PRODUCTION
         static string _UPSGenerateTokenURL = "https://onlinetools.ups.com/security/v1/oauth/token"; // PRODUCTION
         static string _UPSAddressValidationURL = "https://onlinetools.ups.com/api/addressvalidation/v1/3"; //  PRODUCTION  {version}/{requestOption}
-        static string _UPSShopRatesURL = "https://onlinetools.ups.com/rating/v2403/"; // PRODUCTION {version}/{requestoption}        
+        static string _UPSShopRatesURL = "https://onlinetools.ups.com/api/rating/v2403/"; // PRODUCTION {version}/{requestoption}        
 
         // UPS TEST ENDPOINTS
         //static string _UPSAuthorizationURL = "https://wwwcie.ups.com/security/v1/oauth/authorize"; // TEST
