@@ -13,22 +13,24 @@ namespace AuthenticationServer.Models
         static string _UPSPassword = "Wise_forms";//"Nextwave1";//"wise_forms";
         static string _UPSClientId = "SzWbVRiGAPPbC0NqV9GGXdE8kUE0EnexGrxsl94sj0HGTdAX";
         static string _UPSClientSecret = "zcnbBCf3qPGLleJv1aBqOH8SbAbFssLoE1vAAUGbrnXK2GJAQJUTAskarDv70Ddw";
+
+        // UPS PRODUCTION ENDPOINTS
         static string _UPSAuthorizationURL = "https://onlinetools.ups.com/security/v1/oauth/authorize"; // PRODUCTION
         static string _UPSGenerateTokenURL = "https://onlinetools.ups.com/security/v1/oauth/token"; // PRODUCTION
-        //static string _UPSShopRatesURL = "https://onlinetools.ups.com/rating/v2403/"; // PRODUCTION {version}/{requestoption}
-        //static string _UPSAddressValidationURL = "https://onlinetools.ups.com/api/addressvalidation/v1/3"; //  PRODUCTION  {version}/{requestOption}
+        static string _UPSAddressValidationURL = "https://onlinetools.ups.com/api/addressvalidation/v1/3"; //  PRODUCTION  {version}/{requestOption}
+        static string _UPSShopRatesURL = "https://onlinetools.ups.com/rating/v2403/"; // PRODUCTION {version}/{requestoption}        
+
+        // UPS TEST ENDPOINTS
+        //static string _UPSAuthorizationURL = "https://wwwcie.ups.com/security/v1/oauth/authorize"; // TEST
+        //static string _UPSGenerateTokenURL = "https://wwwcie.ups.com/security/v1/oauth/token"; // TEST
+        //static string _UPSAddressValidationURL = "https://wwwcie.ups.com/api/addressvalidation/v1/3"; // TEST  {version}/{requestOption}
+        //static string _UPSShopRatesURL = "https://wwwcie.ups.com/api/rating/v2403/"; // TEST {version}/{requestoption}
 
         static string _UPSShipFromName = "Wise Alpharetta";
         static string _UPSShipFromAddress = "1000 Union Center Drive";
         static string _UPSShipFromCity = "Alpharetta";
         static string _UPSShipFromState = "GA";
         static string _UPSShipFromZip = "30004";
-
-        // UPS TEST ENDPOINTS
-        //static string _UPSAuthorizationURL = "https://wwwcie.ups.com/security/v1/oauth/authorize"; // TEST
-        //static string _UPSGenerateTokenURL = "https://wwwcie.ups.com/security/v1/oauth/token"; // TEST
-        static string _UPSAddressValidationURL = "https://wwwcie.ups.com/api/addressvalidation/v1/3"; // TEST  {version}/{requestOption}
-        static string _UPSShopRatesURL = "https://wwwcie.ups.com/api/rating/v2403/"; // TEST {version}/{requestoption}
 
         static string _UpsRateSqlConnection = "Server=AZUREDB01\\AZUREDB01;Initial Catalog=UpsRate;uid=sa;pwd=95Montana!!!;";
         static string _WiseLinkSqlConnection = "Data Source=AZUREDB01\\AZUREDB01;Initial Catalog=WBFDOTCOM;uid=sa;pwd=95Montana!!!;";
