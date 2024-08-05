@@ -35,6 +35,8 @@ namespace AuthenticationServer.Models.Services
         private Dictionary<string, string> _UpchargeSaverCWT = new Dictionary<string, string>();
         #endregion
 
+        public enum Carriers { UPS, UPSCWT, GF }
+
         public Dictionary<string, string> PerPackageCharge { get { return _PerPackageCharge; } }
         public Dictionary<string, string> PerShipmentCharge { get { return _PerShipmentCharge; } }
         public Dictionary<string, string> UpchargeNextDayAir { get { return _UpchargeNextDayAir; } }
@@ -58,32 +60,25 @@ namespace AuthenticationServer.Models.Services
         public Dictionary<string, string> UpchargeSaverCWT { get { return _UpchargeSaverCWT; } }
 
         // Default: if no parameters are given return the constructor override.
-        public RateCalculations() : this(0, false) { }
+        public RateCalculations() : this(0, Carriers.UPS) { }
 
         /// <summary>
         /// Returns the rate table for each plant.
         /// </summary>
         /// <param name="accountNumber"></param>
         /// <param name="CWT"></param>
-        public RateCalculations(int accountNumber, bool CWT)
+        public RateCalculations(int accountNumber, Carriers carrier)
         {
-            string _carrier = "UPSCWT";
-
-            if (!CWT)
-            {
-                _carrier = "UPS";
-            }
-
             SqlConnection sqlConnection = new SqlConnection(Configuration.UpsRateSqlConnection);
             sqlConnection.Open();
 
             SqlCommand sqlCommand = sqlConnection.CreateCommand();
             sqlCommand.CommandText = "GetPlantCharges";
             sqlCommand.CommandType = System.Data.CommandType.StoredProcedure;
-            sqlCommand.Parameters.Add("@Carrier", System.Data.SqlDbType.VarChar, 50).Value = _carrier;
+            sqlCommand.Parameters.Add("@Carrier", System.Data.SqlDbType.VarChar, 50).Value = carrier.ToString();
             sqlCommand.Parameters.Add("AcctNumber", System.Data.SqlDbType.Int).Value = accountNumber;
 
-            if (CWT) {
+            if (carrier == Carriers.UPSCWT) {
                 using (SqlDataReader reader = sqlCommand.ExecuteReader())
                 {
                     while (reader.Read())
@@ -184,7 +179,7 @@ namespace AuthenticationServer.Models.Services
                     if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
                     {
                         cwt = true;
-                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), Carriers.UPSCWT);
                         perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
                         markup = Convert.ToDouble(rateCalculations.UpchargeGroundCWT[plantId]);
                     }
@@ -199,7 +194,7 @@ namespace AuthenticationServer.Models.Services
                     if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
                     {
                         cwt = true;
-                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), Carriers.UPSCWT);
                         perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
                         markup = Convert.ToDouble(rateCalculations.UpchargeThreeDaySelectCWT[plantId]);
                     }
@@ -213,7 +208,7 @@ namespace AuthenticationServer.Models.Services
                     if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
                     {
                         cwt = true;
-                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), Carriers.UPSCWT);
                         perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
                         markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAirCWT[plantId]);
                     }
@@ -227,7 +222,7 @@ namespace AuthenticationServer.Models.Services
                     if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
                     {
                         cwt = true;
-                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), Carriers.UPSCWT);
                         perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
                         markup = Convert.ToDouble(rateCalculations.UpchargeSecondDayAirCWT[plantId]);
                     }
@@ -241,7 +236,7 @@ namespace AuthenticationServer.Models.Services
                     if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
                     {
                         cwt = true;
-                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), Carriers.UPSCWT);
                         perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
                         markup = Convert.ToDouble(rateCalculations.UpchargeSecondDayAirAMCWT[plantId]);
                     }
@@ -255,7 +250,7 @@ namespace AuthenticationServer.Models.Services
                     if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
                     {
                         cwt = true;
-                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), Carriers.UPSCWT);
                         perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
                         markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAirSaverCWT[plantId]);
                     }
@@ -270,7 +265,7 @@ namespace AuthenticationServer.Models.Services
                     if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
                     {                        
                         cwt = false; // Since no negotiated rate is returned and published rate are retuened the same we are not checking for CWT.
-                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), Carriers.UPSCWT);
                         perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
                         markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAirSaverCWT[plantId]);
                     }
@@ -284,7 +279,7 @@ namespace AuthenticationServer.Models.Services
                     if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
                     {
                         cwt = true;
-                        rateCalculations = new RateCalculations(int.Parse(accountNumber), true);
+                        rateCalculations = new RateCalculations(int.Parse(accountNumber), Carriers.UPSCWT);
                         perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
                         markup = Convert.ToDouble(rateCalculations.UpchargeSaverCWT[plantId]);
                     }
@@ -295,12 +290,11 @@ namespace AuthenticationServer.Models.Services
                     }
 
                     break;
-                case "UPSGroundFreight":                    
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeSaver[plantId]);
+                case "UPSGroundFreight":
+                    RateCalculations rateGFCalculations = new RateCalculations(0, Carriers.GF);
+                    perPackageCharge = Convert.ToDouble(rateGFCalculations.PerPackageCharge[plantId]);
+                    markup = Convert.ToDouble(rateGFCalculations.UpchargeGround[plantId]);
                     break;
-
-
             }
 
             // Hundred weight adjustment
@@ -309,6 +303,12 @@ namespace AuthenticationServer.Models.Services
                 total = hundredWeightAdjustment;
                 total += ((markup / 100) * hundredWeightAdjustment);
                 total = (perPackageCharge * noPackages) + hundredWeightAdjustment;
+            }
+            else if (serviceName == "UPSGroundFreight")
+            {
+                total = rate;
+                total += ((markup / 100) * rate);
+                total = (perPackageCharge * noPackages) + total;
             }
             else { 
                 total = rate;
