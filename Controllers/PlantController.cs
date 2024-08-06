@@ -125,70 +125,73 @@ namespace AuthenticationServer.Controllers
             }
             else { shipment.billing_weight = shipment.number_of_packages * shipment.package_weight; }
             
-
+                
             shipment.requestMessage = _upsRequest;
             shipment.responseMessage = _upsResponse;
 
             // GRID 1 - Compare Rates
-            if (shipment.multiple_location_rate_selection == "Yes")
+            if (shipment.number_of_packages <= 50)  // UPS "Shop" has a 50 package limitation.
             {
-                List<UPSService>  serviceComparison = new List<UPSService>();
-                List<ShopRateResponse> plantServices = new List<ShopRateResponse>();
-
-                // Get all of the plants and their service rates. (plantServices)
-                foreach (Plant plant in Plant.Plants())
+                if (shipment.multiple_location_rate_selection == "Yes")
                 {
-                    Shipment shipmentResponse = new Shipment();
-                    ShopRateResponse shopRate = new ShopRateResponse();
-                    shipmentResponse = shipment;
-                    shipmentResponse.PlantId = plant.Id;
-                    shipmentResponse.PlantName = plant.Name;
-                    shopRate = GetCompareRates(shipmentResponse);
+                    List<UPSService> serviceComparison = new List<UPSService>();
+                    List<ShopRateResponse> plantServices = new List<ShopRateResponse>();
 
-                    foreach (UPSService service in shopRate.UPSServices)
+                    // Get all of the plants and their service rates. (plantServices)
+                    foreach (Plant plant in Plant.Plants())
+                    {
+                        Shipment shipmentResponse = new Shipment();
+                        ShopRateResponse shopRate = new ShopRateResponse();
+                        shipmentResponse = shipment;
+                        shipmentResponse.PlantId = plant.Id;
+                        shipmentResponse.PlantName = plant.Name;
+                        shopRate = GetCompareRates(shipmentResponse);
+
+                        foreach (UPSService service in shopRate.UPSServices)
+                        {
+                            service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
+                        }
+
+                        plantServices.Add(shopRate);
+
+                    }
+                    _multiView = MultiView(plantServices.ToArray());
+
+                    ViewBag.MultiView = _multiView;
+
+                    if (shipment.include_ground_rate_selection == "Yes")
+                    {
+                        DataTable dataTable = new DataTable();
+                        dataTable.Columns.Add("Ship From");
+                        dataTable.Columns.Add("Service");
+                        dataTable.Columns.Add("Rate");
+
+                        foreach (Plant plant in Plant.Plants())
+                        {
+                            Shipment gfShipment = new Shipment();
+                            gfShipment = shipment;
+                            gfShipment.PlantId = plant.Id;
+                            ShopRateResponse shopRate = GetGroundFreightRate(gfShipment);
+                            if (shopRate.UPSServices.Length > 0)
+                            {
+                                dataTable.Rows.Add(plant.Id, "Ground Freight", shopRate.UPSServices[0].Rate);
+                            }
+                        }
+
+                        ViewBag.MultiGroundFreight = dataTable;
+                    }
+                }
+                else
+                {
+                    ShopRateResponse shopRateResponse = new ShopRateResponse();
+                    shopRateResponse = GetCompareRates(shipment);
+                    foreach (UPSService service in shopRateResponse.UPSServices)
                     {
                         service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
                     }
-
-                    plantServices.Add(shopRate);
-
+                    List<ShopRateResponse> shopRates = new List<ShopRateResponse> { shopRateResponse };
+                    shipment.shopCompareRates = shopRates.ToArray();
                 }
-                _multiView = MultiView(plantServices.ToArray());
-
-                ViewBag.MultiView = _multiView;
-
-                if(shipment.include_ground_rate_selection == "Yes")
-                {
-                    DataTable dataTable = new DataTable();
-                    dataTable.Columns.Add("Ship From");
-                    dataTable.Columns.Add("Service");
-                    dataTable.Columns.Add("Rate");
-
-                    foreach(Plant plant in Plant.Plants())
-                    {
-                        Shipment gfShipment = new Shipment();
-                        gfShipment = shipment;
-                        gfShipment.PlantId = plant.Id;
-                        ShopRateResponse shopRate = GetGroundFreightRate(gfShipment);
-                        if (shopRate.UPSServices.Length > 0)
-                        {
-                            dataTable.Rows.Add(plant.Id, "Ground Freight", shopRate.UPSServices[0].Rate);
-                        }
-                    }
-
-                    ViewBag.MultiGroundFreight = dataTable;
-                }
-            }
-            else
-            {
-                ShopRateResponse shopRateResponse = new ShopRateResponse();
-                shopRateResponse = GetCompareRates(shipment);
-                foreach(UPSService service in shopRateResponse.UPSServices)
-                {                    
-                    service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
-                }
-                List<ShopRateResponse> shopRates = new List<ShopRateResponse> { shopRateResponse };
-                shipment.shopCompareRates = shopRates.ToArray();
             }
 
             // GRID 2 - Ground Rate

@@ -54,6 +54,8 @@ namespace AuthenticationServer.Models.Services
                     request.Method = "POST";
                     request.ContentType = "application/json";
                     request.Headers.Add("Authorization", "Bearer " + GetToken());
+                   
+
 
                     // Write data to request stream
                     using (var streamWriter = new StreamWriter(request.GetRequestStream()))

@@ -46,73 +46,91 @@
                 <div class="row">
                     <div class="col-1"></div>
                     <div class="col-10">
+
                         <!-- GRID 1 - Compare Rates -->
-                        @if (Model.multiple_location_rate_selection == "No")
-                        {
-                            <div class="container">
-                                <div class="row">
-                                    <div class="col">
-                                        <table class="shipGrid">
-                                            <thead>
-                                                <tr>
-                                                    <th scope="col">Ship From</th>
-                                                    <th scope="col">Service</th>
-                                                    <th scope="col">Rate</th>
-                                                    <th scope="col">CWT?</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach (var service in Model.shopCompareRates[0].UPSServices)
-                                                {
-                                                    var rowClass = rowIndex % 2 == 0 ? "" : "alt";
-                                                    <tr class="@rowClass">
-                                                        <td>@service.ShipFrom</td>
-                                                        <td>@service.ServiceName</td>
-                                                        <td>@service.Rate</td>
-                                                        <td>@service.CWT</td>
-                                                    </tr>
-                                                    rowIndex++;
-                                                }
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div class="col"><img src="~/Content/img/LOGO_L.gif" /></div>
-                                </div>
-                            </div>
-                        }
-                        else if (Model.multiple_location_rate_selection == "Yes")
-                        {
-                            <div class="container">
-                                <div class="row">
-                                    <div class="col">
-                                        <table class="shipGrid">
-                                            <thead>
-                                                <tr>
-                                                    @foreach (System.Data.DataColumn column in table.Columns)
-                                                    {
-                                                        <th>@column.ColumnName</th>
-                                                    }
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach (System.Data.DataRow dataRow in table.Rows)
-                                                {
-                                                    var rowClass = rowIndex % 2 == 0 ? "" : "alt";
-                                                    <tr class="@rowClass">
-                                                        @foreach (var item in dataRow.ItemArray)
+                        @if (Model.number_of_packages <= 50)
+                            {
+                                if (Model.multiple_location_rate_selection == "No")
+                                {
+                                    <div class="container">
+                                        <div class="row">
+                                            <div class="col">
+                                                <table class="shipGrid">
+                                                    <thead>
+                                                        <tr>
+                                                            <th scope="col">Ship From</th>
+                                                            <th scope="col">Service</th>
+                                                            <th scope="col">Rate</th>
+                                                            <th scope="col">CWT?</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (var service in Model.shopCompareRates[0].UPSServices)
                                                         {
-                                                            <td>@item</td>
+                                                            var rowClass = rowIndex % 2 == 0 ? "" : "alt";
+                                                            <tr class="@rowClass">
+                                                                <td>@service.ShipFrom</td>
+                                                                <td>@service.ServiceName</td>
+                                                                <td>@service.Rate</td>
+                                                                <td>@service.CWT</td>
+                                                            </tr>
+                                                            rowIndex++;
                                                         }
-                                                    </tr>
-                                                    rowIndex++;
-                                                }
-                                            </tbody>
-                                        </table>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div class="col"><img src="~/Content/img/LOGO_L.gif" /></div>
+                                        </div>
                                     </div>
-                                    <div class="col"><img src="~/Content/img/LOGO_L.gif" /></div>
-                                </div>                                
-                            </div>
-                        }
+                                }
+                                else if (Model.multiple_location_rate_selection == "Yes")
+                                {
+                                    <div class="container">
+                                        <div class="row">
+                                            <div class="col">
+                                                <table class="shipGrid">
+                                                    <thead>
+                                                        <tr>
+                                                            @foreach (System.Data.DataColumn column in table.Columns)
+                                                            {
+                                                                <th>@column.ColumnName</th>
+                                                            }
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach (System.Data.DataRow dataRow in table.Rows)
+                                                        {
+                                                            var rowClass = rowIndex % 2 == 0 ? "" : "alt";
+                                                            <tr class="@rowClass">
+                                                                @foreach (var item in dataRow.ItemArray)
+                                                                {
+                                                                    <td>@item</td>
+                                                                }
+                                                            </tr>
+                                                            rowIndex++;
+                                                        }
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div class="col"><img src="~/Content/img/LOGO_L.gif" /></div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        else
+                            {
+                                <div class="container">
+                                    <div class="row">
+                                        <div class="col">
+                                            <div class="confirmation-value">Unable to rate shipments of more than 50 packages via UPS.</div>
+                                            <br />
+                                            <br />
+                                            <br />
+                                            <br />
+                                        </div>
+                                    </div>
+                                </div>
+                            }
                         <!-- GRID 2 - UPS Ground Freight -->
                         @if (Model.include_ground_rate_selection == "Yes" && Model.multiple_location_rate_selection == "Yes")
                         {
