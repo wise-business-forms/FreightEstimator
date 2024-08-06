@@ -9,6 +9,8 @@ using System.Text;
 using System.Text.Json;
 using System.Web;
 using System.Web.Http.ExceptionHandling;
+using System.Data.Entity.Core.Mapping;
+using Microsoft.Ajax.Utilities;
 
 namespace AuthenticationServer.Models.Services
 {
@@ -20,6 +22,7 @@ namespace AuthenticationServer.Models.Services
         private UPSService[] _uPSServices = null;
         private Shipment _shipment = null;
         public enum RequestOption { Rate, Shop, Ratetimeintransit, Shoptimeintransit };
+        int _counter = 0;
 
         public UPSRequest() { }
         /// <summary>
@@ -79,6 +82,7 @@ namespace AuthenticationServer.Models.Services
                 }
                 catch (WebException ex)
                 {
+                    _response = ex.Message.ToString();
                     Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _request, ex.Message, "");
                 }
                 catch (Exception ex)
@@ -160,31 +164,39 @@ namespace AuthenticationServer.Models.Services
         }
 
         public UPSService[] UPSServices { get {
-                dynamic data = JObject.Parse(_response);
-
-                JToken services = data.SelectToken("RateResponse.RatedShipment");
-                if (services.Type == JTokenType.Array)
+                try
                 {
-                    // Check for each key's existence and assign values accordingly
-                    var serviceIndex = 0;
-                    List<UPSService> serviceSort = new List<UPSService>();
-                    foreach (var service in services)
+                    dynamic data = JObject.Parse(_response);
+
+                    JToken services = data.SelectToken("RateResponse.RatedShipment");
+                    if (services.Type == JTokenType.Array)
                     {
-                        serviceSort.Add(ParseUPSService(service));
-                        serviceIndex++;
+                        // Check for each key's existence and assign values accordingly
+                        var serviceIndex = 0;
+                        List<UPSService> serviceSort = new List<UPSService>();
+                        foreach (var service in services)
+                        {
+                            serviceSort.Add(ParseUPSService(service));
+                            serviceIndex++;
+                        }
+
+                        // Remove extra (null) UPS Services values slots from the array.
+                        serviceSort.RemoveAll(service => service == null);
+
+                        // Not the best place to sort for presentation ... but here we are.
+                        serviceSort.Sort(new UPSSort());
+                        _uPSServices = serviceSort.ToArray();
                     }
-
-                    // Remove extra (null) UPS Services values slots from the array.
-                    serviceSort.RemoveAll(service => service == null);
-
-                    // Not the best place to sort for presentation ... but here we are.
-                    serviceSort.Sort(new UPSSort());
-                    _uPSServices = serviceSort.ToArray();
-                } else
+                    else
+                    {
+                        List<UPSService> serviceSort = new List<UPSService>();
+                        serviceSort.Add(ParseUPSService(services));
+                        return serviceSort.ToArray();
+                    }
+                }
+                catch (Exception ex)
                 {
-                    List<UPSService> serviceSort = new List<UPSService>();
-                    serviceSort.Add(ParseUPSService(services));
-                    return serviceSort.ToArray();
+                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _request, ex.Message, "");
                 }
                 return _uPSServices;
             }
@@ -333,14 +345,19 @@ namespace AuthenticationServer.Models.Services
             
             // Add the packages to the request but be mindful of the last package if it is different.
             sb.Append("\"Package\":");            
-            sb.Append("[");            
+            sb.Append("[");
+
             if (shipment.package_weight != shipment.last_package_weight)
             {
-                for (int p = 1; p <= shipment.number_of_packages-1; p++)
+                for (int p = 1; p <= shipment.number_of_packages - 1; p++)
                 {
                     sb.Append(Package(shipment.package_weight, requestOption, shipment.freight_class_selected.ToString()));
                     sb.Append(", ");
                 }
+
+                // Packages have to weight something.  Sometimes people will not give the last package a weight if it is the same.
+                if (shipment.last_package_weight == 0 || shipment.last_package_weight.ToString().Trim().IsNullOrWhiteSpace()) shipment.last_package_weight = shipment.package_weight;
+
                 // Add last package
                 sb.Append(Package(shipment.last_package_weight, requestOption, shipment.freight_class_selected.ToString()));
             }
@@ -352,6 +369,7 @@ namespace AuthenticationServer.Models.Services
                     if (p < shipment.number_of_packages) sb.Append(", ");
                 }
             }
+
             sb.Append("],");
             
 
@@ -372,6 +390,7 @@ namespace AuthenticationServer.Models.Services
 
         private string Package(float package_weight, RequestOption requestOption, string freightClass)
         {
+            _counter++;
             StringBuilder sb = new StringBuilder();
             sb.Append("{\"PackagingType\":");
 

@@ -62,7 +62,8 @@ namespace AuthenticationServer.Models
             {"BUT", "Butler"},
             {"FTW", "Fort Wayne"},
             {"PDT", "Piedmont"},
-            {"POR", "Portland"},
+            {"POR", "Anderson"},
+            {"AND", "Portland"},
             {"BMK", "Brandmark"},
             {"COR", "Corporate"},
             {"CIN", "Cincinnati"},
@@ -111,7 +112,8 @@ namespace AuthenticationServer.Models
             _PlantNames.Add("BUT", "Butler");
             _PlantNames.Add("FTW", "Ft Wayne");
             _PlantNames.Add("PDT", "Piedmont");
-            _PlantNames.Add("POR", "Portland");
+            _PlantNames.Add("POR", "Anderson");
+            _PlantNames.Add("AND", "Portland");
             _PlantNames.Add("BMK", "Brandmark");
             _PlantNames.Add("COR", "Corporate");
             _PlantNames.Add("CIN", "Cincinnati");

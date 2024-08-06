@@ -32,7 +32,9 @@ namespace AuthenticationServer.Controllers
 
         public ActionResult Index(string loc)
         {
-            ViewBag.Param1 = loc;            if(string.IsNullOrEmpty(loc) || !Configuration.PlantLocations.ContainsKey(loc.ToUpper()))
+            ViewBag.Param1 = loc;            
+            
+            if(string.IsNullOrEmpty(loc) || !Configuration.PlantLocations.ContainsKey(loc.ToUpper()))
             {
                 return View("Error");
             }
@@ -84,6 +86,7 @@ namespace AuthenticationServer.Controllers
 
             };
             model.default_freight_class = "55";
+            model.default_pickup_date = System.DateTime.Today;
 
             model.pick_up_date = System.DateTime.Today;
 

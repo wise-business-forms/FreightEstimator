@@ -30,7 +30,8 @@
                 <div class="container">
                     @using (Html.BeginForm("SubmitShipment", "Plant", FormMethod.Post))
                     {
-                            @Html.HiddenFor(model => model.PlantId)
+                        @Html.HiddenFor(model => model.PlantId)
+                        @Html.HiddenFor(model => model.pick_up_date)
                         <table>
                             <tr>
                                 <td style="align-content:center;">
@@ -92,7 +93,7 @@
                                         </tr>
                                         <tr id="freightclass">
                                             <td align="left"><label for="include_ltl_rate" class="col col-form-label form-label">Freight Class</label></td>
-                                            <td colspan="2" width="100">@Html.DropDownListFor(model => model.freight_class_selected, Model.freight_class, new { @id = "include_ltl_rate", @class = "form-control full-width-dropdown" })</td>
+                                            <td colspan="2" width="100">@Html.DropDownListFor(model => model.default_freight_class, Model.freight_class, new { @id = "include_ltl_rate", @class = "form-control full-width-dropdown" })</td>
                                         </tr>
                                         <tr id="ltlFields">
                                             <td></td>
@@ -101,7 +102,7 @@
                                                     <tr>
                                                         <td></td>
                                                         <td><label for="include_ltl_rate" class="col-sm-3 col-form-label form-label ms-auto">Pickup Date</label></td>
-                                                        <td>@Html.TextBoxFor(model => model.pick_up_date, new { @type = "date", @class = "date-picker" })</td>
+                                                        <td><input type="date" class="date-picker" value="@Model.pick_up_date.ToString("yyyy-MM-dd")" /></td>
                                                     </tr>
                                                     <tr>
                                                         <td></td>
@@ -169,7 +170,7 @@
                                 </td>
                             </tr>
                         </table>
-                            
+
                     }
                 </div>
             </main>
@@ -205,9 +206,11 @@
         function toggleLTLFields() {
             var ltlRates = $('#include_ltl_rate').val();
             if (ltlRates === 'Yes') {
+                $('#freightclass').show();
                 $('#ltlFields').show();
             }
             else {
+                $('#freightclass').hide();
                 $('#ltlFields').hide();
             }
         }

@@ -244,6 +244,7 @@
     <Compile Include="Models\PlantCharges.cs" />
     <Compile Include="Models\Services\Log.cs" />
     <Compile Include="Models\Services\RateCalculations.cs" />
+    <Compile Include="Models\Services\Test.cs" />
     <Compile Include="Models\Services\UPSRequest.cs" />
     <Compile Include="Models\Services\XAVResponse.cs" />
     <Compile Include="Models\Geography.cs" />

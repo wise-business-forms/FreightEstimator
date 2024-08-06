@@ -35,6 +35,7 @@ namespace AuthenticationServer.Models
         public string default_freight_class { get; set; }
         public int freight_class_selected { get; set; }
         public DateTime pick_up_date { get; set; }
+        public DateTime default_pickup_date { get; set; }
         public bool notify_before_delivery {  get; set; }
         public bool liftgate_pickup {  get; set; }
         public bool liftgate_delivery {  get; set; }
