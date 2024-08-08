@@ -1,4 +1,5 @@
 ﻿@model AuthenticationServer.Models.Shipment
+    @using AuthenticationServer.Controllers
 @{
     ViewBag.Title = "Index";
 }
@@ -68,15 +69,15 @@
                                                 </tr>
                                                 <tr>
                                                     <td><label for="number_of_packages" class="col-sm-3 col-form-label form-label ms-auto"># Packages:</label></td>
-                                                    <td colspan="2"> @Html.TextBoxFor(model => model.number_of_packages, new { @class = "form-control" })</td>
+                                                    <td colspan="2"> @Html.WiseTextBoxFor(model => model.number_of_packages, "form-control") </td>
                                                 </tr>
                                                 <tr>
                                                     <td><label for="package_weight" class="col-sm-3 col-form-label form-label ms-auto">Package Weight (each):</label></td>
-                                                    <td colspan="2">@Html.TextBoxFor(model => model.package_weight, new { @class = "form-control" })</td>
+                                                    <td colspan="2">@Html.WiseTextBoxFor(model => model.package_weight, "form-control")</td>
                                                 </tr>
                                                 <tr>
                                                     <td><label for="last_package_weight" class="col-sm-3 col-form-label form-label ms-auto">Last Package Weight:</label></td>
-                                                    <td colspan="2">@Html.TextBoxFor(model => model.last_package_weight, new { @class = "form-control" })</td>
+                                                    <td colspan="2">@Html.WiseTextBoxFor(model => model.last_package_weight, "form-control")</td>
                                                 </tr>
                                                 <tr>
                                                     <td><label for="delivery_signature_required" class="col-sm-3 col-form-label form-label ms-auto">Delivery /Sig Reg'd?</label></td>
@@ -167,7 +168,7 @@
                                                     </td>
                                                 </tr>
                                                 <tr>
-                                                    <td colspan="2"><button class="btn" type="submit">Get Rates</button></td>
+                                                    <td colspan="3" ><div class="d-flex justify-content-center align-items-center"><button class="btn" type="submit">Get Rates</button></div></td>
                                                 </tr>
                                             </table>
                                         </td>

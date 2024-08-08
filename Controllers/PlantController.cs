@@ -149,6 +149,7 @@ namespace AuthenticationServer.Controllers
 
                         foreach (UPSService service in shopRate.UPSServices)
                         {
+                            service.ShipFrom = shipment.PlantId;
                             service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
                         }
 
@@ -187,6 +188,7 @@ namespace AuthenticationServer.Controllers
                     shopRateResponse = GetCompareRates(shipment);
                     foreach (UPSService service in shopRateResponse.UPSServices)
                     {
+                        service.ShipFrom = shipment.PlantId;
                         service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
                     }
                     List<ShopRateResponse> shopRates = new List<ShopRateResponse> { shopRateResponse };

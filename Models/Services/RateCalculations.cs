@@ -310,7 +310,7 @@ namespace AuthenticationServer.Models.Services
                     }
 
                     break;
-                case "UPSGroundFreight":
+                case "UPSGroundFreight":                    
                     RateCalculations rateGFCalculations = new RateCalculations(0, Carriers.GF);
                     perPackageCharge = Convert.ToDouble(rateGFCalculations.PerPackageCharge[plantId]);
                     perShipmentCharge = Convert.ToDouble(rateGFCalculations.PerShipmentCharge[plantId]);
@@ -328,8 +328,9 @@ namespace AuthenticationServer.Models.Services
             }
             else if (serviceName == "UPSGroundFreight")
             {
-                total = rate;
-                total += ((markup / 100) * rate);
+                // Ground Freight should always use CWT Negotiated rates.
+                total = cwtRate;
+                total += ((markup / 100) * cwtRate);
                 total += perShipmentCharge;
                 total += (perPackageCharge * noPackages);
             }

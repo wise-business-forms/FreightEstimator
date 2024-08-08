@@ -23,7 +23,10 @@
 
                         <br />
                         <div class="confirmation-address d-flex">Delivery: / Sig Req'd:&nbsp;<div class="confirmation-value">@Model.delivery_signature_required_selection</div></div>
-
+                        if(Model.include_ground_rate_selection == "Yes")
+                        {
+                            <br /><div class="confirmation-address d-flex">Freight Class:&nbsp;<div class="confirmation-value"> @Model.freight_class</div></div>
+                        }
                         <br />
                         <div class="confirmation-address">Address is: </div>
                         <div class="confirmation-address">Billing weight: @Model.billing_weight lbs. ( @Model.number_of_packages pkgs)</div>

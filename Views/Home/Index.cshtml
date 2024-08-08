@@ -6,7 +6,6 @@
         <div class="col">
             <div class="content-panel">
                 <main>
-                    <div class="alert alert-danger" role="alert">If you return to the site and encounter server errors assume we are updating and try again in a few miniutes.  <br /><br />Send all other error information to helpdesk@wbf.com</div>
                     <div class="row d-flex">
                         <a class="links text-end">? Help</a>
                     </div>
@@ -46,6 +45,30 @@
                         </div>
                         <div class="col-3">
                             <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "EBT"})" class="btn btn-primary btn-main">East Butler (EBT)</a>
+                        </div>
+                    </div>
+                    <br />
+                    <br />
+                    <div class="row">
+                        <div class="col"></div>
+                        <div class="col-auto">
+                            <div class="alert alert-info text-center" role="alert">
+                                Send all queries or problem you may encounter to <a href="mailto:helpdesk@wbf.com">helpdesk@wbf.com</a>
+                                <br />
+                                For next couple of weeks as we work out any issues we will be include the change log below.
+                            </div>
+                        </div>
+                        <div class="col"></div>
+                    </div>
+                    <div>
+                        <h6>Change Log</h6>
+                        <div class="table">
+                            8/8/2024
+                            <ul>
+                                <li>Centered shipment form.</li>
+                                <li>Default zeros now disappear when entering field.</li>
+                                <li>Added <b>ShipFrom</b> information to confirmation page.</li>
+                            </ul>
                         </div>
                     </div>
                 </main>

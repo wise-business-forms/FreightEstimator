@@ -242,6 +242,7 @@
     <Compile Include="Models\LTLService.cs" />
     <Compile Include="Models\Plant.cs" />
     <Compile Include="Models\PlantCharges.cs" />
+    <Compile Include="Controllers\HtmlHelpers.cs" />
     <Compile Include="Models\Services\Log.cs" />
     <Compile Include="Models\Services\RateCalculations.cs" />
     <Compile Include="Models\Services\Test.cs" />
