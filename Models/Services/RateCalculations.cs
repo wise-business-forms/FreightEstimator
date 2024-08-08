@@ -328,7 +328,7 @@ namespace AuthenticationServer.Models.Services
             }
             else if (serviceName == "UPSGroundFreight")
             {
-                    total = rate;
+                total = rate;
                 total += ((markup / 100) * rate);
                 total += perShipmentCharge;
                 total += (perPackageCharge * noPackages);
