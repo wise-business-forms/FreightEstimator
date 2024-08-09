@@ -308,6 +308,7 @@ namespace AuthenticationServer.Controllers
         private ShopRateResponse GetLessThanTruckloadRates(Shipment shipment)
         {
             ShopRateResponse response = new ShopRateResponse();
+            if (shipment.AcctNum.IsNullOrWhiteSpace()) shipment.AcctNum = "0";
             try
             {
                 #region -- Define Per Package Charge and Per Shipment charge dictionaries for LTL (chare per plant) --
