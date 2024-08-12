@@ -350,18 +350,28 @@ namespace AuthenticationServer.Models.Services
             sb.Append("[");
 
             // Add the packages...
-            int _noFullPackages = 0;    
-            if (shipment.last_package_weight > 0) _noFullPackages = shipment.number_of_packages - 1;
-            for (int p = 1; p <= _noFullPackages; p++)
+            if (shipment.package_weight != shipment.last_package_weight)
             {
-                sb.Append(Package(shipment.package_weight, requestOption, shipment.freight_class_selected.ToString()));
-                if(p <= _noFullPackages) sb.Append(", ");
-            }
+                for (int p = 1; p <= shipment.number_of_packages - 1; p++)
+                {
+                    sb.Append(Package(shipment.package_weight, requestOption, shipment.freight_class_selected.ToString()));
+                    sb.Append(", ");
+                }
 
-            // Add last package if there is one.
-            if(shipment.last_package_weight > 0)
+                // Packages have to weight something.  Sometimes people will not give the last package a weight if it is the same.
+                if (shipment.last_package_weight == 0 || shipment.last_package_weight.ToString().Trim().IsNullOrWhiteSpace()) shipment.last_package_weight = shipment.package_weight;
+
+                // Add last package
                 sb.Append(Package(shipment.last_package_weight, requestOption, shipment.freight_class_selected.ToString()));
-
+            }
+            else  // all packages are the same weight.
+            {
+                for (int p = 1; p <= shipment.number_of_packages; p++)
+                {
+                    sb.Append(Package(shipment.package_weight, requestOption, shipment.freight_class_selected.ToString()));
+                    if (p < shipment.number_of_packages) sb.Append(", ");
+                }
+            }
             sb.Append("],");
             
 
