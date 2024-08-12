@@ -23,13 +23,46 @@
 
                         <br />
                         <div class="confirmation-address d-flex">Delivery: / Sig Req'd:&nbsp;<div class="confirmation-value">@Model.delivery_signature_required_selection</div></div>
-                        if(Model.include_ground_rate_selection == "Yes")
+                        if (Model.include_ground_rate_selection == "Yes" || Model.include_ltl_rate_selection == "Yes")
                         {
-                            <br /><div class="confirmation-address d-flex">Freight Class:&nbsp;<div class="confirmation-value"> @Model.freight_class</div></div>
+                            <br /><div class="confirmation-address d-flex">
+                                Freight Class:&nbsp;
+                                <div class="confirmation-value">@Model.freight_class_selected</div>
+                            </div>
+                        }
+                        if (Model.include_ltl_rate_selection == "Yes")
+                        {
+                            <div class="confirmation-address d-flex">
+                                Pickup Date:&nbsp;
+                                <div class="confirmation-value">@Model.pick_up_date.ToShortDateString()</div>
+                            </div>
+                            <div class="confirmation-address">
+                                Accessorials:&nbsp;
+                                @if (Model.notify_before_delivery)
+                                {<div class="confirmation-value">NOTIFY-BEFORE-DELIVERY</div>}
+                                @if (Model.liftgate_pickup)
+                                {<div class="confirmation-value">LIFTGATE-PICKUP</div>}
+                                @if (Model.liftgate_delivery)
+                                {<div class="confirmation-value">LIFTGATE-DEVLIVERY</div>}
+                                @if (Model.limited_access_pickup)
+                                {<div class="confirmation-value">LIMITED-ACCESS-PICKUP</div>}
+                                @if (Model.limited_access_delivery)
+                                {<div class="confirmation-value">LIMITED-ACCESS-DELIVERY</div>}
+                                @if (Model.residential_delivery)
+                                {<div class="confirmation-value">RESIDENTIAL-DEVLIVERY</div>}
+                                @if (Model.inside_pickup)
+                                {<div class="confirmation-value">INSIDE-PICKUP</div>}
+                                @if (Model.inside_delivery)
+                                {<div class="confirmation-value">INSIDE-DEVLIVERY</div>}
+                                @if (Model.sort_and_segregate)
+                                {<div class="confirmation-value">SORT-AND-SEGREGATE</div>}
+                                @if (Model.stopoff_charge)
+                                {<div class="confirmation-value">STOPOFF-CHARGE</div>}
+                            </div>
                         }
                         <br />
-                        <div class="confirmation-address">Address is: </div>
-                        <div class="confirmation-address">Billing weight: @Model.billing_weight lbs. ( @Model.number_of_packages pkgs)</div>
+                        <div class="confirmation-address d-flex">Address is:&nbsp;<div class="confirmation-value">@Model.Address_Classification</div></div>
+                        <div class="confirmation-address d-flex">Billing weight: @Model.billing_weight lbs. ( @Model.number_of_packages pkgs)</div>
                     }
                 </div>
                 <div class=" col-3 ms-auto ">

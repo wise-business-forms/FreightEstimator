@@ -85,7 +85,7 @@ namespace AuthenticationServer.Controllers
                 new SelectListItem { Text = "500", Value = "500"},
 
             };
-            model.default_freight_class = "55";
+            model.freight_class_selected = 55;
             model.default_pickup_date = System.DateTime.Today;
 
             model.pick_up_date = System.DateTime.Today;
@@ -278,8 +278,7 @@ namespace AuthenticationServer.Controllers
         private ShopRateResponse GetCompareRates(Shipment shipment)
         {
             ShopRateResponse shopRateResponse = new ShopRateResponse();
-            UPSRequest uPSRequest = new UPSRequest(shipment, new Plant { Id = shipment.PlantId }, UPSRequest.RequestOption.Shop);
-            var response = uPSRequest.Response();
+            UPSRequest uPSRequest = new UPSRequest(shipment, new Plant { Id = shipment.PlantId }, UPSRequest.RequestOption.Shop);            
             shopRateResponse.UPSServices = uPSRequest.UPSServices;
             return shopRateResponse;
         }
@@ -293,8 +292,7 @@ namespace AuthenticationServer.Controllers
         private ShopRateResponse GetGroundFreightRate(Shipment shipment)
         {
             ShopRateResponse shopRateResponse = new ShopRateResponse();
-            UPSRequest upsRequest = new UPSRequest(shipment, new Plant { Id=shipment.PlantId}, UPSRequest.RequestOption.Rate);
-            var response = upsRequest.Response();
+            UPSRequest upsRequest = new UPSRequest(shipment, new Plant { Id=shipment.PlantId}, UPSRequest.RequestOption.Rate);            
             shopRateResponse.UPSServices = upsRequest.UPSServices;
             return shopRateResponse;
         }

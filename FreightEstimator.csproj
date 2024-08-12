@@ -245,6 +245,8 @@
     <Compile Include="Controllers\HtmlHelpers.cs" />
     <Compile Include="Models\Services\Log.cs" />
     <Compile Include="Models\Services\RateCalculations.cs" />
+    <Compile Include="Models\Services\RateRequest.cs" />
+    <Compile Include="Models\Services\Request.cs" />
     <Compile Include="Models\Services\Test.cs" />
     <Compile Include="Models\Services\UPSRequest.cs" />
     <Compile Include="Models\Services\XAVResponse.cs" />

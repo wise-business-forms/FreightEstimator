@@ -56,6 +56,7 @@ namespace AuthenticationServer.Models
         public string Corrected_state { get; set; }
         public string Corrected_Zip { get; set; }
         public string Corrected_Country { get; set; }
+        public string Address_Classification { get; set; }
 
         /// <summary>
         /// GRID 1 - All service rates for plant.

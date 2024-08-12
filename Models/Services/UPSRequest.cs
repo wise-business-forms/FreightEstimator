@@ -14,13 +14,12 @@ using Microsoft.Ajax.Utilities;
 
 namespace AuthenticationServer.Models.Services
 {
-    public class UPSRequest
-    {
-        private string _request = string.Empty;
-        private string _response = string.Empty;
-        private string _url = string.Empty;
-        private UPSService[] _uPSServices = null;
+    public class UPSRequest { 
+
+        private string _response = String.Empty;
         private Shipment _shipment = null;
+        private UPSService[] _uPSServices = null;
+
         public enum RequestOption { Rate, Shop, Ratetimeintransit, Shoptimeintransit };
         int _counter = 0;
 
@@ -33,16 +32,29 @@ namespace AuthenticationServer.Models.Services
         /// <param name="requestOption"></param>
         public UPSRequest(Shipment shipment, Plant plant, RequestOption requestOption)
         {
-            _request = RateRequest(shipment, new Plant(plant.Id), requestOption);
-            _url = Configuration.UPSShopRatesURL + requestOption.ToString();
             _shipment = shipment;
+
+            // Address Vlidation
+            string _request = AddressValidationRequest(shipment, plant, requestOption);
+            string _url = Configuration.UPSAddressValidationURL;
+            string _response = Response(_request, _url);
+
+            JObject classification = JObject.Parse(_response);
+            shipment.Address_Classification = (string)classification["XAVResponse"]?["Candidate"]?["AddressClassification"]?["Description"];
+
+
+            // Rate Request
+            _request = RateRequest(shipment, new Plant(plant.Id), requestOption);
+            _url = Configuration.UPSShopRatesURL + requestOption.ToString();            
+            _response = Response(_request, _url);
         }
+       
 
         /// <summary>
         /// Returns the response from the UPS API.
         /// </summary>
         /// <returns></returns>
-        public string Response()
+        private string Response(string rateRequest, string url)
         {
             using (HttpClient client = new HttpClient())
             {
@@ -50,7 +62,7 @@ namespace AuthenticationServer.Models.Services
 
                 try
                 {
-                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(_url);
+                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
                     request.Method = "POST";
                     request.ContentType = "application/json";
                     request.Headers.Add("Authorization", "Bearer " + GetToken());
@@ -60,7 +72,7 @@ namespace AuthenticationServer.Models.Services
                     // Write data to request stream
                     using (var streamWriter = new StreamWriter(request.GetRequestStream()))
                     {
-                        streamWriter.Write(_request);
+                        streamWriter.Write(rateRequest);
                     }
 
                     // Get the response
@@ -80,20 +92,20 @@ namespace AuthenticationServer.Models.Services
                     }
 
 
-                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _request, _response, "");
+                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, _response, "");
                 }
                 catch (WebException ex)
                 {
                     _response = ex.Message.ToString();
-                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _request, ex.Message, "");
+                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, ex.Message, "");
                 }
                 catch (Exception ex)
                 {
                     throw ex;
                 }
-
-                return _response;
             }
+
+            return _response;
         }
 
         private UPSService ParseUPSService(JToken service)
@@ -198,7 +210,7 @@ namespace AuthenticationServer.Models.Services
                 }
                 catch (Exception ex)
                 {
-                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _request, ex.Message, "");
+                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _response, ex.Message, "");
                 }
                 return _uPSServices;
             }
@@ -249,6 +261,27 @@ namespace AuthenticationServer.Models.Services
             return sToken;
         }
 
+        private string AddressValidationRequest(Shipment shipment, Plant plant, RequestOption requestOption)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("{\"XAVRequest\": {");
+            sb.Append("\"AddressKeyFormat\": {");
+            sb.Append("\"ConsigneeName\": \"").Append(string.Empty).Append("\",");
+            sb.Append("\"BuildingName\": \"").Append(string.Empty).Append("\",");
+            sb.Append("\"AddressLine\": [\"").Append(shipment.Address).Append("\",").Append("\"\",").Append("\"\"],");
+            sb.Append("\"Region\": \"").Append(shipment.City).Append(",").Append(shipment.State_selection).Append(",").Append(shipment.Zip).Append("\",");
+            sb.Append("\"PoliticalDivision2\": \"").Append(string.Empty).Append("\",");
+            sb.Append("\"PoliticalDivision1\": \"").Append(shipment.State_selection).Append("\",");
+            sb.Append("\"PostcodePrimaryLow\": \"").Append(shipment.Zip).Append("\",");
+            sb.Append("\"PostcodeExtendedLow\": \"").Append(string.Empty).Append("\",");
+            sb.Append("\"Urbanization\": \"").Append(string.Empty).Append("\",");
+            sb.Append("\"CountryCode\": \"").Append(shipment.Country_selection).Append("\"");
+            sb.Append("}"); // AddressKeyFormat
+            sb.Append("}"); // XAVRequest
+            sb.Append("}"); // Root
+
+            return sb.ToString();
+        }
 
         /// <summary>
         /// Builds the JSON shipment request for the UPS Rate API
