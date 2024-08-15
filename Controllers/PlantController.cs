@@ -151,6 +151,61 @@ namespace AuthenticationServer.Controllers
                         {
                             service.ShipFrom = shipment.PlantId;
                             service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
+                            RateCalculations rateCalculations = new RateCalculations();
+                            switch (service.ServiceName)
+                            {
+                                case "UPSNextDayAir":
+                                    service.CWT = rateCalculations.HundredWeightAirEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "UPS2ndDayAir":
+                                    service.CWT = rateCalculations.HundredWeightAirEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "UPSGround":
+                                    service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "UPSWorldwideExpress":
+                                    service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "UPSWorldwideExpedited":
+                                    service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "UPSStandard":
+                                    service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "UPS3DaySelect":
+                                    service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "NextDayAirSaver":
+                                    service.CWT = rateCalculations.HundredWeightAirEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "NextDayAirEarlyAM":
+                                    service.CWT = rateCalculations.HundredWeightAirEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "ExpressPlus":
+                                    service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "SecondDayAirAM":
+                                    service.CWT = rateCalculations.HundredWeightAirEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "UPSSaver":
+                                    service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "UPSTodayStandard":
+                                    service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "UPSTodayDedicatedCourier":
+                                    service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "UPSTodayIntercity":
+                                    service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "UPSTodayExpress":
+                                    service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                                case "UPSTodayExpressSaver":
+                                    service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    break;
+                            }
                         }
 
                         plantServices.Add(shopRate);
@@ -190,6 +245,61 @@ namespace AuthenticationServer.Controllers
                     {
                         service.ShipFrom = shipment.PlantId;
                         service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
+                        RateCalculations rateCalculations = new RateCalculations();
+                        switch (service.ServiceName)
+                        {
+                            case "UPSNextDayAir":
+                                service.CWT = rateCalculations.HundredWeightAirEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "UPS2ndDayAir":
+                                service.CWT = rateCalculations.HundredWeightAirEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "UPSGround":
+                                service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "UPSWorldwideExpress":
+                                service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "UPSWorldwideExpedited":
+                                service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "UPSStandard":
+                                service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "UPS3DaySelect":
+                                service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "NextDayAirSaver":
+                                service.CWT = rateCalculations.HundredWeightAirEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "NextDayAirEarlyAM":
+                                service.CWT = rateCalculations.HundredWeightAirEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "ExpressPlus":
+                                service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "SecondDayAirAM":
+                                service.CWT = rateCalculations.HundredWeightAirEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "UPSSaver":
+                                service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "UPSTodayStandard":
+                                service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "UPSTodayDedicatedCourier":
+                                service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "UPSTodayIntercity":
+                                service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "UPSTodayExpress":
+                                service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                            case "UPSTodayExpressSaver":
+                                service.CWT = rateCalculations.HundredWeightGroundEligable(shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                break;
+                        }
                     }
                     List<ShopRateResponse> shopRates = new List<ShopRateResponse> { shopRateResponse };
                     shipment.shopCompareRates = shopRates.ToArray();
