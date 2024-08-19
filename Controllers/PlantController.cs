@@ -101,14 +101,15 @@ namespace AuthenticationServer.Controllers
         [HttpPost]
         public ActionResult SubmitShipment(Shipment shipment)
         {
-            //if (ModelState.IsValid)
+            if (ModelState.IsValid)
             {
-                
+                if (shipment.Address.IsNullOrWhiteSpace())
+                    shipment.Address = " ";
                 // Save the shipment to the database
                 return RedirectToAction("ShipmentConfirmation", shipment);
             }
             
-            //return View("Index", shipment);
+            return View("Index", shipment);
         }
 
         public ActionResult LoadAdditionalOptions(Shipment shipment)
@@ -320,6 +321,8 @@ namespace AuthenticationServer.Controllers
             
             ViewBag.plants = Plant.Plants();
 
+            if (shipment.Address.IsNullOrWhiteSpace())
+                shipment.Address_Classification = "N/A";
             return View(shipment);
         }
 
