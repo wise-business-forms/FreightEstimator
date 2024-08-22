@@ -34,6 +34,16 @@ namespace AuthenticationServer.Models.Services
         {
             _shipment = shipment;
 
+            // For rating without address.
+            if (_shipment.Address == null || _shipment.Address.Trim() == "") _shipment.Address = "";
+            if (_shipment.City == null || _shipment.City.Trim() == "") _shipment.City = "";
+            if (_shipment.State_selection == null || _shipment.State_selection.Trim() == "") _shipment.State_selection = "";
+            if (_shipment.number_of_packages == 0)
+            {
+                _shipment.number_of_packages = 1;
+                _shipment.package_weight = 1;
+            }
+
             // Address Vlidation
             string _request = AddressValidationRequest(shipment, plant, requestOption);
             string _url = Configuration.UPSAddressValidationURL;
