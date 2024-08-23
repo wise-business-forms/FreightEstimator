@@ -129,17 +129,21 @@ namespace AuthenticationServer.Models.Services
         /// <param name="packageWeight"></param>
         /// <param name="lastPackageWeight"></param>
         /// <returns></returns>
-        public bool HundredWeightAirEligable(int numberOfPackages, string packageWeight, string lastPackageWeight)
+        public bool HundredWeightAirEligable(UPSService.ServiceCode serviceCode, int numberOfPackages, string packageWeight, string lastPackageWeight)
         {
-            if (HundredWeightEligable(UPSService.ServiceCode.NextDayAirEarlyAM, numberOfPackages, packageWeight, lastPackageWeight))
-            {  return true; }
-            else if (HundredWeightEligable(UPSService.ServiceCode.NextDayAirSaver, numberOfPackages, packageWeight, lastPackageWeight))
-            { return true; }
-            else if (HundredWeightEligable(UPSService.ServiceCode.SecondDayAirAM, numberOfPackages, packageWeight, lastPackageWeight))
-            { return true; }
-            else if (HundredWeightEligable(UPSService.ServiceCode.UPSNextDayAir, numberOfPackages, packageWeight, lastPackageWeight))
-            { return true; }
-            return false;
+            switch (serviceCode)
+            {
+                case UPSService.ServiceCode.NextDayAirEarlyAM:
+                    return HundredWeightEligable(serviceCode, numberOfPackages, packageWeight, lastPackageWeight);                    
+                case UPSService.ServiceCode.NextDayAirSaver:
+                    return HundredWeightEligable(serviceCode, numberOfPackages, packageWeight, lastPackageWeight);                    
+                    case UPSService.ServiceCode.SecondDayAirAM:
+                    return HundredWeightEligable(serviceCode, numberOfPackages, packageWeight, lastPackageWeight);                    
+                case UPSService.ServiceCode.UPSNextDayAir:
+                    return HundredWeightEligable(serviceCode, numberOfPackages, packageWeight, lastPackageWeight);                    
+                default:
+                    return false;
+            }
         }
 
         /// <summary>
@@ -149,15 +153,22 @@ namespace AuthenticationServer.Models.Services
         /// <param name="packageWeight"></param>
         /// <param name="lastPackageWeight"></param>
         /// <returns></returns>
-        public bool HundredWeightGroundEligable(int numberOfPackages, string packageWeight, string lastPackageWeight)
+        public bool HundredWeightGroundEligable(UPSService.ServiceCode serviceCode, int numberOfPackages, string packageWeight, string lastPackageWeight)
         {
-            if (HundredWeightEligable(UPSService.ServiceCode.UPSGround, numberOfPackages, packageWeight, lastPackageWeight))
-            { return true; }
-            else if (HundredWeightEligable(UPSService.ServiceCode.UPS3DaySelect, numberOfPackages, packageWeight, lastPackageWeight))
-            { return true; }
-            else if (HundredWeightEligable(UPSService.ServiceCode.UPSSaver, numberOfPackages, packageWeight, lastPackageWeight))
-            { return true; }
-            return false;
+            switch (serviceCode)
+            {
+                case UPSService.ServiceCode.UPSGround:
+                    return HundredWeightEligable(serviceCode, numberOfPackages, packageWeight, lastPackageWeight);
+                    break;
+                case UPSService.ServiceCode.UPS3DaySelect:
+                    return HundredWeightEligable(serviceCode, numberOfPackages, packageWeight, lastPackageWeight);
+                    break;
+                case UPSService.ServiceCode.UPSSaver:
+                    return HundredWeightEligable(serviceCode, numberOfPackages, packageWeight, lastPackageWeight);
+                    break;
+                default:
+                    return false;
+            }
         }
 
         internal static string CalculateRate(string accountNumber, string plantId, string serviceName, string currentRate, string CWTRate, int numberOfPackages, string packageWeight, string lastPackage)
@@ -187,7 +198,7 @@ namespace AuthenticationServer.Models.Services
             switch (serviceName)
             {
                 case "UPSGround":
-                    if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
+                    if (rateCalculations.HundredWeightGroundEligable(UPSService.ServiceCode.UPSGround, numberOfPackages, packageWeight, lastPackage))
                     {
                         cwt = true;
                         
@@ -204,7 +215,7 @@ namespace AuthenticationServer.Models.Services
 
                     break;
                 case "UPS3DaySelect":
-                    if (rateCalculations.HundredWeightGroundEligable(numberOfPackages, packageWeight, lastPackage))
+                    if (rateCalculations.HundredWeightGroundEligable(UPSService.ServiceCode.UPS3DaySelect, numberOfPackages, packageWeight, lastPackage))
                     {
                         cwt = true;
                         rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
@@ -219,7 +230,7 @@ namespace AuthenticationServer.Models.Services
                     }
                     break;
                 case "UPSNextDayAir":
-                    if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
+                    if (rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.UPSNextDayAir, numberOfPackages, packageWeight, lastPackage))
                     {
                         cwt = true;
                         rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
@@ -234,7 +245,7 @@ namespace AuthenticationServer.Models.Services
                     }
                     break;
                 case "UPS2ndDayAir":
-                    if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
+                    if (rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.UPS2ndDayAir, numberOfPackages, packageWeight, lastPackage))
                     {
                         cwt = true;
                         rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
@@ -249,7 +260,7 @@ namespace AuthenticationServer.Models.Services
                     }
                     break;
                 case "SecondDayAirAM":
-                    if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
+                    if (rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.SecondDayAirAM, numberOfPackages, packageWeight, lastPackage))
                     {
                         cwt = true;
                         rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
@@ -264,7 +275,7 @@ namespace AuthenticationServer.Models.Services
                     }
                     break;
                 case "NextDayAirSaver":
-                    if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
+                    if (rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.NextDayAirSaver, numberOfPackages, packageWeight, lastPackage))
                     {
                         cwt = true;
                         rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
@@ -280,9 +291,10 @@ namespace AuthenticationServer.Models.Services
 
                     break;
                 case "NextDayAirEarlyAM":                    
-                    if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
-                    {                        
-                        cwt = false; // Since no negotiated rate is returned and published rate are retuened the same we are not checking for CWT.
+                    if (rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.NextDayAirEarlyAM, numberOfPackages, packageWeight, lastPackage))
+                    {
+                        //cwt = false; // Since no negotiated rate is returned and published rate are retuened the same we are not checking for CWT.
+                        cwt = true;
                         rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
                         perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
                         perShipmentCharge = Convert.ToDouble(rateCalculations.PerShipmentChargeCWT[plantId]);
@@ -295,7 +307,7 @@ namespace AuthenticationServer.Models.Services
                     }
                     break;
                 case "UPSSaver":
-                    if (rateCalculations.HundredWeightAirEligable(numberOfPackages, packageWeight, lastPackage))
+                    if (rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.UPSSaver, numberOfPackages, packageWeight, lastPackage))
                     {
                         cwt = true;
                         rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
@@ -319,10 +331,9 @@ namespace AuthenticationServer.Models.Services
             }
 
             // Hundred weight adjustment
-            if (cwt  && serviceName != "UPSGroundFreight")
+            if (cwt  && serviceName != "UPSGroundFreight" && serviceName != "NextDayAirEarlyAM")
             { 
                 total = hundredWeightAdjustment;                
-                //total += ((markup / 100) * hundredWeightAdjustment);
                 total += perShipmentCharge;
                 total += (perPackageCharge * noPackages);
             }
@@ -331,6 +342,12 @@ namespace AuthenticationServer.Models.Services
                 // Ground Freight should always use CWT Negotiated rates.
                 total = cwtRate;
                 total += ((markup / 100) * cwtRate);
+                total += perShipmentCharge;
+                total += (perPackageCharge * noPackages);
+            }
+            else if (serviceName == "NextDayAirEarlyAM")
+            {
+                total = cwtRate;
                 total += perShipmentCharge;
                 total += (perPackageCharge * noPackages);
             }
