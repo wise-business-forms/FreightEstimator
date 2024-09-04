@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
-namespace AuthenticationServer.Models.Services
+namespace AuthenticationServer.Models.Carrier.UPS
 {
     public class XAVResponse
     {

@@ -5,7 +5,7 @@ using System.Web;
 
 using AuthenticationServer.Models.Services;
 
-namespace AuthenticationServer.Models
+namespace AuthenticationServer.Models.Carrier.UPS
 {
     public class AddressClassification
     {

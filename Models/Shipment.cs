@@ -77,6 +77,9 @@ namespace AuthenticationServer.Models
         public string responseMessage { get; set; }
         public string results { get; set; }
         public string user_name { get; set; }
+
+        public string[] AlertMessages { get; set; }
+        public string ErrorMessage { get; set; }
     }
 
     public class SelectedItem

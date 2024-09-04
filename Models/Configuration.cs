@@ -93,8 +93,8 @@ namespace AuthenticationServer.Models
 
         static bool _M33DemoMode = false;
 
-        static string _TransPlaceDemoUrl = "https://uattms.transplace.com/xml-api/api/";
-        static string _TransPlaceProdUrl = "https://tms.transplace.com/xml-api/api/";
+        static string _TransPlaceDemoUrl = "https://uattms.transplace.com/xml-api/api/"; // Uber
+        static string _TransPlaceProdUrl = "https://tms.transplace.com/xml-api/api/"; // Uber
 
         static string _TransPlaceDemoToken = "8Hhk8etqxs94gEtj0JpVxl90qoINDfMAiemh84XbGNM%3D";
         static string _TransPlaceProdToken = "jLDnfupyBDGy%2FnF2zYs4gxMB78GTlIAytU2dzN4xQLdVWNGGmkNOl%2B9N%2BU6aO4vP";

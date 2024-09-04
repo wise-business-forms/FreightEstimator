@@ -45,7 +45,7 @@
                                                     <td colspan="2">@Html.TextBoxFor(model => model.AcctNum, new { @class = "form-control" })</td>
                                                 </tr>
                                                 <tr>
-                                                    <td colspan="3">@ViewBag.AccountMessage</td>
+                                                    <td colspan="3"><div id="AccountMessage"></div></td>
                                                 </tr>
                                                 <tr>
                                                     <td><label for="Address" class="col-sm-3 col-form-label form-label ms-auto">Address:</label></td>
@@ -85,7 +85,7 @@
                                                 </tr>
                                                 <tr>
                                                     <td><label for="multiple_location_rate" class="col-sm-3 col-form-label form-label ms-auto">Rate from Multiple Locations?</label></td>
-                                                    <td colspan="2">@Html.DropDownListFor(model => model.multiple_location_rate_selection, Model.multiple_location_rate, new { @class = "form-control" })</td>
+                                                    <td colspan="2">@Html.DropDownListFor(model => model.multiple_location_rate_selection, Model.multiple_location_rate, new { @class = "form-control", id = "include_multi_location_rate" })</td>
                                                 </tr>
                                                 <tr>
                                                     <td><label for="include_ground_rate" class="col-sm-3 col-form-label form-label ms-auto">Include Ground Freight Rate?</label></td>
@@ -188,20 +188,49 @@
     <script type="text/javascript">
 
         $(document).ready(function () {
+            var urlParams = new URLSearchParams(window.location.search);
+            var plantId = urlParams.get('loc');
             $('#ltlFields').hide();
             toggleFreightFields();
             toggleLTLFields();
+
+            if (urlParams.get('loc') == 'ALP') tottleAccountMessage("show");
 
             const freightevent = document.getElementById('include_ground_freight_rate')
             freightevent.addEventListener('change', function () { toggleFreightFields(); });
 
             const ltlevent = document.getElementById('include_ltl_rate');
             ltlevent.addEventListener('change', function () { toggleLTLFields(); });
+
+            const multiplerate = document.getElementById('include_multi_location_rate');
+            multiplerate.addEventListener('change', function () { handleMultipleLocations() })
         });
 
+        function handleMultipleLocations() {
+            var selectedValue = $("#include_multi_location_rate").val();
+
+            if (selectedValue === "Yes") {
+                tottleAccountMessage("show");
+            }
+            else {
+                tottleAccountMessage("hide");
+            }
+        }
+
+        function tottleAccountMessage(toggle) {
+            if (toggle == "show") {
+                $("#AccountMessage").html("@Html.Raw(HttpUtility.JavaScriptStringEncode(ViewBag.AccountMessage))")
+                $("#AccountMessage").show()
+            } else {
+                $("#AccountMessage").hide()
+            }
+        }
+
         function toggleFreightFields() {
-            var freightrates = $('#include_ground_freight_rate').val();
-            if (freightrates === 'Yes') {
+            var groundRates = $('#include_ground_freight_rate').val();
+            var ltlRates = $('#include_ltl_rate').val();
+
+            if (groundRates === 'Yes' || ltlRates === 'Yes') {
                 $('#freightclass').show();
             }
             else {
@@ -212,13 +241,13 @@
         function toggleLTLFields() {
             var ltlRates = $('#include_ltl_rate').val();
             if (ltlRates === 'Yes') {
-                $('#freightclass').show();
                 $('#ltlFields').show();
             }
             else {
-                $('#freightclass').hide();
                 $('#ltlFields').hide();
             }
+
+            toggleFreightFields();
         }
     </script>
 }

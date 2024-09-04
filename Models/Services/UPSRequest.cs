@@ -11,6 +11,7 @@ using System.Web;
 using System.Web.Http.ExceptionHandling;
 using System.Data.Entity.Core.Mapping;
 using Microsoft.Ajax.Utilities;
+using AuthenticationServer.Models.Carrier.UPS;
 
 namespace AuthenticationServer.Models.Services
 {
@@ -19,6 +20,7 @@ namespace AuthenticationServer.Models.Services
         private string _response = String.Empty;
         private Shipment _shipment = null;
         private UPSService[] _uPSServices = null;
+        private string _errorMessage = String.Empty;
 
         public enum RequestOption { Rate, Shop, Ratetimeintransit, Shoptimeintransit };
         int _counter = 0;
@@ -49,14 +51,55 @@ namespace AuthenticationServer.Models.Services
             string _url = Configuration.UPSAddressValidationURL;
             string _response = Response(_request, _url);
 
-            JObject classification = JObject.Parse(_response);
-            shipment.Address_Classification = (string)classification["XAVResponse"]?["Candidate"]?["AddressClassification"]?["Description"];
+            JObject addressValidationResponse = JObject.Parse(_response);
+            string address = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["AddressLine"];
+            string city = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision2"];
+            string state = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision1"];
+            string postal_extention = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PostcodeExtendedLow"];
+            if (shipment.Address != address || shipment.City.ToUpper() != city || shipment.State_selection != state || !shipment.Zip.Contains("-"))
+            {
+                shipment.Address = address;
+                shipment.City = city;
+                shipment.State_selection = state;
+                if (!shipment.Zip.Contains("-")) { shipment.Zip = shipment.Zip + "-" + postal_extention; }
 
+                shipment.Corrected_Address = address;
+                shipment.Corrected_City = city;
+                shipment.Corrected_State_selection = state;
+
+                
+            }
+            shipment.Address_Classification = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressClassification"]?["Description"];
+            shipment.ErrorMessage = "";
 
             // Rate Request
             _request = RateRequest(shipment, new Plant(plant.Id), requestOption);
             _url = Configuration.UPSShopRatesURL + requestOption.ToString();            
             _response = Response(_request, _url);
+
+            // What kind of response did we get?
+            
+            JObject rateResponse = JObject.Parse(_response);
+            JToken ratedShipment = rateResponse["RateResponse"]["RatedShipment"];
+
+            shipment.ErrorMessage = (string)rateResponse["response"]?["errors"]?[0]?["message"]?.ToString();
+            if (shipment.ErrorMessage == null)
+            {
+                try
+                {
+                    shipment.billing_weight = float.Parse(rateResponse["RateResponse"]["RatedShipment"][0]["BillingWeight"]["Weight"].ToString());
+                }
+                catch
+                {
+                    try
+                    {
+                        shipment.billing_weight = float.Parse(rateResponse["RateResponse"]["RatedShipment"]["BillingWeight"]["Weight"].ToString());
+                    }
+                    catch { }
+                }
+                
+                shipment.AlertMessages = rateResponse["RateResponse"]["Response"]["Alert"].Select(a => (string)a["Description"]).ToArray();
+            }            
         }
        
 
@@ -106,8 +149,26 @@ namespace AuthenticationServer.Models.Services
                 }
                 catch (WebException ex)
                 {
-                    _response = ex.Message.ToString();
-                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, ex.Message, "");
+                    // Handle the WebException
+                    if (ex.Response != null)
+                    {
+                        using (HttpWebResponse errorResponse = (HttpWebResponse)ex.Response)
+                        {
+                            using (var streamReader = new StreamReader(errorResponse.GetResponseStream()))
+                            {
+                                // Read and capture the error response body (e.g., XML message)
+                                var errorContent = streamReader.ReadToEnd();
+
+                                // Optionally, set _response to the error message
+                                _response = errorContent;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        _response = ex.Message.ToString();
+                        Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, ex.Message, "");
+                    }                    
                 }
                 catch (Exception ex)
                 {
@@ -188,39 +249,42 @@ namespace AuthenticationServer.Models.Services
         }
 
         public UPSService[] UPSServices { get {
-                try
+                if (_shipment.ErrorMessage == null)
                 {
-                    dynamic data = JObject.Parse(_response);
-
-                    JToken services = data.SelectToken("RateResponse.RatedShipment");
-                    if (services.Type == JTokenType.Array)
+                    try
                     {
-                        // Check for each key's existence and assign values accordingly
-                        var serviceIndex = 0;
-                        List<UPSService> serviceSort = new List<UPSService>();
-                        foreach (var service in services)
+                        dynamic data = JObject.Parse(_response);
+
+                        JToken services = data.SelectToken("RateResponse.RatedShipment");
+                        if (services.Type == JTokenType.Array)
                         {
-                            serviceSort.Add(ParseUPSService(service));
-                            serviceIndex++;
+                            // Check for each key's existence and assign values accordingly
+                            var serviceIndex = 0;
+                            List<UPSService> serviceSort = new List<UPSService>();
+                            foreach (var service in services)
+                            {
+                                serviceSort.Add(ParseUPSService(service));
+                                serviceIndex++;
+                            }
+
+                            // Remove extra (null) UPS Services values slots from the array.
+                            serviceSort.RemoveAll(service => service == null);
+
+                            // Not the best place to sort for presentation ... but here we are.
+                            serviceSort.Sort(new UPSSort());
+                            _uPSServices = serviceSort.ToArray();
                         }
-
-                        // Remove extra (null) UPS Services values slots from the array.
-                        serviceSort.RemoveAll(service => service == null);
-
-                        // Not the best place to sort for presentation ... but here we are.
-                        serviceSort.Sort(new UPSSort());
-                        _uPSServices = serviceSort.ToArray();
+                        else
+                        {
+                            List<UPSService> serviceSort = new List<UPSService>();
+                            serviceSort.Add(ParseUPSService(services));
+                            return serviceSort.ToArray();
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        List<UPSService> serviceSort = new List<UPSService>();
-                        serviceSort.Add(ParseUPSService(services));
-                        return serviceSort.ToArray();
+                        Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _response, ex.Message, "");
                     }
-                }
-                catch (Exception ex)
-                {
-                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _response, ex.Message, "");
                 }
                 return _uPSServices;
             }
