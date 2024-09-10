@@ -136,8 +136,10 @@ namespace AuthenticationServer.Models.Services
                 case UPSService.ServiceCode.NextDayAirEarlyAM:
                     return HundredWeightEligable(serviceCode, numberOfPackages, packageWeight, lastPackageWeight);                    
                 case UPSService.ServiceCode.NextDayAirSaver:
-                    return HundredWeightEligable(serviceCode, numberOfPackages, packageWeight, lastPackageWeight);                    
-                    case UPSService.ServiceCode.SecondDayAirAM:
+                    return HundredWeightEligable(serviceCode, numberOfPackages, packageWeight, lastPackageWeight);
+                case UPSService.ServiceCode.UPS2ndDayAir:
+                    return HundredWeightEligable(serviceCode, numberOfPackages, packageWeight, lastPackageWeight);
+                case UPSService.ServiceCode.SecondDayAirAM:
                     return HundredWeightEligable(serviceCode, numberOfPackages, packageWeight, lastPackageWeight);                    
                 case UPSService.ServiceCode.UPSNextDayAir:
                     return HundredWeightEligable(serviceCode, numberOfPackages, packageWeight, lastPackageWeight);                    
@@ -330,8 +332,15 @@ namespace AuthenticationServer.Models.Services
                     break;
             }
 
+            if(cwt && serviceName == "UPSGround" || serviceName == "SecondDayAirAM")
+            {
+                total = hundredWeightAdjustment;
+                total += perShipmentCharge;
+                total += (perPackageCharge * noPackages);
+                total += (markup / 100) * hundredWeightAdjustment;
+            }
             // Hundred weight adjustment
-            if (cwt  && serviceName != "UPSGroundFreight" && serviceName != "NextDayAirEarlyAM")
+            else if (cwt  && serviceName != "UPSGroundFreight" && serviceName != "NextDayAirEarlyAM")
             { 
                 total = hundredWeightAdjustment;                
                 total += perShipmentCharge;
@@ -386,6 +395,9 @@ namespace AuthenticationServer.Models.Services
                     _eligable = (numberOfPackages >= Configuration.MinCWTPackagesAir) && (_totalWeight >= Configuration.MinCWTWeightAir);
                     break;
                 case UPSService.ServiceCode.NextDayAirSaver:
+                    _eligable = (numberOfPackages >= Configuration.MinCWTPackagesAir) && (_totalWeight >= Configuration.MinCWTWeightAir);
+                    break;
+                case UPSService.ServiceCode.UPS2ndDayAir:
                     _eligable = (numberOfPackages >= Configuration.MinCWTPackagesAir) && (_totalWeight >= Configuration.MinCWTWeightAir);
                     break;
                 case UPSService.ServiceCode.SecondDayAirAM:

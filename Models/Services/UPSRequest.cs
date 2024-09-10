@@ -245,6 +245,12 @@ namespace AuthenticationServer.Models.Services
             uPSService.CWTRate = service.SelectToken("NegotiatedRateCharges.TotalCharge.MonetaryValue")?.ToString() ?? "-";
             uPSService.CWT = "TBD";
 
+            uPSService.RatedShipment_TransportationCharges_MonetaryValue = service.SelectToken("TransportationCharges.MonetaryValue")?.ToString() ?? "-";
+            uPSService.RatedShipment_BaseServiceCharge_MonetaryValue = service.SelectToken("BaseServiceCharge.MonetaryValue")?.ToString() ?? "-";
+            uPSService.RatedShipment_ServiceOptionsCharges_MonetaryValue = service.SelectToken("ServiceOptionsCharges.MonetaryValue")?.ToString() ?? "-";
+            uPSService.RatedShipment_TotalCharges_MonetaryValue = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "-";
+            uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge = service.SelectToken("NegotiatedRateCharges.TotalCharge.MonetaryValue")?.ToString() ?? "-";
+
             return uPSService;
         }
 

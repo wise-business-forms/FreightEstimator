@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AuthenticationServer.Models.Carrier.UPS;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -59,6 +60,35 @@ namespace AuthenticationServer.Models
         public string ShipFrom { get; set; }   
         public string TotalCost { get; set; }
         public string TransitDays { get; set; }
+
+        public string Plant_CarrierId { get; set; }
+        public string Plant_PerPackageCharge { get; set; }
+        public string Plant_ShipmentCharge { get; set; }
+        /// <summary>
+        /// This is the service charge for this rate.
+        /// </summary>
+        public string Plant_Surcharge { get; set; }
+
+        /// <summary>
+        /// The value for the transportation costs associated with the shipment.        
+        /// </summary>
+        public string RatedShipment_TransportationCharges_MonetaryValue { get; set; }
+        /// <summary>
+        /// The base value of the specific service for the shipment. This is equal to transportation charges - fuel surcharges
+        /// </summary>
+        public string RatedShipment_BaseServiceCharge_MonetaryValue { get; set; }
+        /// <summary>
+        /// The value for the accessorial charges associated with the shipment.
+        /// </summary>
+        public string RatedShipment_ServiceOptionsCharges_MonetaryValue { get; set; }
+        /// <summary>
+        /// The value for the total charges associated with the shipment.
+        /// </summary>
+        public string RatedShipment_TotalCharges_MonetaryValue { get; set; }
+        /// <summary>
+        /// The value for the Negotiated Rate total charges associated with the shipment.
+        /// </summary>
+        public string RatedShipment_NegotiatedRateCharges_TotalCharge { get; set; }
     }
 
     public class UPSSort : IComparer<UPSService>

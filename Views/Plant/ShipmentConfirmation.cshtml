@@ -1,11 +1,11 @@
 ﻿@model  AuthenticationServer.Models.Shipment
 @{
     ViewBag.Title = "ShipmentConfirmation";
-    System.Data.DataTable table= ViewBag.MultiView as System.Data.DataTable;
+    System.Data.DataTable table = ViewBag.MultiView as System.Data.DataTable;
     System.Data.DataTable MultiGroundFreight = ViewBag.MultiGroundFreight as System.Data.DataTable;
     int rowIndex = 0;
 
-
+    var debug = true; // Use to show the raw carrier values.
 }
 <div class="container shadow min-vh-10 py-2 content-panel">
     <div class="row">
@@ -13,6 +13,14 @@
             <div class="row d-flex">
                 <a href="/Help#rates" class="links text-end">? Help</a>
             </div>
+            @if (debug)
+            {
+                <div class="row d-flex">
+                    <div class="text-center debug-title">
+                        DEBUG MODE
+                    </div>
+                </div>
+            }
             <div class="row">
                 <div class="col-5">
                     @if (Model != null)
@@ -80,14 +88,35 @@
             {
                 foreach (string alert in Model.AlertMessages)
                 {
-                <div class="row d-flex">
-                    <div class="text-center confirmation-value">@alert</div>
-                </div>
+                    <div class="row d-flex">
+                        <div class="text-center confirmation-value">@alert</div>
+                    </div>
                 }
             }
         </div>
     </div>
 </div>
+@{
+    if (debug)
+    {
+        <div class="container shadow min-vh-10 py-2 content-panel">
+            <div class="row">
+                <div class="col">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-1"></div>
+                            <div class="col-10">                                
+                                Neg. Rate = Negotiated Rate Charges - The value for the Negotiated Rate total charges associated with the shipment.
+                                <br />Raw Rate&nbsp; = Total Charges - The value for the total charges associated with the shipment.
+                            </div>
+                             <div class="col-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
 <div class="container shadow min-vh-10 py-2 content-panel">
     <div class="row">
         <div class="col">
@@ -97,8 +126,6 @@
                     <div class="col-10">
                         @if (Model.ErrorMessage == null)
                         {
-
-
                             <!-- GRID 1 - Compare Rates -->
                             if (Model.number_of_packages <= 50)
                             {
@@ -114,6 +141,12 @@
                                                             <th scope="col">Service</th>
                                                             <th scope="col">Rate</th>
                                                             <th scope="col">CWT?</th>
+                                                            @if (debug)
+                                                            {
+                                                                <th scope="col" class="debug-column-header">Neg. Rate</th>
+                                                                <th scope="col" class="debug-column-header">Raw Rate</th>
+                                                            }
+
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -125,6 +158,11 @@
                                                                 <td>@service.ServiceName</td>
                                                                 <td>@service.Rate</td>
                                                                 <td>@service.CWT</td>
+                                                                @if (debug)
+                                                                {
+                                                                    <td class="debug-column">$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
+                                                                    <td class="debug-column">$@service.RatedShipment_TotalCharges_MonetaryValue</td>
+                                                                }
                                                             </tr>
                                                             rowIndex++;
                                                         }

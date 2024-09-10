@@ -145,9 +145,10 @@ namespace AuthenticationServer.Controllers
                             service.ShipFrom = shipment.PlantId;
                             service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
                             RateCalculations rateCalculations = new RateCalculations();
+                            
                             switch (service.ServiceName)
                             {
-                                case "UPSNextDayAir":
+                                case "UPSNextDayAir":                                    
                                     service.CWT = rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.UPSNextDayAir, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
                                     break;
                                 case "UPS2ndDayAir":
@@ -198,6 +199,17 @@ namespace AuthenticationServer.Controllers
                                 case "UPSTodayExpressSaver":
                                     service.CWT = rateCalculations.HundredWeightGroundEligable(UPSService.ServiceCode.UPSTodayExpressSaver, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
                                     break;
+                            }
+
+                            if (service.CWT.ToUpper() == "TRUE")
+                            {
+                                service.Plant_PerPackageCharge = rateCalculations.PerPackageChargeCWT[service.PlantCode];
+                                service.Plant_ShipmentCharge = rateCalculations.PerShipmentChargeCWT[service.PlantCode];
+                            }
+                            else
+                            {
+                                service.Plant_PerPackageCharge = rateCalculations.PerPackageCharge[service.PlantCode];
+                                service.Plant_ShipmentCharge = rateCalculations.PerShipmentCharge[service.PlantCode];
                             }
                         }
 

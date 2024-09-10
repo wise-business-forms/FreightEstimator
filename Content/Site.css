@@ -43,6 +43,22 @@
     margin: 10px 10px 10px 10px;
 }
 
+.debug-title {
+    background-color: burlywood;
+    font-size: 26px;
+    font-weight: 900;
+    color: darkgreen;
+}
+
+.debug-column {
+    background-color: burlywood;
+    color: darkgreen;
+}
+
+.debug-column-header {
+    background-color:bisque;
+}
+
 .form-label {
     font-weight: bold;
     width: 200px;
