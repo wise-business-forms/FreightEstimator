@@ -5,7 +5,7 @@
     System.Data.DataTable MultiGroundFreight = ViewBag.MultiGroundFreight as System.Data.DataTable;
     int rowIndex = 0;
 
-    var debug = true; // Use to show the raw carrier values.
+    var debug = false; // Use to show the raw carrier values.
 }
 <div class="container shadow min-vh-10 py-2 content-panel">
     <div class="row">
@@ -124,7 +124,7 @@
                 <div class="row">
                     <div class="col-1"></div>
                     <div class="col-10">
-                        @if (Model.ErrorMessage == null)
+                        @if (Model.ErrorMessage == "")
                         {
                             <!-- GRID 1 - Compare Rates -->
                             if (Model.number_of_packages <= 50)
@@ -152,12 +152,13 @@
                                                     <tbody>
                                                         @foreach (var service in Model.shopCompareRates[0].UPSServices)
                                                         {
+                                                            string _cwt = service.CWT == "True" ? "Yes" : "No";
                                                             var rowClass = rowIndex % 2 == 0 ? "" : "alt";
                                                             <tr class="@rowClass">
                                                                 <td>@service.ShipFrom</td>
                                                                 <td>@service.ServiceName</td>
                                                                 <td>@service.Rate</td>
-                                                                <td>@service.CWT</td>
+                                                                <td>@_cwt</td>
                                                                 @if (debug)
                                                                 {
                                                                     <td class="debug-column">$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
@@ -235,7 +236,15 @@
                                                     <tr>
                                                         @foreach (System.Data.DataColumn column in MultiGroundFreight.Columns)
                                                         {
-                                                            <th>@column.ColumnName</th>
+                                                            if (column.ColumnName != "CWT?")
+                                                            {
+                                                                <th>@column.ColumnName</th>
+                                                            }
+                                                        }
+                                                        @if (debug)
+                                                        {
+                                                            <th scope="col" class="debug-column-header">Neg. Rate</th>
+                                                            <th scope="col" class="debug-column-header">Raw Rate</th>
                                                         }
                                                     </tr>
                                                 </thead>
@@ -245,8 +254,13 @@
                                                         var rowClass = rowIndex % 2 == 0 ? "" : "alt";
                                                         <tr class="@rowClass">
                                                             @foreach (var item in dataRow.ItemArray)
-                                                            {
+                                                            {                                                                
                                                                 <td>@item</td>
+                                                                if (debug)
+                                                                {
+                                                                    <td class="debug-column"></td>
+                                                                    <td class="debug-column"></td>
+                                                                }
                                                             }
                                                         </tr>
                                                         rowIndex++;
@@ -269,7 +283,11 @@
                                                         <th scope="col">Ship From</th>
                                                         <th scope="col">Service</th>
                                                         <th scope="col">Rate</th>
-                                                        <th scope="col">CWT?</th>
+                                                        @if (debug)
+                                                        {
+                                                            <th scope="col" class="debug-column-header">Neg. Rate</th>
+                                                            <th scope="col" class="debug-column-header">Raw Rate</th>
+                                                        }
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -280,7 +298,11 @@
                                                             <td>@service.ShipFrom</td>
                                                             <td>@service.ServiceName</td>
                                                             <td>@service.Rate</td>
-                                                            <td>@service.CWT</td>
+                                                            @if (debug)
+                                                            {
+                                                                <td class="debug-column">$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
+                                                                <td class="debug-column">$@service.RatedShipment_TotalCharges_MonetaryValue</td>
+                                                            }
                                                         </tr>
                                                         rowIndex++;
                                                     }
@@ -306,6 +328,11 @@
                                                         <th scope="col">Transit Days</th>
                                                         <th scope="col">Direct</th>
                                                         <th scope="col">Rate</th>
+                                                        @if (debug)
+                                                        {
+                                                            <th scope="col" class="debug-column-header">Neg. Rate</th>
+                                                            <th scope="col" class="debug-column-header">Raw Rate</th>
+                                                        }
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -318,6 +345,11 @@
                                                             <td>@service.TransitDays</td>
                                                             <td>@service.Direct</td>
                                                             <td>@service.TotalCost</td>
+                                                            @if (debug)
+                                                            {
+                                                                <td class="debug-column">$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
+                                                                <td class="debug-column">$@service.RatedShipment_TotalCharges_MonetaryValue</td>
+                                                            }
                                                         </tr>
                                                         rowIndex++;
                                                     }

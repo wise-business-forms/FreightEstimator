@@ -238,7 +238,7 @@ namespace AuthenticationServer.Controllers
                                 dataTable.Rows.Add(plant.Id, "Ground Freight", shopRate.UPSServices[0].Rate);
                             }
                         }
-
+                        dataTable.Columns.Remove("CWT");
                         ViewBag.MultiGroundFreight = dataTable;
                     }
                 }
@@ -246,7 +246,7 @@ namespace AuthenticationServer.Controllers
                 {
                     ShopRateResponse shopRateResponse = new ShopRateResponse();
                     shopRateResponse = GetCompareRates(shipment);
-                    if (shipment.ErrorMessage == null)
+                    if (shipment.ErrorMessage == "")
                     {
                         foreach (UPSService service in shopRateResponse.UPSServices)
                         {
@@ -315,7 +315,7 @@ namespace AuthenticationServer.Controllers
             }
 
             // GRID 2 - Ground Rate
-            if (shipment.include_ground_rate_selection == "Yes" && shipment.multiple_location_rate_selection == "No") 
+            if (shipment.include_ground_rate_selection == "Yes" && shipment.multiple_location_rate_selection == "No" && shipment.ErrorMessage  == "") 
             { 
                 shipment.shopGroundFreightResponse = GetGroundFreightRate(shipment);
                 shipment.shopGroundFreightResponse.UPSServices[0].Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, "UPSGroundFreight", shipment.shopGroundFreightResponse.UPSServices[0].Rate, shipment.shopGroundFreightResponse.UPSServices[0].CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString());
@@ -398,7 +398,7 @@ namespace AuthenticationServer.Controllers
         private ShopRateResponse GetCompareRates(Shipment shipment)
         {
             ShopRateResponse shopRateResponse = new ShopRateResponse();
-            if (shipment.ErrorMessage == null)
+            if (shipment.ErrorMessage == "" || shipment.ErrorMessage == null)
             {
                 UPSRequest uPSRequest = new UPSRequest(shipment, new Plant { Id = shipment.PlantId }, UPSRequest.RequestOption.Shop);
                 shopRateResponse.UPSServices = uPSRequest.UPSServices;
@@ -415,7 +415,7 @@ namespace AuthenticationServer.Controllers
         private ShopRateResponse GetGroundFreightRate(Shipment shipment)
         {
             ShopRateResponse shopRateResponse = new ShopRateResponse();
-            if (shipment.ErrorMessage == null)
+            if (shipment.ErrorMessage == "" || shipment.ErrorMessage == null)
             {
                 UPSRequest upsRequest = new UPSRequest(shipment, new Plant { Id = shipment.PlantId }, UPSRequest.RequestOption.Rate);
                 shopRateResponse.UPSServices = upsRequest.UPSServices;

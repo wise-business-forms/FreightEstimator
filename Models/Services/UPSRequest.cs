@@ -12,6 +12,7 @@ using System.Web.Http.ExceptionHandling;
 using System.Data.Entity.Core.Mapping;
 using Microsoft.Ajax.Utilities;
 using AuthenticationServer.Models.Carrier.UPS;
+using System.Web.UI;
 
 namespace AuthenticationServer.Models.Services
 {
@@ -80,26 +81,32 @@ namespace AuthenticationServer.Models.Services
             // What kind of response did we get?
             
             JObject rateResponse = JObject.Parse(_response);
-            JToken ratedShipment = rateResponse["RateResponse"]["RatedShipment"];
+            JProperty root = rateResponse.Properties().FirstOrDefault();
+            JToken ratedShipment = root.Value<JToken>();
 
-            shipment.ErrorMessage = (string)rateResponse["response"]?["errors"]?[0]?["message"]?.ToString();
-            if (shipment.ErrorMessage == null)
+            // There are several possible response options.
+            try 
             {
-                try
+                if(root != null)
                 {
-                    shipment.billing_weight = float.Parse(rateResponse["RateResponse"]["RatedShipment"][0]["BillingWeight"]["Weight"].ToString());
-                }
-                catch
-                {
-                    try
+                    switch (root.Name)
                     {
-                        shipment.billing_weight = float.Parse(rateResponse["RateResponse"]["RatedShipment"]["BillingWeight"]["Weight"].ToString());
+                        case "RateResponse":
+                            ratedShipment = rateResponse["RateResponse"]["RatedShipment"];
+                            shipment.billing_weight = float.Parse(rateResponse["RateResponse"]["RatedShipment"]["BillingWeight"]["Weight"].ToString());
+                            shipment.AlertMessages = rateResponse["RateResponse"]["Response"]["Alert"].Select(a => (string)a["Description"]).ToArray();
+                            break;
+                        case "response":
+                            shipment.ErrorMessage = (string)rateResponse["response"]?["errors"]?[0]?["message"]?.ToString();
+                            break;
                     }
-                    catch { }
                 }
                 
-                shipment.AlertMessages = rateResponse["RateResponse"]["Response"]["Alert"].Select(a => (string)a["Description"]).ToArray();
-            }            
+            }
+            catch (Exception ex) 
+            {
+                Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _response, _response, ex.Message);
+            }   
         }
        
 
@@ -255,7 +262,7 @@ namespace AuthenticationServer.Models.Services
         }
 
         public UPSService[] UPSServices { get {
-                if (_shipment.ErrorMessage == null)
+                if (_shipment.ErrorMessage == "")
                 {
                     try
                     {
