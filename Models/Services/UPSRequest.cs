@@ -53,7 +53,8 @@ namespace AuthenticationServer.Models.Services
             string _response = Response(_request, _url);
 
             JObject addressValidationResponse = JObject.Parse(_response);
-            string address = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["AddressLine"];
+            var addressLine = addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["AddressLine"];
+            string address = string.Join(" ", addressLine); // Put all of the address lines on the same line, seperated by a space.
             string city = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision2"];
             string state = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision1"];
             string postal_extention = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PostcodeExtendedLow"];
