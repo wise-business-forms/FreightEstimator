@@ -54,7 +54,18 @@ namespace AuthenticationServer.Models.Services
 
             JObject addressValidationResponse = JObject.Parse(_response);
             var addressLine = addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["AddressLine"];
-            string address = string.Join(" ", addressLine); // Put all of the address lines on the same line, seperated by a space.
+            string address = string.Empty;
+
+            if (addressLine.Type == JTokenType.Array)
+            {
+                var addressJoin = addressLine.ToObject<List<string>>();
+                address = string.Join(", ", addressJoin);
+            }
+            else if (addressLine.Type == JTokenType.String)
+            {
+                address = addressLine.ToString();
+            }
+            
             string city = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision2"];
             string state = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision1"];
             string postal_extention = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PostcodeExtendedLow"];

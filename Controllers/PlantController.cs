@@ -645,6 +645,7 @@ namespace AuthenticationServer.Controllers
                         totalCharges = cost;
                         if (dUpchargeLTL[plantCode] > 0) { totalCharges += ((dUpchargeLTL[plantCode] / 100) * cost); }
                         if (perPackageCharge > 0) { totalCharges += (perPackageCharge * shipment.number_of_packages); }
+                        totalCharges += perShipmentCharge;
 
                         results.Append("Calculated total charge is " + totalCharges.ToString() + "\n\n");
 
