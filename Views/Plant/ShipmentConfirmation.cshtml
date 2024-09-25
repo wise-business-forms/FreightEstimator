@@ -6,6 +6,17 @@
     int rowIndex = 0;
 
     var debug = false; // Use to show the raw carrier values.
+
+    var serviceNameTranslations = new Dictionary<string, string>
+    {
+        { "UPSGround", "UPS Ground" },
+        { "UPS3DaySelect", "UPS 3 Day Select" },
+        { "UPS2ndDayAir", "UPS 2nd Day Air" },
+        { "SecondDayAirAM", "2nd Day Air AM" },
+        { "NextDayAirSaver", "Next Day Air Saver" },
+        { "UPSNextDayAir", "UPS Next Day Air" },
+        { "NextDayAirEarlyAM", "Next Day Air Early AM" }
+    };
 }
 <div class="container shadow min-vh-10 py-2 content-panel">
     <div class="row">
@@ -71,6 +82,8 @@
                         <br />
                         <div class="confirmation-address d-flex">Address is:&nbsp;<div class="confirmation-value">@Model.Address_Classification</div></div>
                         <div class="confirmation-address d-flex">Billing weight: @Model.billing_weight lbs. ( @Model.number_of_packages pkgs)</div>
+                        <br />
+                        <div class="d-flex">Date: @System.DateTime.Now.ToLongDateString()</div>
                     }
                 </div>
                 <div class=" col-3 ms-auto ">
@@ -152,11 +165,14 @@
                                                     <tbody>
                                                         @foreach (var service in Model.shopCompareRates[0].UPSServices)
                                                         {
+                                                            string displayServiceName = serviceNameTranslations.ContainsKey(service.ServiceName)
+                                                                    ? serviceNameTranslations[service.ServiceName]
+                                                                    : service.ServiceName;
                                                             string _cwt = service.CWT == "True" ? "Yes" : "No";
                                                             var rowClass = rowIndex % 2 == 0 ? "" : "alt";
                                                             <tr class="@rowClass">
                                                                 <td>@service.ShipFrom</td>
-                                                                <td>@service.ServiceName</td>
+                                                                <td>@displayServiceName</td>
                                                                 <td>@service.Rate</td>
                                                                 <td>@_cwt</td>
                                                                 @if (debug)
@@ -254,7 +270,7 @@
                                                         var rowClass = rowIndex % 2 == 0 ? "" : "alt";
                                                         <tr class="@rowClass">
                                                             @foreach (var item in dataRow.ItemArray)
-                                                            {                                                                
+                                                            {
                                                                 <td>@item</td>
                                                                 if (debug)
                                                                 {
@@ -295,8 +311,8 @@
                                                     {
                                                         var rowClass = rowIndex % 2 == 0 ? "" : "alt";
                                                         <tr class="@rowClass">
-                                                            <td>@service.ShipFrom</td>
-                                                            <td>@service.ServiceName</td>
+                                                            <td>@service.PlantCode</td>
+                                                            <td>@(service.ServiceName == "UPSGround" ? "UPS Ground" : service.ServiceName)</td>
                                                             <td>@service.Rate</td>
                                                             @if (debug)
                                                             {

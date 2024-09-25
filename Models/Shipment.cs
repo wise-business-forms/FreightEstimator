@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Web;
 using System.Web.Http.Routing.Constraints;
@@ -11,6 +12,7 @@ namespace AuthenticationServer.Models
     {
         public string PlantId { get; set; }
         public string PlantName { get; set; }
+        
         public string AcctNum { get; set; }
         public string Address { get; set; }
         public string City { get; set; }
@@ -97,5 +99,32 @@ namespace AuthenticationServer.Models
         public string FTW { get; set; }
         public string POR { get; set; }
         public string CWT { get; set; }
+    }
+
+    public class RequiredIfPlantIdIsALPAttribute : ValidationAttribute
+    {
+        private readonly string _comparisonProperty;
+
+        public RequiredIfPlantIdIsALPAttribute(string comparisonProperty)
+        {
+            _comparisonProperty = comparisonProperty;
+        }
+
+        protected override ValidationResult IsValid(object value, ValidationContext validationContext)
+        {
+            var plantIdProperty = validationContext.ObjectType.GetProperty(_comparisonProperty);
+            if (plantIdProperty == null)
+                throw new ArgumentException("Property not found");
+
+            var plantIdValue = plantIdProperty.GetValue(validationContext.ObjectInstance)?.ToString();
+
+            // Check if PlantId is "ALP"
+            if (plantIdValue == "ALP" && string.IsNullOrWhiteSpace(value?.ToString()))
+            {
+                return new ValidationResult(ErrorMessage ?? $"{validationContext.DisplayName} is required when PlantId is ALP.");
+            }
+
+            return ValidationResult.Success;
+        }
     }
 }
