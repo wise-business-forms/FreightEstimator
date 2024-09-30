@@ -1,4 +1,5 @@
-﻿using Microsoft.Ajax.Utilities;
+﻿using AuthenticationServer.Models.Carrier.UPS;
+using Microsoft.Ajax.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
@@ -185,6 +186,7 @@ namespace AuthenticationServer.Models.Services
             double perShipmentCharge = 0.0;
             double hundredWeightAdjustment = cwtRate / .7;
             bool cwt = false;
+            double totalWeight = (Convert.ToInt16(packageWeight) * (noPackages - 1)) + Convert.ToInt16(lastPackage);
 
             RateCalculations rateCalculations = new RateCalculations();
 
@@ -332,7 +334,29 @@ namespace AuthenticationServer.Models.Services
                     break;
             }
 
-            if(cwt && serviceName == "UPSGround" || serviceName == "SecondDayAirAM")
+            bool isAirCWT = (noPackages >= Configuration.MinCWTPackagesAir) && (totalWeight >= Configuration.MinCWTWeightAir);
+            bool isGroundCWT = (noPackages >= Configuration.MinCWTPackagesGround) && (totalWeight >= Configuration.MinCWTWeightGround);
+            double markupPercentage = 0;
+
+            #region -- Define Service CWT Types dictionary (mapping codes to Ground, Air, or Neither) --
+            Dictionary<string, string> dServiceTypes = new Dictionary<string, string>();
+            dServiceTypes.Add("UPSGround", "GROUND");
+            dServiceTypes.Add("UPS3DaySelect", "GROUND");
+            dServiceTypes.Add("UPSSaver", "GROUND");
+            dServiceTypes.Add("UPSNextDayAir", "AIR");
+            dServiceTypes.Add("UPS2ndDayAir", "AIR");            
+            dServiceTypes.Add("NextDayAirSaver", "AIR");
+            dServiceTypes.Add("SecondDayAirAM", "AIR");
+            dServiceTypes.Add("NextDayAirEarlyAM", "AIR-NN"); //means AIR - No Negotiated Rate - on this service, we ignore negotiated rate for CWT as it is not allowed
+            #endregion
+
+            string serviceCWTType = string.Empty;
+            if (dServiceTypes.ContainsKey(serviceName))
+            {
+                serviceCWTType = dServiceTypes[serviceName];
+            }
+            
+            if (cwt && serviceName == "UPSGround" || serviceName == "SecondDayAirAM")
             {
                 total = hundredWeightAdjustment;
                 total += perShipmentCharge;
@@ -349,10 +373,10 @@ namespace AuthenticationServer.Models.Services
             else if (serviceName == "UPSGroundFreight")
             {
                 // Ground Freight should always use CWT Negotiated rates.
-                total = cwtRate;
-                total += ((markup / 100) * cwtRate);
+                total = cwtRate;               
                 total += perShipmentCharge;
                 total += (perPackageCharge * noPackages);
+                total += ((markup / 100) * cwtRate);
             }
             else if (serviceName == "NextDayAirEarlyAM")
             {
@@ -366,7 +390,7 @@ namespace AuthenticationServer.Models.Services
                 total += (perPackageCharge * noPackages);
             }       
             
-            
+
             return total.ToString("C");
         }
 

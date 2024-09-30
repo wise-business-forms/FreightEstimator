@@ -331,6 +331,10 @@ namespace AuthenticationServer.Controllers
 
             if (shipment.Address.IsNullOrWhiteSpace())
                 shipment.Address_Classification = "N/A";
+
+            // MORE INFORMATION
+            ViewBag.PlantRates = Plant.Charges(shipment.PlantId);
+
             return View(shipment);
         }
 

@@ -8,6 +8,7 @@ namespace AuthenticationServer.Models
     public class PlantCharges
     {
         public string PlantId { get; set; }
+        public string CarrierId { get; set; }
         public double PerPackageCharge { get; set; }
         public double PerShipmentCharge { get; set; }
         public double NextDayAir {  get; set; }

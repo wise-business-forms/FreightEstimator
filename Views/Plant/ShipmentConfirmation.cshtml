@@ -3,6 +3,9 @@
     ViewBag.Title = "ShipmentConfirmation";
     System.Data.DataTable table = ViewBag.MultiView as System.Data.DataTable;
     System.Data.DataTable MultiGroundFreight = ViewBag.MultiGroundFreight as System.Data.DataTable;
+
+    List<AuthenticationServer.Models.PlantCharges> plantCharges = ViewBag.PlantRates;
+
     int rowIndex = 0;
 
     var debug = false; // Use to show the raw carrier values.
@@ -392,12 +395,12 @@
                     </div>
                     <div class="col-1"></div>
                 </div>
-
             </div>
-
         </div>
     </div>
 </div>
+
+
 
 <div class="row align-items-center">
     <div class="col-1"></div>
@@ -406,6 +409,7 @@
     </div>
     <div class="col-1"></div>
 </div>
+
 <div class="row align-items-center">
     <div class="col-1"></div>
     <div class="col center-column">
@@ -413,6 +417,7 @@
     </div>
     <div class="col-1"></div>
 </div>
+
 <script type="text/javascript">
     function goBack() {
         window.history.back();
@@ -422,3 +427,120 @@
         window.location.href = "/Home";
     }
 </script>
+
+<div class="container shadow min-vh-10 py-2 content-panel">
+    <div class="row">
+        <div class="col">
+            <div class="container">
+                <div class="row">
+                    <div class="col-1"></div>
+                    <div class="col-10">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col">
+                                    <center><h2>More Information</h2></center>
+                                    <br />Neg. Rate = Negotiated Rate Charges - The value for the Negotiated Rate total charges associated with the shipment from the carrier.
+                                    <br />Raw Rate&nbsp; = Total Charges - The value for the total charges associated with the shipment from the carrier.
+                                    <br />[Negotiated Service Rate] + [CWT Adjustment] + ([Plant service markup] / 100) * ([Negotiated Service Rate] + [CWT Adjustment])) + [Per Shipment Charge] + ([Per Package Charge * Number of Packages]) = [Total Charges]
+                                    <br />
+                                    <table class="shipGrid">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Ship From</th>
+                                                <th scope="col">Service</th>
+                                                <th scope="col">Rate</th>
+                                                <th scope="col">CWT?</th>
+                                                <th scope="col">Neg. Rate</th>
+                                                <th scope="col">Equation</th>
+                                                <th scope="col">Calc Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var service in Model.shopCompareRates[0].UPSServices)
+                                            {
+                                                string displayServiceName = serviceNameTranslations.ContainsKey(service.ServiceName)
+                                                        ? serviceNameTranslations[service.ServiceName]
+                                                        : service.ServiceName;
+                                                string _cwt = service.CWT == "True" ? "Yes" : "No";
+                                                var rowClass = rowIndex % 2 == 0 ? "" : "alt";
+                                                var negotiatedServiceRate = Convert.ToDouble(service.RatedShipment_NegotiatedRateCharges_TotalCharge);
+                                                var plantServiceMarkup = Convert.ToDouble(service.Plant_Surcharge);
+                                                var perShipmentCharge = Convert.ToDouble(service.Plant_ShipmentCharge);
+                                                var perPackageCharge = Convert.ToDouble(service.Plant_PerPackageCharge);
+                                                var numberOfPackages = Model.number_of_packages;
+                                                var CWTadjusted = (negotiatedServiceRate / .7) - negotiatedServiceRate;
+                                                var totalCWTCharges = negotiatedServiceRate + CWTadjusted + (plantServiceMarkup / 100) * (negotiatedServiceRate + CWTadjusted) + perShipmentCharge + (perPackageCharge * numberOfPackages);
+                                        <tr class="@rowClass">
+                                            <td>@service.ShipFrom</td>
+                                            <td>@displayServiceName</td>
+                                            <td>@service.Rate</td>
+                                            <td>@_cwt</td>
+                                            <td>$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
+                                            @if (service.CWT == "True")
+                                            {
+                                                if (service.Plant_Surcharge == null) { service.Plant_Surcharge = "0"; }
+                                                if (service.Plant_PerPackageCharge == null) { service.Plant_PerPackageCharge = "0"; }
+                                                <td>
+                                                    CWT Negotiated Rate: (($@negotiatedServiceRate / .7) - $@negotiatedServiceRate) = $@CWTadjusted.ToString("#.##")
+                                                    <br />
+                                                    $@negotiatedServiceRate + $@CWTadjusted.ToString("#.##") + (%@plantServiceMarkup / 100) * ($@negotiatedServiceRate + $@CWTadjusted.ToString("#.##")) + $@perShipmentCharge + ($@perPackageCharge * @numberOfPackages)
+                                                </td>
+                                            }
+                                            else
+                                            {
+                                        <td> $@negotiatedServiceRate + (%@plantServiceMarkup / 100) * ($@negotiatedServiceRate + $@perShipmentCharge + ($@perPackageCharge * @numberOfPackages)</td>
+                                            }
+                                            <td>$@totalCWTCharges.ToString("#.##")</td>
+
+                                        </tr>
+                                        rowIndex++;
+                                    }
+                                        </tbody>
+                                    </table>
+                                    <br />
+                                    Rates for Butler
+                                    <table class="shipGrid">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Carrier</th>
+                                                <th scope="col">Per Package Chg</th>
+                                                <th scope="col">Per Shipment Chg</th>
+                                                <th scope="col">Next Day Air</th>
+                                                <th scope="col">2nd Day Air</th>
+                                                <th scope="col">Ground</th>
+                                                <th scope="col">3 Day Select</th>
+                                                <th scope="col">Next Day Air Saver</th>
+                                                <th scope="col">Next Day Air Early AM</th>
+                                                <th scope="col">2nd Day Air AM</th>
+                                                <th scope="col">Saver</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (AuthenticationServer.Models.PlantCharges chg in plantCharges)
+                                            {
+                                                <tr>
+                                                    <td>@chg.CarrierId</td>
+                                                    <td>$@chg.PerPackageCharge</td>
+                                                    <td>$@chg.PerShipmentCharge</td>
+                                                    <td>$@chg.NextDayAir</td>
+                                                    <td>$@chg.SecondDayAir</td>
+                                                    <td>$@chg.Ground</td>
+                                                    <td>$@chg.ThreeDaySelect</td>
+                                                    <td>$@chg.NextDayAirSaver</td>
+                                                    <td>$@chg.NextDayAirEarlyAM</td>
+                                                    <td>$@chg.SecondDayAirAM</td>
+                                                    <td>$@chg.Saver</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-1"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
