@@ -1,5 +1,6 @@
 ﻿@model  AuthenticationServer.Models.Shipment
 @{
+    
     ViewBag.Title = "ShipmentConfirmation";
     System.Data.DataTable table = ViewBag.MultiView as System.Data.DataTable;
     System.Data.DataTable MultiGroundFreight = ViewBag.MultiGroundFreight as System.Data.DataTable;
@@ -505,10 +506,17 @@
                                         <tr class="@rowClass">
                                             <td>@service.ShipFrom</td>
                                             <td>@displayServiceName</td>
-                                            <td>@totalCWTCharges.ToString("#.##")</td>
+                                            @if (service.ServiceName == "NextDayAirEarlyAM")
+                                            {
+                                                <td>@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
+                                            }
+                                            else
+                                            {
+                                                <td>@totalCWTCharges.ToString("#.##")</td>
+                                            }
                                             <td>@_cwt</td>
                                             <td>$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
-                                            @if (service.CWT == "True")
+                                            @if (service.CWT == "True" && service.ServiceName != "NextDayAirEarlyAM")
                                             {
                                                 if (service.Plant_Surcharge == null) { service.Plant_Surcharge = "0"; }
                                                 if (service.Plant_PerPackageCharge == null) { service.Plant_PerPackageCharge = "0"; }
@@ -517,12 +525,19 @@
                                                     <br />
                                                     $@negotiatedServiceRate + $@CWTadjusted.ToString("#.##") + (%@plantServiceMarkup / 100) * ($@negotiatedServiceRate + $@CWTadjusted.ToString("#.##")) + $@upsCWTcharges.PerShipmentCharge + ($@upsCWTcharges.PerPackageCharge * @numberOfPackages)
                                                 </td>
+                                                <td>$@totalCWTCharges.ToString("#.##")</td>
                                             }
-                                            else
+                                            else if (service.CWT == "False" && service.ServiceName != "NextDayAirEarlyAM")
                                             {
-                                        <td> $@negotiatedServiceRate + (<span class="calc-highlight-green">%@plantServiceMarkup</span> / 100) * ($@negotiatedServiceRate + $@upsCWTcharges.PerShipmentCharge + ($@upsCWTcharges.PerPackageCharge * @numberOfPackages)</td>
+                                                <td> $@negotiatedServiceRate + (<span class="calc-highlight-green">%@plantServiceMarkup</span> / 100) * ($@negotiatedServiceRate + $@upsCWTcharges.PerShipmentCharge + ($@upsCWTcharges.PerPackageCharge * @numberOfPackages)</td>
+                                                <td>$@totalCWTCharges.ToString("#.##")</td>
                                             }
-                                            <td>$@totalCWTCharges.ToString("#.##")</td>
+                                            else if (service.ServiceName == "NextDayAirEarlyAM")
+                                            {
+                                                <td>N/A</td>
+                                                <td>$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
+                                            }
+
 
                                         </tr>
                                         rowIndex++;
@@ -550,18 +565,29 @@
                                         <tbody>
                                             @foreach (AuthenticationServer.Models.PlantCharges chg in plantCharges)
                                             {
+                                                var perPackageCharge = chg.PerPackageCharge == 0 ? "-" : chg.PerPackageCharge.ToString("C");
+                                                var perShipmentCharge = chg.PerShipmentCharge == 0 ? "-" : chg.PerShipmentCharge.ToString("C");
+                                                var nextDayAir = chg.NextDayAir == 0 ? "-" : (chg.NextDayAir /100).ToString("P0");
+                                                var secondDayAir = chg.SecondDayAir == 0 ? "-" : (chg.SecondDayAir / 100).ToString("P0");
+                                                var ground = chg.Ground == 0 ? "-" : chg.Ground.ToString("C");
+                                                var threeDaySelect = chg.ThreeDaySelect == 0 ? "-" : (chg.ThreeDaySelect / 100).ToString("P0");
+                                                var nextDayAirSaver = chg.NextDayAirSaver == 0 ? "-" : (chg.NextDayAirSaver / 100).ToString("P0");
+                                                var nextDayAirEarlyAM = chg.NextDayAirEarlyAM == 0 ? "-" : (chg.NextDayAirEarlyAM / 100).ToString("P0");
+                                                var secondDayAirAM = chg.SecondDayAirAM == 0 ? "-" : (chg.SecondDayAirAM / 100).ToString("P0");
+                                                var saver = chg.Saver == 0 ? "-" : (chg.Saver / 100).ToString("P0");
+
                                                 <tr>
                                                     <td>@chg.CarrierId</td>
-                                                    <td>$@chg.PerPackageCharge</td>
-                                                    <td>$@chg.PerShipmentCharge</td>
-                                                    <td>%@chg.NextDayAir</td>
-                                                    <td>%@chg.SecondDayAir</td>
-                                                    <td>$@chg.Ground</td>
-                                                    <td>%@chg.ThreeDaySelect</td>
-                                                    <td>%@chg.NextDayAirSaver</td>
-                                                    <td>%@chg.NextDayAirEarlyAM</td>
-                                                    <td>%@chg.SecondDayAirAM</td>
-                                                    <td>%@chg.Saver</td>
+                                                    <td>@perPackageCharge</td>
+                                                    <td>@perShipmentCharge</td>
+                                                    <td>@nextDayAir</td>
+                                                    <td>@secondDayAir</td>
+                                                    <td>@ground</td>
+                                                    <td>@threeDaySelect</td>
+                                                    <td>@nextDayAirSaver</td>
+                                                    <td>@nextDayAirEarlyAM</td>
+                                                    <td>@secondDayAirAM</td>
+                                                    <td>@saver</td>
                                                 </tr>
                                             }
                                         </tbody>
