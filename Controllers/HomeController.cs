@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AuthenticationServer.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -11,6 +12,7 @@ namespace AuthenticationServer.Controllers
         public ActionResult Index()
         {
             ViewBag.Title = "Home Page";
+            ViewBag.Plants = Plant.Plants();
 
             return View();
         }

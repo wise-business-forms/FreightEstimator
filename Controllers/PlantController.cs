@@ -246,6 +246,7 @@ namespace AuthenticationServer.Controllers
                 else
                 {
                     ShopRateResponse shopRateResponse = new ShopRateResponse();
+                    List<PlantCharges> plantCharges = Plant.Charges(shipment.PlantId);
                     shopRateResponse = GetCompareRates(shipment);
                     if (shipment.ErrorMessage == "")
                     {
@@ -254,16 +255,22 @@ namespace AuthenticationServer.Controllers
                             service.ShipFrom = shipment.PlantId;
                             service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
                             RateCalculations rateCalculations = new RateCalculations();
+                            
+                            //Apply plant surcharges.
+                            PlantCharges charges = new PlantCharges();
+
                             switch (service.ServiceName)
                             {
                                 case "UPSNextDayAir":
                                     service.CWT = rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.UPSNextDayAir, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    service.CWTRate = service.CWTRate + plantCharges.Select(charge => charges.NextDayAir).ToString();
                                     break;
                                 case "UPS2ndDayAir":
                                     service.CWT = rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.UPS2ndDayAir, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
                                     break;
                                 case "UPSGround":
                                     service.CWT = rateCalculations.HundredWeightGroundEligable(UPSService.ServiceCode.UPSGround, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
+                                    service.CWTRate = service.CWTRate + plantCharges.Select(charge => charges.Ground).ToString();
                                     break;
                                 case "UPSWorldwideExpress":
                                     service.CWT = rateCalculations.HundredWeightGroundEligable(UPSService.ServiceCode.UPSWorldwideExpress, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();

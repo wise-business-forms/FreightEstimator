@@ -20,38 +20,24 @@
                         </center>
                     </div>
                     <div class="row">
-                        <div class="col-3">
-                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "ALP"})" class="btn btn-primary btn-main">Alpharetta (ALP)</a>
-                        </div>
-                        <div class="col-3">
-                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "BUT"})" class="btn btn-primary btn-main">Butler (BUT)</a>
-                        </div>
-                        <div class="col-3">
-                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "FTW"})" class="btn btn-primary btn-main">Fort Wayne (FTW)</a>
-                        </div>
-                        <div class="col-3">
-                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "POR"})" class="btn btn-primary btn-main">Portland (POR)</a>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-3">
-                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "AND"})" class="btn btn-primary btn-main">Anderson (AND)</a>
-                        </div>
-                        <div class="col-3">
-                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "COR"})" class="btn btn-primary btn-main">Corporate (COR)</a>
-                        </div>
-                        <div class="col-3">
-                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "CIN"})" class="btn btn-primary btn-main">Cincinnati (CIN)</a>
-                        </div>
-                        <div class="col-3">
-                            <a href="@Url.Action("RedirectToPlant", "Home", new { loc = "EBT"})" class="btn btn-primary btn-main">East Butler (EBT)</a>
-                        </div>
-                    </div>
-                    <br />
-                    <br />
+                        @{
+                            foreach (AuthenticationServer.Models.Plant plant in ViewBag.Plants)
+                            {
+                                <div class="col-4">
+                                    <a href="@Url.Action("RedirectToPlant", "Home", new { loc = plant.Id})" class="btn btn-primary btn-main">@plant.Name (@plant.Id)</a>
+                                </div>
+                                    
+                             }
+                          }
+                     </div>
+                    
                     <div class="row">
                         <div class="col"></div>
                         <div class="col-auto">
+                            <br />
+                            <br />
+                            <br />
+                            <br />
                             <div class="alert alert-info text-center" role="alert">
                                 Send all queries or problem you may encounter to <a href="mailto:helpdesk@wbf.com">helpdesk@wbf.com</a>
                                 <br />

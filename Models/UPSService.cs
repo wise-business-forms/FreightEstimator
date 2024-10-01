@@ -67,7 +67,7 @@ namespace AuthenticationServer.Models
         /// <summary>
         /// This is the service charge for this rate.
         /// </summary>
-        public string Plant_Surcharge { get; set; }
+        public string Plant_Surcharge { get; set; }       
 
         /// <summary>
         /// The value for the transportation costs associated with the shipment.        

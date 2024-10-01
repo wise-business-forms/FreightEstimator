@@ -56,7 +56,7 @@ namespace AuthenticationServer.Models
             SqlCommand cmd = new SqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "SELECT DISTINCT PlantCode, Address, City, State, Zip, Country FROM Plants";
+            cmd.CommandText = "SELECT DISTINCT PlantCode, PlantName, Address, City, State, Zip, Country FROM Plants WHERE Active = 'Y'";
 
             SqlDataReader drResults = cmd.ExecuteReader();
 
@@ -64,6 +64,7 @@ namespace AuthenticationServer.Models
             {
                 Plant plant = new Plant();
                 plant.Id = drResults["PlantCode"].ToString();
+                plant.Name = drResults["PlantName"].ToString();
                 plant.Address = drResults["Address"].ToString();
                 plant.City = drResults["City"].ToString();
                 plant.State = drResults["State"].ToString();

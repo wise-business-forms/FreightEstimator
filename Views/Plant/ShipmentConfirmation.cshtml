@@ -6,6 +6,11 @@
 
     List<AuthenticationServer.Models.PlantCharges> plantCharges = ViewBag.PlantRates;
 
+    AuthenticationServer.Models.PlantCharges upsCharges = plantCharges.FirstOrDefault(pc => pc.CarrierId == "UPS");
+    AuthenticationServer.Models.PlantCharges upsCWTcharges = plantCharges.FirstOrDefault(pc => pc.CarrierId == "UPSCWT");
+    AuthenticationServer.Models.PlantCharges upsLTL = plantCharges.FirstOrDefault(pc => pc.CarrierId == "M33");
+    AuthenticationServer.Models.PlantCharges upsGround = plantCharges.FirstOrDefault(pc => pc.CarrierId == "GF");
+
     int rowIndex = 0;
 
     var debug = false; // Use to show the raw carrier values.
@@ -20,6 +25,7 @@
         { "UPSNextDayAir", "UPS Next Day Air" },
         { "NextDayAirEarlyAM", "Next Day Air Early AM" }
     };
+
 }
 <div class="container shadow min-vh-10 py-2 content-panel">
     <div class="row">
@@ -458,22 +464,48 @@
                                         <tbody>
                                             @foreach (var service in Model.shopCompareRates[0].UPSServices)
                                             {
+                                                AuthenticationServer.Models.PlantCharges serviceCharges = null;
+
+                                                switch (service.ServiceName)
+                                                {
+                                                    case "UPSGround":
+                                                        service.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == "UPSCWT").Ground.ToString();
+                                                        break;
+                                                    case "UPS3DaySelect":
+                                                        service.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == "UPSCWT").ThreeDaySelect.ToString();
+                                                        break;
+                                                    case "UPS2ndDayAir":
+                                                        service.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == "UPSCWT").SecondDayAir.ToString();
+                                                        break;
+                                                    case "SecondDayAirAM":
+                                                        service.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == "UPSCWT").SecondDayAirAM.ToString();
+                                                        break;
+                                                    case "NextDayAirSaver":
+                                                        service.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == "UPSCWT").NextDayAirSaver.ToString();
+                                                        break;
+                                                    case "UPSNextDayAir":
+                                                        service.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == "UPSCWT").NextDayAir.ToString();
+                                                        break;
+                                                    case "NextDayAirEarlyAM":
+                                                        service.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == "UPSCWT").NextDayAirEarlyAM.ToString();
+                                                        break;
+                                                }
+
+
                                                 string displayServiceName = serviceNameTranslations.ContainsKey(service.ServiceName)
-                                                        ? serviceNameTranslations[service.ServiceName]
-                                                        : service.ServiceName;
+                                                                                        ? serviceNameTranslations[service.ServiceName]
+                                                                                        : service.ServiceName;
                                                 string _cwt = service.CWT == "True" ? "Yes" : "No";
                                                 var rowClass = rowIndex % 2 == 0 ? "" : "alt";
                                                 var negotiatedServiceRate = Convert.ToDouble(service.RatedShipment_NegotiatedRateCharges_TotalCharge);
                                                 var plantServiceMarkup = Convert.ToDouble(service.Plant_Surcharge);
-                                                var perShipmentCharge = Convert.ToDouble(service.Plant_ShipmentCharge);
-                                                var perPackageCharge = Convert.ToDouble(service.Plant_PerPackageCharge);
                                                 var numberOfPackages = Model.number_of_packages;
                                                 var CWTadjusted = (negotiatedServiceRate / .7) - negotiatedServiceRate;
-                                                var totalCWTCharges = negotiatedServiceRate + CWTadjusted + (plantServiceMarkup / 100) * (negotiatedServiceRate + CWTadjusted) + perShipmentCharge + (perPackageCharge * numberOfPackages);
+                                                var totalCWTCharges = negotiatedServiceRate + CWTadjusted + (plantServiceMarkup / 100) * (negotiatedServiceRate + CWTadjusted) + upsCWTcharges.PerShipmentCharge + (upsCWTcharges.PerPackageCharge * numberOfPackages);
                                         <tr class="@rowClass">
                                             <td>@service.ShipFrom</td>
                                             <td>@displayServiceName</td>
-                                            <td>@service.Rate</td>
+                                            <td>@totalCWTCharges.ToString("#.##")</td>
                                             <td>@_cwt</td>
                                             <td>$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
                                             @if (service.CWT == "True")
@@ -483,12 +515,12 @@
                                                 <td>
                                                     CWT Negotiated Rate: (($@negotiatedServiceRate / .7) - $@negotiatedServiceRate) = $@CWTadjusted.ToString("#.##")
                                                     <br />
-                                                    $@negotiatedServiceRate + $@CWTadjusted.ToString("#.##") + (%@plantServiceMarkup / 100) * ($@negotiatedServiceRate + $@CWTadjusted.ToString("#.##")) + $@perShipmentCharge + ($@perPackageCharge * @numberOfPackages)
+                                                    $@negotiatedServiceRate + $@CWTadjusted.ToString("#.##") + (%@plantServiceMarkup / 100) * ($@negotiatedServiceRate + $@CWTadjusted.ToString("#.##")) + $@upsCWTcharges.PerShipmentCharge + ($@upsCWTcharges.PerPackageCharge * @numberOfPackages)
                                                 </td>
                                             }
                                             else
                                             {
-                                        <td> $@negotiatedServiceRate + (%@plantServiceMarkup / 100) * ($@negotiatedServiceRate + $@perShipmentCharge + ($@perPackageCharge * @numberOfPackages)</td>
+                                        <td> $@negotiatedServiceRate + (<span class="calc-highlight-green">%@plantServiceMarkup</span> / 100) * ($@negotiatedServiceRate + $@upsCWTcharges.PerShipmentCharge + ($@upsCWTcharges.PerPackageCharge * @numberOfPackages)</td>
                                             }
                                             <td>$@totalCWTCharges.ToString("#.##")</td>
 
@@ -522,14 +554,14 @@
                                                     <td>@chg.CarrierId</td>
                                                     <td>$@chg.PerPackageCharge</td>
                                                     <td>$@chg.PerShipmentCharge</td>
-                                                    <td>$@chg.NextDayAir</td>
-                                                    <td>$@chg.SecondDayAir</td>
+                                                    <td>%@chg.NextDayAir</td>
+                                                    <td>%@chg.SecondDayAir</td>
                                                     <td>$@chg.Ground</td>
-                                                    <td>$@chg.ThreeDaySelect</td>
-                                                    <td>$@chg.NextDayAirSaver</td>
-                                                    <td>$@chg.NextDayAirEarlyAM</td>
-                                                    <td>$@chg.SecondDayAirAM</td>
-                                                    <td>$@chg.Saver</td>
+                                                    <td>%@chg.ThreeDaySelect</td>
+                                                    <td>%@chg.NextDayAirSaver</td>
+                                                    <td>%@chg.NextDayAirEarlyAM</td>
+                                                    <td>%@chg.SecondDayAirAM</td>
+                                                    <td>%@chg.Saver</td>
                                                 </tr>
                                             }
                                         </tbody>

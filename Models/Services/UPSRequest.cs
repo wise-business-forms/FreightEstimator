@@ -23,6 +23,8 @@ namespace AuthenticationServer.Models.Services
         private UPSService[] _uPSServices = null;
         private string _errorMessage = String.Empty;
 
+        private List<PlantCharges> plantCharges = new List<PlantCharges>();
+
         public enum RequestOption { Rate, Shop, Ratetimeintransit, Shoptimeintransit };
         int _counter = 0;
 
@@ -35,6 +37,8 @@ namespace AuthenticationServer.Models.Services
         /// <param name="requestOption"></param>
         public UPSRequest(Shipment shipment, Plant plant, RequestOption requestOption)
         {
+            // Get surcharges for this plant.
+            plantCharges = Plant.Charges(plant.Id);
             _shipment = shipment;
 
             // For rating without address.
@@ -198,6 +202,11 @@ namespace AuthenticationServer.Models.Services
             return _response;
         }
 
+        /// <summary>
+        /// Gather the carrier rates for each service.
+        /// </summary>
+        /// <param name="service"></param>
+        /// <returns></returns>
         private UPSService ParseUPSService(JToken service)
         {
             UPSService uPSService = new UPSService();
@@ -262,7 +271,22 @@ namespace AuthenticationServer.Models.Services
             uPSService.PlantCode = _shipment.PlantId;
             uPSService.Rate = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "-";
             uPSService.CWTRate = service.SelectToken("NegotiatedRateCharges.TotalCharge.MonetaryValue")?.ToString() ?? "-";
-            uPSService.CWT = "TBD";
+            uPSService.CWT = "No"; // Default setting
+
+            // Determine CWT
+            var _shipmentWeight = _shipment.number_of_packages * _shipment.package_weight + _shipment.last_package_weight;
+
+            // AIR SERVICES
+            if((serviceCode == "01" || serviceCode == "02" || serviceCode == "13" || serviceCode == "59" || serviceCode == "14") && (_shipment.number_of_packages >= 2 && _shipmentWeight >= Configuration.MinCWTPackagesAir))
+            {
+                uPSService.CWT = "Yes";
+            }
+
+            // GROUND SERVICES
+            if ((serviceCode == "03" || serviceCode == "12") && (_shipment.number_of_packages >= 2 && _shipmentWeight >= Configuration.MinCWTPackagesGround))
+            {
+                uPSService.CWT = "Yes";
+            }
 
             uPSService.RatedShipment_TransportationCharges_MonetaryValue = service.SelectToken("TransportationCharges.MonetaryValue")?.ToString() ?? "-";
             uPSService.RatedShipment_BaseServiceCharge_MonetaryValue = service.SelectToken("BaseServiceCharge.MonetaryValue")?.ToString() ?? "-";
@@ -270,8 +294,11 @@ namespace AuthenticationServer.Models.Services
             uPSService.RatedShipment_TotalCharges_MonetaryValue = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "-";
             uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge = service.SelectToken("NegotiatedRateCharges.TotalCharge.MonetaryValue")?.ToString() ?? "-";
 
+            
+
             return uPSService;
         }
+
 
         public UPSService[] UPSServices { get {
                 if (_shipment.ErrorMessage == "")

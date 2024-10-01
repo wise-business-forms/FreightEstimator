@@ -34,6 +34,8 @@ namespace AuthenticationServer.Models.Services
         private Dictionary<string, string> _UpchargeNextDayAirEarlyAMCWT = new Dictionary<string, string>();
         private Dictionary<string, string> _UpchargeSecondDayAirAMCWT = new Dictionary<string, string>();
         private Dictionary<string, string> _UpchargeSaverCWT = new Dictionary<string, string>();
+
+        private List<PlantCharges> plantCharges = new List<PlantCharges>();
         #endregion
 
         public enum Carriers { UPS, UPSCWT, GF }
@@ -174,6 +176,19 @@ namespace AuthenticationServer.Models.Services
             }
         }
 
+        /// <summary>
+        /// Returns the carrier rate for the service.
+        /// </summary>
+        /// <param name="accountNumber"></param>
+        /// <param name="plantId"></param>
+        /// <param name="serviceName"></param>
+        /// <param name="currentRate"></param>
+        /// <param name="CWTRate"></param>
+        /// <param name="numberOfPackages"></param>
+        /// <param name="packageWeight"></param>
+        /// <param name="lastPackage"></param>
+        /// <returns></returns>
+        /// <remarks>DOES NOT INCLUDE PLANT SURCHARGES</remarks>
         internal static string CalculateRate(string accountNumber, string plantId, string serviceName, string currentRate, string CWTRate, int numberOfPackages, string packageWeight, string lastPackage)
         {
             int _accountNumber = 0;
@@ -355,41 +370,40 @@ namespace AuthenticationServer.Models.Services
             {
                 serviceCWTType = dServiceTypes[serviceName];
             }
-            
-            if (cwt && serviceName == "UPSGround" || serviceName == "SecondDayAirAM")
+
+
+            if (cwt)
             {
                 total = hundredWeightAdjustment;
                 total += perShipmentCharge;
                 total += (perPackageCharge * noPackages);
-                total += (markup / 100) * hundredWeightAdjustment;
+
+                switch (serviceName)
+                {
+                    case "UPSGround":
+                    case "SecondDayAirAM":  
+                        total += (markup / 100) * hundredWeightAdjustment;
+                        break;
+                }
             }
-            // Hundred weight adjustment
-            else if (cwt  && serviceName != "UPSGroundFreight" && serviceName != "NextDayAirEarlyAM")
-            { 
-                total = hundredWeightAdjustment;                
-                total += perShipmentCharge;
-                total += (perPackageCharge * noPackages);
-            }
-            else if (serviceName == "UPSGroundFreight")
+            else
             {
-                // Ground Freight should always use CWT Negotiated rates.
-                total = cwtRate;               
-                total += perShipmentCharge;
-                total += (perPackageCharge * noPackages);
-                total += ((markup / 100) * cwtRate);
-            }
-            else if (serviceName == "NextDayAirEarlyAM")
-            {
-                total = cwtRate;
-                total += perShipmentCharge;
-                total += (perPackageCharge * noPackages);
-            }
-            else { 
-                total = rate;
-                total += ((markup / 100) * rate);
-                total += (perPackageCharge * noPackages);
-            }       
-            
+                switch (serviceName)
+                {
+                    case "NextDayAirEarlyAM":
+                    case "UPSGroundFreight":
+                        total = cwtRate;
+                        total += perShipmentCharge;
+                        total += (perPackageCharge * noPackages);
+                        if (serviceName == "UPSGroundFreight"){total += ((markup / 100) * cwtRate);}
+                        break;
+                    default:
+                        total = rate;
+                        total += ((markup / 100) * rate);
+                        total += (perPackageCharge * noPackages);
+                        break;
+                }
+            }           
 
             return total.ToString("C");
         }

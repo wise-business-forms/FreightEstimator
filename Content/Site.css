@@ -2,6 +2,7 @@
         background: #E8E8E8;
 
 }
+
 .body-content {    
     margin-left: 100px;
     background: #f5f5f5;
@@ -21,6 +22,11 @@
 .btn:hover {
     background: #CCC;
     color: #333;
+}
+
+.calc-highlight-green {
+    background-color:darkgreen;
+    color: white;
 }
 
 .center-column {
