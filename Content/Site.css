@@ -49,6 +49,10 @@
     margin: 10px 10px 10px 10px;
 }
 
+.debug-alt-column {
+    background-color: darkgray;
+    color: black;
+}
 .debug-title {
     background-color: burlywood;
     font-size: 26px;
@@ -57,8 +61,8 @@
 }
 
 .debug-column {
-    background-color: burlywood;
-    color: darkgreen;
+    background-color: azure;
+    color: black;
 }
 
 .debug-column-header {

@@ -412,7 +412,7 @@ namespace AuthenticationServer.Controllers
             ShopRateResponse shopRateResponse = new ShopRateResponse();
             if (shipment.ErrorMessage == "" || shipment.ErrorMessage == null)
             {
-                UPSRequest uPSRequest = new UPSRequest(shipment, new Plant { Id = shipment.PlantId }, UPSRequest.RequestOption.Shop);
+                UPSRequest uPSRequest = new UPSRequest(shipment, new Plant(shipment.PlantId), UPSRequest.RequestOption.Shop);
                 shopRateResponse.UPSServices = uPSRequest.UPSServices;
             }
             return shopRateResponse;

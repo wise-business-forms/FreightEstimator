@@ -1,18 +1,14 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using AuthenticationServer.Models.Carrier.UPS;
+using Microsoft.Ajax.Utilities;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Web;
-using System.Web.Http.ExceptionHandling;
-using System.Data.Entity.Core.Mapping;
-using Microsoft.Ajax.Utilities;
-using AuthenticationServer.Models.Carrier.UPS;
-using System.Web.UI;
 
 namespace AuthenticationServer.Models.Services
 {
@@ -55,25 +51,42 @@ namespace AuthenticationServer.Models.Services
             string _request = AddressValidationRequest(shipment, plant, requestOption);
             string _url = Configuration.UPSAddressValidationURL;
             string _response = Response(_request, _url);
+            string address = string.Empty;
+
 
             JObject addressValidationResponse = JObject.Parse(_response);
             var addressLine = addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["AddressLine"];
-            string address = string.Empty;
 
-            if (addressLine.Type == JTokenType.Array)
+            if(addressLine == null)  // Address was NOT corrected or validated.
             {
-                var addressJoin = addressLine.ToObject<List<string>>();
-                address = string.Join(", ", addressJoin);
+                address = shipment.Address;
             }
-            else if (addressLine.Type == JTokenType.String)
+            else
             {
-                address = addressLine.ToString();
+                if (addressLine.Type == JTokenType.Array)
+                {
+                    var addressJoin = addressLine.ToObject<List<string>>();
+                    address = string.Join(", ", addressJoin);
+                }
+                else if (addressLine.Type == JTokenType.String)
+                {
+                    address = addressLine.ToString();
+                }
             }
-            
+                        
             string city = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision2"];
+            if (city == null)
+            {
+                city = shipment.City;
+            }
             string state = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision1"];
+            if (state == null)
+            {
+                state = shipment.State_selection;
+            }
             string postal_extention = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PostcodeExtendedLow"];
-            if (shipment.Address != address || shipment.City.ToUpper() != city || shipment.State_selection != state || !shipment.Zip.Contains("-"))
+            
+            if (shipment.Address != address || shipment.City != city || shipment.State_selection != state || (!shipment.Zip.Contains("-") && postal_extention != null) )
             {
                 shipment.Address = address;
                 shipment.City = city;
@@ -83,14 +96,13 @@ namespace AuthenticationServer.Models.Services
                 shipment.Corrected_Address = address;
                 shipment.Corrected_City = city;
                 shipment.Corrected_State_selection = state;
-
-                
             }
+            
             shipment.Address_Classification = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressClassification"]?["Description"];
             shipment.ErrorMessage = "";
 
             // Rate Request
-            _request = RateRequest(shipment, new Plant(plant.Id), requestOption);
+            _request = RateRequest(shipment, new Plant(shipment.PlantId), requestOption);
             _url = Configuration.UPSShopRatesURL + requestOption.ToString();            
             _response = Response(_request, _url);
 
@@ -190,7 +202,7 @@ namespace AuthenticationServer.Models.Services
                     else
                     {
                         _response = ex.Message.ToString();
-                        Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, ex.Message, "");
+                        Log.LogRequest_Rate("", _shipment.Address, _shipment.City ?? string.Empty, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, ex.Message, "");
                     }                    
                 }
                 catch (Exception ex)
