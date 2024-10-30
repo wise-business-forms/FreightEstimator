@@ -147,7 +147,7 @@
                 <div class="row">
                     <div class="col-1"></div>
                     <div class="col-10">
-                        @if (Model.ErrorMessage == "" || Model.ErrorMessage == null)
+                        @if (Model.ErrorMessage == "Address not validated" || Model.ErrorMessage == "" || Model.ErrorMessage == null)
                         {
                             <!-- GRID 1 - Compare Rates -->
                             if (Model.number_of_packages <= 50)
@@ -242,6 +242,10 @@
                                         <div class="col center-column">
                                             <div class="confirmation-value">Unable to rate shipments of more than 50 packages via UPS.</div>
                                             <br />
+                                            @if(Model.ErrorMessage == "Address not validated")
+                                            {
+                                                <div class="confirmation-value">Address could not be validated.  Please double check manually.</div>
+                                            }
                                             <br />
                                             <br />
                                             <br />

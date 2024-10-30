@@ -52,7 +52,7 @@ namespace AuthenticationServer.Models.Services
             string _url = Configuration.UPSAddressValidationURL;
             string _response = Response(_request, _url);
             string address = string.Empty;
-
+            shipment.ErrorMessage = "";
 
             JObject addressValidationResponse = JObject.Parse(_response);
             var addressLine = addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["AddressLine"];
@@ -60,6 +60,7 @@ namespace AuthenticationServer.Models.Services
             if(addressLine == null)  // Address was NOT corrected or validated.
             {
                 address = shipment.Address;
+                shipment.ErrorMessage = "Address not validated";
             }
             else
             {
@@ -98,8 +99,7 @@ namespace AuthenticationServer.Models.Services
                 shipment.Corrected_State_selection = state;
             }
             
-            shipment.Address_Classification = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressClassification"]?["Description"];
-            shipment.ErrorMessage = "";
+            shipment.Address_Classification = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressClassification"]?["Description"];           
 
             // Rate Request
             _request = RateRequest(shipment, new Plant(shipment.PlantId), requestOption);
@@ -210,6 +210,7 @@ namespace AuthenticationServer.Models.Services
                     throw ex;
                 }
             }
+            Log.LogRequest_Rate("", _shipment.Address, _shipment.City ?? string.Empty, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, _response, "");
 
             return _response;
         }
