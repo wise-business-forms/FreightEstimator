@@ -512,6 +512,7 @@ namespace AuthenticationServer.Controllers
 
                 string combinedResponses = "";
                 List<UPSService> ltlServices = new List<UPSService>();
+                string xmlResponse = string.Empty;
 
                 foreach (string plantCode in plantCodes)
                 {
@@ -630,9 +631,10 @@ namespace AuthenticationServer.Controllers
                     WebResponse.Close();
 
                     combinedResponses += responseFromServer;
-
+                    xmlResponse = responseFromServer;
                     #region Parse response
                     XDocument xmlDoc = XDocument.Parse(responseFromServer);
+                    
 
                     foreach (var rate in xmlDoc.Descendants("rate"))
                     {
@@ -719,7 +721,7 @@ namespace AuthenticationServer.Controllers
                     pUserName.Value = UserName;
                     pFullRequest.Value = shipment.requestMessage;
                     pFullResults.Value = shipment.responseMessage;
-                    pXmlResponse.Value = string.Empty;
+                    pXmlResponse.Value = xmlResponse;
 
                     cmdLog.Parameters.Add(pPlantCode);
                     cmdLog.Parameters.Add(pUserName);
