@@ -85,6 +85,12 @@ namespace AuthenticationServer.Models
 
         static Dictionary<string, string> _PlantNames = new Dictionary<string, string>();
 
+        static string _TransportationInsightDemoUrl = "https://t-insightws.mercurygate.net/MercuryGate/common/remoteService.jsp";
+        static string _TransportationInsightProdUrl = "";
+        static string _TransprtationInsightApiUsername = "WiseWSTest";
+        static string _TransprtationInsightApiPassword = "cRfx2PBt8SEAZFwjK3";
+        static bool _TransprtationInsightDemoMode = true;
+
         static string _M33DemoUrl = "http://demo.m33integrated.com/api/";
         static string _M33ProdUrl = "https://blackbeardapp.com/api/";
 
@@ -319,6 +325,31 @@ namespace AuthenticationServer.Models
                     return _TransPlaceProdToken;
                 }
             }
+        }
+
+        public static string TransportInsightRateUrl
+        {
+            get
+            {
+                if (_TransprtationInsightDemoMode)
+                {
+                    return _TransportationInsightDemoUrl;
+                }
+                else
+                {
+                    return _TransportationInsightProdUrl;
+                }
+            }
+        }
+
+        public static string TransportInsightRateUserId
+        {
+            get{return _TransprtationInsightApiUsername;}
+        }
+
+        public static string TransportInsightRateUserPassword
+        {
+            get { return _TransprtationInsightApiPassword; }
         }
     }
 }

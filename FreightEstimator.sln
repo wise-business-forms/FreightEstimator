@@ -5,7 +5,9 @@ VisualStudioVersion = 17.10.35013.160
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FreightEstimator", "FreightEstimator.csproj", "{0EAF2F1B-BC30-4456-8D1F-F3B62BDCE6E7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FreightEstimator-NUnit", "..\FreightEstimator-NUnit\FreightEstimator-NUnit.csproj", "{F2D68615-2849-443A-B696-F8D3123BF0AB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FreightEstimator-NUnit", "..\FreightEstimator-NUnit\FreightEstimator-NUnit.csproj", "{F2D68615-2849-443A-B696-F8D3123BF0AB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FreightEstimatorCore", "..\FreightEstimatorCore\FreightEstimatorCore.csproj", "{435D29FC-08B2-4E42-8AAC-35BDBB0164BA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{F2D68615-2849-443A-B696-F8D3123BF0AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F2D68615-2849-443A-B696-F8D3123BF0AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F2D68615-2849-443A-B696-F8D3123BF0AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{435D29FC-08B2-4E42-8AAC-35BDBB0164BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{435D29FC-08B2-4E42-8AAC-35BDBB0164BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{435D29FC-08B2-4E42-8AAC-35BDBB0164BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{435D29FC-08B2-4E42-8AAC-35BDBB0164BA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

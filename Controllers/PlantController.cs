@@ -112,12 +112,14 @@ namespace AuthenticationServer.Controllers
 
         public ActionResult ShipmentConfirmation(Shipment shipment)
         {
-            if(shipment.package_weight != shipment.last_package_weight)
+            // Calculate billing weight 
+            if (shipment.last_package_weight > 0)
             {
-                int _fullPackages = shipment.number_of_packages - 1;
-                shipment.billing_weight = (shipment.package_weight * _fullPackages) + shipment.last_package_weight;
+                shipment.billing_weight = (shipment.package_weight * shipment.number_of_packages - 1) + shipment.last_package_weight;
             }
-            else { shipment.billing_weight = shipment.number_of_packages * shipment.package_weight; }
+            else { 
+                shipment.billing_weight = shipment.number_of_packages * shipment.package_weight; 
+            }
             
                 
             shipment.requestMessage = _upsRequest;
@@ -248,7 +250,7 @@ namespace AuthenticationServer.Controllers
                     ShopRateResponse shopRateResponse = new ShopRateResponse();
                     List<PlantCharges> plantCharges = Plant.Charges(shipment.PlantId);
                     shopRateResponse = GetCompareRates(shipment);
-                    if (shipment.ErrorMessage == "")
+                    if (shipment.ErrorMessage == "" || shipment.ErrorMessage == "Address not validated")
                     {
                         foreach (UPSService service in shopRateResponse.UPSServices)
                         {
@@ -330,10 +332,19 @@ namespace AuthenticationServer.Controllers
             }
 
             // GRID 3 - LTL Rates
-            if (shipment.include_ltl_rate_selection == "Yes") { 
-                shipment.shopLessThanTruckloadResponse = GetLessThanTruckloadRates(shipment); }
+            if (shipment.include_ltl_rate_selection == "Yes")
+            {
+                shipment.shopLessThanTruckloadResponseTransportInsight = GetLessThanTruckloadRates_M33(shipment);
+            }
+
+            // GRID 3 - LTL Rates
+            if (shipment.include_ltl_rate_selection == "Yes")
+            {
+                shipment.shopLessThanTruckloadResponseTransportInsight = GetLessThanTruckloadRates_TI(shipment);
+            }
 
             
+
             ViewBag.plants = Plant.Plants();
 
             if (shipment.Address.IsNullOrWhiteSpace())
@@ -441,7 +452,7 @@ namespace AuthenticationServer.Controllers
         /// </summary>
         /// <param name="shipment"></param>
         /// <returns></returns>
-        private ShopRateResponse GetLessThanTruckloadRates(Shipment shipment)
+        private ShopRateResponse GetLessThanTruckloadRates_M33(Shipment shipment)
         {
             ShopRateResponse response = new ShopRateResponse();
             if (shipment.AcctNum.IsNullOrWhiteSpace()) shipment.AcctNum = "0";
@@ -570,7 +581,7 @@ namespace AuthenticationServer.Controllers
                     postData.Append("<lineItems>");
                     postData.Append("<lineItem>");
                     postData.Append("<freightClass>" + ltlClass + "</freightClass>");
-                    postData.Append("<weight>" + shipment.billing_weight + "</weight>");
+                    postData.Append("<weight>" + (shipment.package_weight * shipment.number_of_packages + shipment.last_package_weight) + "</weight>");
                     postData.Append("<weightUnit>LB</weightUnit>");
                     postData.Append("</lineItem>");
                     postData.Append("</lineItems>");
@@ -640,7 +651,7 @@ namespace AuthenticationServer.Controllers
                     {
                         string carrier = rate.Element("carrier").Element("name").Value.Trim();
                         string direct = rate.Element("direct").Value.Trim();
-                        int transitDays = Convert.ToInt16(rate.Element("transitDays").Value.Trim());
+                        string transitDays = (rate.Element("transitDays").Value.Trim().Length > 0) ? rate.Element("transitDays").Value.Trim() : "-";
                         double cost = double.Parse(rate.Element("cost").Element("totalAmount").Value.Trim());
                         double totalCharges = 0;
 
@@ -740,10 +751,303 @@ namespace AuthenticationServer.Controllers
             }
             catch (Exception ex)
             {
-                //TODO
+                throw ex;
             }
             return response;
         }
+
+        /// <summary>
+        /// GRID 3 - Less Than Truckload (LTL) Rates
+        /// Uses the Transplace API
+        /// </summary>
+        /// <param name="shipment"></param>
+        /// <returns></returns>
+        private ShopRateResponse GetLessThanTruckloadRates_TI(Shipment shipment)
+        {
+            float PlantUpcharges = GetPlantUpcharges(shipment, "TI");
+            ShopRateResponse response = new ShopRateResponse();
+            if (shipment.AcctNum.IsNullOrWhiteSpace()) shipment.AcctNum = "0";
+            try
+            {
+                #region -- Define Per Package Charge and Per Shipment charge dictionaries for LTL (chare per plant) --
+                Dictionary<string, double> dPerPackageChargeLTL = new Dictionary<string, double>();
+                Dictionary<string, double> dPerShipmentChargeLTL = new Dictionary<string, double>();
+                Dictionary<string, double> dUpchargeLTL = new Dictionary<string, double>();
+
+                SqlConnection sqlConnection = new SqlConnection(Configuration.UpsRateSqlConnection);
+                sqlConnection.Open();
+
+                SqlCommand cmdCharges = sqlConnection.CreateCommand();
+                cmdCharges.CommandText = "GetPlantCharges";
+                cmdCharges.CommandType = System.Data.CommandType.StoredProcedure;
+                cmdCharges.Parameters.Add("@Carrier", System.Data.SqlDbType.VarChar, 50).Value = "M33";
+                cmdCharges.Parameters.Add("@AcctNumber", System.Data.SqlDbType.Int).Value = shipment.AcctNum;
+
+                SqlDataReader drCharges = cmdCharges.ExecuteReader();
+
+                while (drCharges.Read())
+                {
+                    dPerPackageChargeLTL.Add(drCharges["PlantCode"].ToString(), Convert.ToDouble(drCharges["PerPackageCharge"].ToString()));
+                    dPerShipmentChargeLTL.Add(drCharges["PlantCode"].ToString(), Convert.ToDouble(drCharges["PerShipmentCharge"].ToString()));
+                    dUpchargeLTL.Add(drCharges["PlantCode"].ToString(), Convert.ToDouble(drCharges["Ground"].ToString()));
+                }
+                #endregion
+
+                StringBuilder sbResults = new StringBuilder();
+                string url = Configuration.TransportInsightRateUrl;
+                string userid = Configuration.TransportInsightRateUserId;
+                string password = Configuration.TransportInsightRateUserPassword;
+                string fullPostData = "";
+                string pickupDate = "";
+
+                try
+                {
+                    DateTime datePickup = shipment.pick_up_date;
+                    pickupDate = datePickup.Year.ToString() + "-" + datePickup.Month.ToString() + "-" + datePickup.Day.ToString();
+                }
+                catch
+                {
+                    pickupDate = DateTime.Now.Year.ToString() + "-" + DateTime.Now.Month.ToString() + "-" + DateTime.Now.Day.ToString();
+                }
+                string ltlClass = shipment.freight_class_selected.ToString();
+
+                #region -- Define dtLTLServices to hold rate data --
+                DataSet dsLTLServices = new DataSet();
+                DataTable dtLTLServices = dsLTLServices.Tables.Add();
+
+                dtLTLServices.Columns.Add("Plant", typeof(string));
+                dtLTLServices.Columns.Add("Service", typeof(string));
+                dtLTLServices.Columns.Add("Rate", typeof(double));
+                dtLTLServices.Columns.Add("TransitDays", typeof(int));
+                dtLTLServices.Columns.Add("Direct", typeof(string));
+                #endregion
+
+                string[] plantCodes = { "" };
+
+                if (shipment.PlantId == "ALL")
+                {
+                    plantCodes = Configuration.PlantCodesMultiRate;
+                }
+                else
+                {
+                    plantCodes[0] = shipment.PlantId;
+                }
+
+                string combinedResponses = "";
+                List<UPSService> ltlServices = new List<UPSService>();
+                string xmlResponse = string.Empty;
+
+                foreach (string plantCode in plantCodes)
+                {
+                    #region -- Load Plant Ship From Address --
+                    string shipFromCity = "";
+                    string shipFromState = "";
+                    string shipFromZip = "";
+                    string shipFromCountry = "";
+
+                    SqlConnection conn = new SqlConnection(Configuration.UpsRateSqlConnection);
+                    conn.Open();
+
+                    SqlCommand sqlCommand = conn.CreateCommand();
+                    sqlCommand.Connection = conn;
+                    sqlCommand.CommandType = CommandType.Text;
+                    sqlCommand.CommandText = "SELECT city, State, Zip, Country FROM Plants WHERE Plantcode = '" + plantCode + "'";
+
+                    SqlDataReader drResults = sqlCommand.ExecuteReader();
+
+                    if (shipment.Country_selection == "US")
+                    {
+                        shipment.Country_selection = "USA";
+                    }
+
+                    if (drResults.Read())
+                    {
+                        shipFromCity = drResults["City"].ToString();
+                        shipFromState = drResults["State"].ToString();
+                        shipFromZip = drResults["Zip"].ToString();
+                        shipFromCountry = drResults["Country"].ToString().Replace("US", "USA");
+                    }
+                    else
+                    {
+                        sbResults.Append("Unable to lookup address info for Plant " + plantCode + "'");
+                    }
+
+                    conn.Close();
+
+                    #endregion
+
+                    #region Build XML Request
+                    StringBuilder request = new StringBuilder();
+                    request.Append("<?xml version=\"1.0\"?>");
+                    request.Append("<service-request xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">");
+                    request.Append("<service-id>XMLRating</service-id>");
+                    request.Append("<request-id>123456789</request-id>");
+                    request.Append("<data><RateRequest><RatingLevel isCompanyAccountNumber=\"true\">WISE03RATE</RatingLevel>");
+                    request.Append("<Constraints><PaymentTerms>Third Party</PaymentTerms><ServiceFlags /></Constraints>");
+                    request.Append("<Items>");
+                    for (int i = 0; i < shipment.number_of_packages; i++)
+                    {
+                        request.Append("<Item sequence=\"1\" freightClass=\"");
+                        request.Append("55");
+                        request.Append("\">");
+                        request.Append("<Weight units=\"lb\">");
+                        request.Append(shipment.package_weight.ToString());
+                        request.Append("</Weight>");
+                        request.Append("<Dimensions length=\"5.0\" width=\"5.0\" height=\"5.0\" units=\"in\" /></Item>");
+                    }
+                    request.Append("</Items>");
+
+                    request.Append("<Events><Event sequence=\"1\" type=\"Pickup\" date=\"").Append(System.DateTime.Now.ToString("MM/dd/yyyy HH:mm")).Append("\">");
+                    request.Append("<Location><City>").Append(shipFromCity).Append("</City><State>").Append(shipFromState).Append("</State><Zip>").Append(shipFromZip).Append("</Zip><Country>").Append(shipFromCountry).Append("</Country></Location>");
+                    request.Append("</Event>");
+                    request.Append("<Event sequence=\"2\" type=\"Drop\" date=\"").Append(System.DateTime.Now.AddDays(1).ToString("MM/dd/yyyy HH:mm")).Append("\">");
+                    request.Append("<Location><City>").Append(shipment.Corrected_City).Append("</City><State>").Append(shipment.State_selection).Append("</State><Zip>").Append(shipment.Zip).Append("</Zip><Country>").Append(shipment.Country_selection).Append("</Country></Location>");
+                    request.Append("</Event></Events></RateRequest></data></service-request>");
+                    #endregion
+
+                    #region Add UserID/Pass & encode.
+                    StringBuilder postData = new StringBuilder();
+                    postData.Append("userid=").Append($"{Uri.EscapeDataString(Configuration.TransportInsightRateUserId)}");
+                    postData.Append("&password=").Append($"{Uri.EscapeDataString(Configuration.TransportInsightRateUserPassword)}");
+                    postData.Append("&request=").Append($"{Uri.UnescapeDataString(request.ToString())}");
+                    #endregion
+
+                    fullPostData += postData;
+
+                    WebRequest webRequest = WebRequest.Create(url);
+                    webRequest.ContentType = "application/x-www-form-urlencoded";
+                    webRequest.Method = "POST";
+
+                    byte[] byteArray = Encoding.UTF8.GetBytes(postData.ToString());
+                    webRequest.ContentLength = byteArray.Length;
+
+                    Stream dataStream = webRequest.GetRequestStream();
+                    dataStream.Write(byteArray, 0, byteArray.Length);
+                    dataStream.Close();
+
+                    StringBuilder results = new StringBuilder(postData.ToString());
+                    results.Append("\n\n\n");
+                    results.Append("<br/>" + url);
+                    results.Append("\n\n\n");
+                    // Get the response.
+                    WebResponse WebResponse = webRequest.GetResponse();
+                    // Display the status.
+                    //Console.WriteLine(((HttpWebResponse)WebResponse).StatusDescription);
+                    // Get the stream containing content returned by the server.
+                    dataStream = WebResponse.GetResponseStream();
+                    // Open the stream using a StreamReader for easy access.
+                    StreamReader reader = new StreamReader(dataStream);
+                    // Read the content.
+                    string responseFromServer = reader.ReadToEnd();
+                    // Display the content.
+                    results.Append(responseFromServer);
+                    results.Append("\n\n\n");
+                    // Clean up the streams.
+                    reader.Close();
+                    dataStream.Close();
+                    WebResponse.Close();
+
+                    combinedResponses += responseFromServer;
+                    xmlResponse = responseFromServer;
+
+
+                    #region Parse response
+                    // Decode response.
+                    XDocument xmlDoc = XDocument.Parse(responseFromServer);
+                    string encodedData = xmlDoc.Descendants("data").FirstOrDefault()?.Value;
+                    byte[] data = Convert.FromBase64String(encodedData);
+                    string decodedString = System.Text.Encoding.UTF8.GetString(data);
+
+                    // Parse the result.
+                    XDocument decodedXmlDoc = XDocument.Parse(decodedString);
+                    var priceSheets = decodedXmlDoc.Descendants("PriceSheet").Select(sheet => new
+                    {
+                        CarrierName = sheet.Element("CarrierName")?.Value,
+                        Rate = sheet.Element("SubTotal")?.Value,
+                        TotalCost = sheet.Element("Total")?.Value,
+                        TransitDays = sheet.Element("ServiceDays")?.Value,
+                        Direct = string.Empty // Information not supplied.
+                    });
+
+                    foreach ( var priceSheet in priceSheets)
+                    {
+                        float _totalCost = ((PlantUpcharges / 100) * float.Parse(priceSheet.TotalCost)) + float.Parse(priceSheet.TotalCost);
+                        int _transitDays = (int)float.Parse(priceSheet.TransitDays);
+                        UPSService service = new UPSService();
+                        service.PlantCode = plantCode;
+                        service.ServiceName = priceSheet.CarrierName;
+                        service.Rate = priceSheet.Rate;
+                        service.TotalCost = _totalCost.ToString("C");
+                        service.TransitDays = _transitDays.ToString();
+                        service.Direct = priceSheet.Direct;
+
+                        ltlServices.Add(service);
+                    }
+                    response.UPSServices = ltlServices.ToArray();
+                    #endregion
+                }
+
+                #region -- log results --
+                try
+                {
+                    string UserName = "TBD";
+
+                    SqlConnection conlog = new SqlConnection(Configuration.UpsRateSqlConnection);
+                    conlog.Open();
+
+                    SqlCommand cmdLog = new SqlCommand();
+                    cmdLog.Connection = conlog;
+                    cmdLog.CommandType = CommandType.StoredProcedure;
+                    cmdLog.CommandText = "LogResultsLTL";
+
+                    SqlParameter pPlantCode = new SqlParameter("@PlantCode", SqlDbType.VarChar, 10);
+                    SqlParameter pUserName = new SqlParameter("@UserName", SqlDbType.VarChar, 10);
+                    SqlParameter pFullRequest = new SqlParameter("@FullRequest", SqlDbType.NText);
+                    SqlParameter pFullResults = new SqlParameter("@FullResults", SqlDbType.NText);
+                    SqlParameter pXmlResponse = new SqlParameter("@XmlResponse", SqlDbType.NText);
+
+                    pPlantCode.Value = shipment.PlantId;
+                    pUserName.Value = UserName;
+                    pFullRequest.Value = shipment.requestMessage;
+                    pFullResults.Value = shipment.responseMessage;
+                    pXmlResponse.Value = xmlResponse;
+
+                    cmdLog.Parameters.Add(pPlantCode);
+                    cmdLog.Parameters.Add(pUserName);
+                    cmdLog.Parameters.Add(pFullRequest);
+                    cmdLog.Parameters.Add(pFullResults);
+                    cmdLog.Parameters.Add(pXmlResponse);
+
+                    cmdLog.ExecuteNonQuery();
+                    conlog.Close();
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+                #endregion
+            }
+            catch (WebException wex)
+            {
+                // Handle error response
+                if (wex.Response is HttpWebResponse errorResponse)
+                {
+                    Console.WriteLine($"Error: {errorResponse.StatusCode}");
+                    using (StreamReader reader = new StreamReader(errorResponse.GetResponseStream()))
+                    {
+                        string responseContent = reader.ReadToEnd();
+                        Console.WriteLine("Response Body: ");
+                        Console.WriteLine(responseContent);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            return response;
+        }
+
 
         
         private AddressKeyFormat AddressValidation(Shipment shipment)
@@ -835,8 +1139,7 @@ namespace AuthenticationServer.Controllers
 
             }
         }
-
-        
+                
         private ShopRateResponse CalculateGroundFreight(List<PlantCharges> allPlantCharges, Shipment shipment)
         {
             ShopRateResponse shopRateResponse = new ShopRateResponse();
@@ -1023,6 +1326,40 @@ namespace AuthenticationServer.Controllers
                 fullList.Append("STOPOFF-CHARGE;");
             }
             return fullList.ToString();
+        }
+
+        private float GetPlantUpcharges(Shipment shipment, String carrier)
+        {
+            Shipment _shipment = shipment;
+            int accountNumber = 0;
+            if (Int32.TryParse(shipment.AcctNum, out accountNumber))
+            {
+                accountNumber = Int32.Parse(shipment.AcctNum);
+            }
+            Dictionary<string, string> PerPackageCharge = new Dictionary<string, string>();
+            SqlConnection sqlConnection = new SqlConnection(Configuration.UpsRateSqlConnection);
+            sqlConnection.Open();
+
+            SqlCommand sqlCommand = sqlConnection.CreateCommand();
+            sqlCommand.CommandText = "GetPlantCharges";
+            sqlCommand.CommandType = System.Data.CommandType.StoredProcedure;
+            sqlCommand.Parameters.Add("@Carrier", System.Data.SqlDbType.VarChar, 50).Value = carrier.ToString();
+            sqlCommand.Parameters.Add("AcctNumber", System.Data.SqlDbType.Int).Value = accountNumber;
+
+            using (SqlDataReader reader = sqlCommand.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    if(shipment.PlantId == reader["PlantCode"].ToString())
+                    {
+                        float pkgcharges = shipment.number_of_packages * float.Parse(reader["PerPackageCharge"].ToString());
+                        float shipmentCharge = float.Parse(reader["PerShipmentCharge"].ToString());
+                        float serviceCharge = float.Parse(reader["Ground"].ToString());
+                        return pkgcharges + shipmentCharge + serviceCharge;
+                    }
+                }
+            }
+            return 0;
         }
         
     }

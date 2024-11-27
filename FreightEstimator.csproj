@@ -26,6 +26,7 @@
     <UseGlobalApplicationHostFile />
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <_MigrateToProjectGuid>435d29fc-08b2-4e42-8aac-35bdbb0164ba</_MigrateToProjectGuid>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -281,6 +282,7 @@
     <Content Include="Content\img\LOGO_M.gif" />
     <Content Include="Content\img\LOGO_S.gif" />
     <Content Include="Content\img\m33logo.jpg" />
+    <Content Include="Content\img\TI_logo.png" />
     <Content Include="Content\img\wiseLogo.jpg" />
     <Content Include="favicon.ico" />
     <Content Include="Global.asax" />

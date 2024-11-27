@@ -326,7 +326,7 @@
                                                         var rowClass = rowIndex % 2 == 0 ? "" : "alt";
                                                         <tr class="@rowClass">
                                                             <td>@service.PlantCode</td>
-                                                            <td>@(service.ServiceName == "UPSGround" ? "UPS Ground" : service.ServiceName)</td>
+                                                            <td>@(service.ServiceName == "UPSGround" ? "Ground Freight" : service.ServiceName)</td>
                                                             <td>@service.Rate</td>
                                                             @if (debug)
                                                             {
@@ -348,6 +348,61 @@
                             if (Model.include_ltl_rate_selection == "Yes")
                             {
                                 <div class="container">
+                                    @try
+                                    {
+                                        if (Model.shopLessThanTruckloadResponse.UPSServices.Length > 0)
+                                        {
+                                            <div class="row">
+                                                <div class="col">
+                                                    <table class="shipGrid">
+                                                        <thead>
+                                                            <tr>
+                                                                <th scope="col">Ship From</th>
+                                                                <th scope="col">Service</th>
+                                                                <th scope="col">Transit Days</th>
+                                                                <th scope="col">Direct</th>
+                                                                <th scope="col">Rate</th>
+                                                                @if (debug)
+                                                                {
+                                                                    <th scope="col" class="debug-column-header">Neg. Rate</th>
+                                                                    <th scope="col" class="debug-column-header">Raw Rate</th>
+                                                                }
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var service in Model.shopLessThanTruckloadResponse.UPSServices)
+                                                            {
+                                                                var rowClass = rowIndex % 2 == 0 ? "" : "alt";
+                                                                <tr class="@rowClass">
+                                                                    <td>@service.PlantCode</td>
+                                                                    <td>@service.ServiceName</td>
+                                                                    <td>@service.TransitDays</td>
+                                                                    <td>@service.Direct</td>
+                                                                    <td>@service.TotalCost</td>
+                                                                    @if (debug)
+                                                                    {
+                                                                        <td class="debug-column">$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
+                                                                        <td class="debug-column">$@service.RatedShipment_TotalCharges_MonetaryValue</td>
+                                                                    }
+                                                                </tr>
+                                                                rowIndex++;
+                                                            }
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <div class="col"><img src="~/Content/img/m33logo.jpg" width="75" height="75" /></div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                        {
+
+                                        }
+
                                     <div class="row">
                                         <div class="col">
                                             <table class="shipGrid">
@@ -366,7 +421,7 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    @foreach (var service in Model.shopLessThanTruckloadResponse.UPSServices)
+                                                    @foreach (var service in Model.shopLessThanTruckloadResponseTransportInsight.UPSServices)
                                                     {
                                                         var rowClass = rowIndex % 2 == 0 ? "" : "alt";
                                                         <tr class="@rowClass">
@@ -386,7 +441,7 @@
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <div class="col"><img src="~/Content/img/m33logo.jpg" /></div>
+                                        <div class="col"><img src="~/Content/img/TI_logo.png" width="75" height="75" /></div>
                                     </div>
                                 </div>
                             }

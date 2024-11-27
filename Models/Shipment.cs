@@ -74,6 +74,7 @@ namespace AuthenticationServer.Models
         /// GRID 3 - Less Than Truckload (LTL) Rates
         /// </summary>
         public ShopRateResponse shopLessThanTruckloadResponse { get; set; }
+        public ShopRateResponse shopLessThanTruckloadResponseTransportInsight { get; set; }
 
         // Logging
         public string requestMessage { get; set; }

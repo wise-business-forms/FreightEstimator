@@ -121,6 +121,7 @@ namespace AuthenticationServer.Models.Services
                     {
                         case "RateResponse":
                             ratedShipment = rateResponse["RateResponse"]["RatedShipment"];
+                            //var test = rateResponse["RateResponse"]["RatedShipment"]["BillingWeight"]["Weight"].ToString();
                             shipment.billing_weight = float.Parse(rateResponse["RateResponse"]["RatedShipment"]["BillingWeight"]["Weight"].ToString());
                             shipment.AlertMessages = rateResponse["RateResponse"]["Response"]["Alert"].Select(a => (string)a["Description"]).ToArray();
                             break;
@@ -314,7 +315,7 @@ namespace AuthenticationServer.Models.Services
 
 
         public UPSService[] UPSServices { get {
-                if (_shipment.ErrorMessage == "")
+                if (_shipment.ErrorMessage == "" || _shipment.ErrorMessage == "Address not validated")
                 {
                     try
                     {
