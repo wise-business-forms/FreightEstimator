@@ -334,15 +334,9 @@ namespace AuthenticationServer.Controllers
             // GRID 3 - LTL Rates
             if (shipment.include_ltl_rate_selection == "Yes")
             {
-                shipment.shopLessThanTruckloadResponseTransportInsight = GetLessThanTruckloadRates_M33(shipment);
-            }
-
-            // GRID 3 - LTL Rates
-            if (shipment.include_ltl_rate_selection == "Yes")
-            {
+                shipment.shopLessThanTruckloadResponseM33= GetLessThanTruckloadRates_M33(shipment);
                 shipment.shopLessThanTruckloadResponseTransportInsight = GetLessThanTruckloadRates_TI(shipment);
             }
-
             
 
             ViewBag.plants = Plant.Plants();
@@ -882,27 +876,48 @@ namespace AuthenticationServer.Controllers
                     request.Append("<service-request xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">");
                     request.Append("<service-id>XMLRating</service-id>");
                     request.Append("<request-id>123456789</request-id>");
-                    request.Append("<data><RateRequest><RatingLevel isCompanyAccountNumber=\"true\">WISE03RATE</RatingLevel>");
-                    request.Append("<Constraints><PaymentTerms>Third Party</PaymentTerms><ServiceFlags /></Constraints>");
-                    request.Append("<Items>");
-                    for (int i = 0; i < shipment.number_of_packages; i++)
-                    {
-                        request.Append("<Item sequence=\"1\" freightClass=\"");
-                        request.Append("55");
-                        request.Append("\">");
-                        request.Append("<Weight units=\"lb\">");
-                        request.Append(shipment.package_weight.ToString());
-                        request.Append("</Weight>");
-                        request.Append("<Dimensions length=\"5.0\" width=\"5.0\" height=\"5.0\" units=\"in\" /></Item>");
-                    }
-                    request.Append("</Items>");
+                    request.Append("<data>");
+                        request.Append("<RateRequest><RatingLevel isCompanyAccountNumber=\"true\">WISE03RATE</RatingLevel>");
+                        request.Append("<Constraints>");
+                            request.Append("<PaymentTerms>Third Party</PaymentTerms>");
 
-                    request.Append("<Events><Event sequence=\"1\" type=\"Pickup\" date=\"").Append(System.DateTime.Now.ToString("MM/dd/yyyy HH:mm")).Append("\">");
-                    request.Append("<Location><City>").Append(shipFromCity).Append("</City><State>").Append(shipFromState).Append("</State><Zip>").Append(shipFromZip).Append("</Zip><Country>").Append(shipFromCountry).Append("</Country></Location>");
-                    request.Append("</Event>");
-                    request.Append("<Event sequence=\"2\" type=\"Drop\" date=\"").Append(System.DateTime.Now.AddDays(1).ToString("MM/dd/yyyy HH:mm")).Append("\">");
-                    request.Append("<Location><City>").Append(shipment.Corrected_City).Append("</City><State>").Append(shipment.State_selection).Append("</State><Zip>").Append(shipment.Zip).Append("</Zip><Country>").Append(shipment.Country_selection).Append("</Country></Location>");
-                    request.Append("</Event></Events></RateRequest></data></service-request>");
+                            string accessorials = GetAccessorials(shipment);
+                            if(accessorials.Length > 0)
+                            {
+                                request.Append("<ServiceFlags>");
+                                request.Append(accessorials);
+                                request.Append("</ServiceFlags>");
+                            }
+                            else
+                            {
+                                request.Append("<ServiceFlags />");
+                            }
+                            
+                        request.Append("</Constraints>");
+                        request.Append("<Items>");
+                        for (int i = 0; i < shipment.number_of_packages; i++)
+                        {
+                            request.Append("<Item sequence=\"1\" freightClass=\"");
+                            request.Append("55");
+                            request.Append("\">");
+                            request.Append("<Weight units=\"lb\">");
+                            request.Append(shipment.package_weight.ToString());
+                            request.Append("</Weight>");
+                            request.Append("<Dimensions length=\"5.0\" width=\"5.0\" height=\"5.0\" units=\"in\" /></Item>");
+                        }
+                        request.Append("</Items>");
+
+                    request.Append("<Events>");
+                        request.Append("<Event sequence=\"1\" type=\"Pickup\" date=\"").Append(System.DateTime.Now.ToString("MM/dd/yyyy HH:mm")).Append("\">");
+                        request.Append("<Location><City>").Append(shipFromCity).Append("</City><State>").Append(shipFromState).Append("</State><Zip>").Append(shipFromZip).Append("</Zip><Country>").Append(shipFromCountry).Append("</Country></Location>");
+                        request.Append("</Event>");
+
+                        request.Append("<Event sequence=\"2\" type=\"Drop\" date=\"").Append(System.DateTime.Now.AddDays(1).ToString("MM/dd/yyyy HH:mm")).Append("\">");
+                        request.Append("<Location><City>").Append(shipment.Corrected_City).Append("</City><State>").Append(shipment.State_selection).Append("</State><Zip>").Append(shipment.Zip).Append("</Zip><Country>").Append(shipment.Country_selection).Append("</Country></Location>");
+                        request.Append("</Event>");
+                    request.Append("</Events>");
+
+                    request.Append("</RateRequest></data></service-request>");
                     #endregion
 
                     #region Add UserID/Pass & encode.
@@ -976,7 +991,7 @@ namespace AuthenticationServer.Controllers
                         UPSService service = new UPSService();
                         service.PlantCode = plantCode;
                         service.ServiceName = priceSheet.CarrierName;
-                        service.Rate = priceSheet.Rate;
+                        //service.Rate = priceSheet.Rate;  // commented to prevent confusion as to which cost vallue to use.
                         service.TotalCost = _totalCost.ToString("C");
                         service.TransitDays = _transitDays.ToString();
                         service.Direct = priceSheet.Direct;
@@ -1360,6 +1375,25 @@ namespace AuthenticationServer.Controllers
                 }
             }
             return 0;
+        }
+
+        private string GetAccessorials(Shipment shipment) 
+        { 
+            StringBuilder accessorials = new StringBuilder();
+
+            if (shipment.notify_before_delivery) { accessorials.Append("<Service code=\"NOTIFY\">Notify Before Delivery</Service>");  }
+            if (shipment.liftgate_pickup) { accessorials.Append("<Service code=\"LIFT_GATE_PICKUP\">Liftgate Pickup</Service>"); }
+            if (shipment.liftgate_delivery) { accessorials.Append("<Service code=\"LIFT_GATE_DELIVERY\">Liftgate Delivery</Service>"); }
+            if (shipment.limited_access_pickup) { accessorials.Append("<Service code=\"LIMITED_ACCESS_PICKUP\">Limited Access Pickup</Service>"); }
+            if (shipment.limited_access_delivery) { accessorials.Append("<Service code=\"LIMITED_ACCESS_DELIVERY\">Limited Access Delivery</Service>"); }
+            if (shipment.residential_pickup) { accessorials.Append("<Service code=\"RESIDENTIAL_PICKUP\">Resitential Pickup</Service>"); }
+            if (shipment.residential_delivery) { accessorials.Append("<Service code=\"RESIDENTIAL_DELIVERY\">Resitential Delivery</Service>"); }
+            if (shipment.inside_pickup) { accessorials.Append("<Service code=\"INSIDE_PICKUP\">Inside Pickup</Service>"); }
+            if (shipment.inside_delivery) { accessorials.Append("<Service code=\"INSIDE_DELIVERY\">Inside Pickup</Service>"); }
+            if (shipment.sort_and_segregate) { accessorials.Append("<Service code=\"SORT_AND_SEGREGATE\">Sort and Segregate</Service>"); }
+            if (shipment.stopoff_charge) { accessorials.Append("<Service code=\"STOPOFF\">Stopoff Charge</Service>"); } // ? Not sure this is correct based on https://qa-api-docs.mercurygate.net/documentation/standard-data.html
+
+            return accessorials.ToString();
         }
         
     }
