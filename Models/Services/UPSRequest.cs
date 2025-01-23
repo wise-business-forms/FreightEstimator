@@ -283,7 +283,7 @@ namespace AuthenticationServer.Models.Services
                     break;
             }
             uPSService.PlantCode = _shipment.PlantId;
-            uPSService.Rate = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "-";
+            uPSService.CustomerRate = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "-";
             uPSService.CWTRate = service.SelectToken("NegotiatedRateCharges.TotalCharge.MonetaryValue")?.ToString() ?? "-";
             uPSService.CWT = "No"; // Default setting
 

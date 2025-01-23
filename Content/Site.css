@@ -69,6 +69,10 @@
     background-color:bisque;
 }
 
+.error-row {
+    background: #FFC300 !important;
+}
+
 .form-label {
     font-weight: bold;
     width: 200px;
@@ -92,6 +96,21 @@
     padding: 5px;
     vertical-align: top;
     line-height: 1.3em;
+}
+.results-table {
+    border-collapse: collapse;
+    background-color: #f2f2f2;
+    width: 100%
+}
+
+.styled-table th, .styled-table td {
+    border: 5px solid black;
+    padding: 8px;
+    text-align: left;
+}
+
+.styled-table th {
+    background-color: #f2f2f2;
 }
 
 .shipGrid {
@@ -119,3 +138,67 @@ a {
     text-decoration: none;
     font-size: 11px;
 }
+
+.toggleButton {
+    background-color: #f0f0f0; /* Light gray background */
+    color: #333; /* Dark gray text */
+    border: 1px solid #ccc; /* Light border */
+    padding: 3px 6px; /* Smaller padding */
+    border-radius: 3px; /* Slightly rounded corners */
+    cursor: pointer;
+    font-size: 10px; /* Smaller font size */
+    transition: background-color 0.3s ease, color 0.3s ease;
+    width: 150px;
+}
+
+    .toggleButton:hover {
+        background-color: #e0e0e0; /* Slightly darker gray */
+        color: #000; /* Darker text color */
+    }
+
+    .toggleButton:active {
+        background-color: #d0d0d0; /* Even darker gray for click effect */
+    }
+
+/* Container for the tooltip */
+.tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+    /* Tooltip text (custom) */
+    .tooltip .tooltip-text {
+        visibility: hidden;
+        width: 120px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        border-radius: 4px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%; /* Position above the text */
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0; /* Initially invisible */
+        transition: opacity 0.3s; /* Smooth transition */
+    }
+
+        /* Arrow below the tooltip */
+        .tooltip .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%; /* Position below the tooltip */
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: black transparent transparent transparent;
+        }
+
+    /* Show the tooltip on hover */
+    .tooltip:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }

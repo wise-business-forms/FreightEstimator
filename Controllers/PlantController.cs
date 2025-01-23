@@ -16,6 +16,8 @@ using System.Xml.Linq;
 
 using AuthenticationServer.Models.Carrier.UPS;
 using System.ComponentModel.DataAnnotations;
+using System.Xml.XPath;
+using System.Globalization;
 
 namespace AuthenticationServer.Controllers
 {
@@ -146,7 +148,7 @@ namespace AuthenticationServer.Controllers
                         foreach (UPSService service in shopRate.UPSServices)
                         {
                             service.ShipFrom = shipment.PlantId;
-                            service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
+                            service.CustomerRate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.CustomerRate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
                             RateCalculations rateCalculations = new RateCalculations();
                             
                             switch (service.ServiceName)
@@ -238,7 +240,7 @@ namespace AuthenticationServer.Controllers
                             ShopRateResponse shopRate = GetGroundFreightRate(gfShipment);
                             if (shopRate.UPSServices.Length > 0)
                             {
-                                dataTable.Rows.Add(plant.Id, "Ground Freight", shopRate.UPSServices[0].Rate);
+                                dataTable.Rows.Add(plant.Id, "Ground Freight", shopRate.UPSServices[0].CustomerRate);
                             }
                         }
                         dataTable.Columns.Remove("CWT");
@@ -255,7 +257,7 @@ namespace AuthenticationServer.Controllers
                         foreach (UPSService service in shopRateResponse.UPSServices)
                         {
                             service.ShipFrom = shipment.PlantId;
-                            service.Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.Rate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
+                            service.CustomerRate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.CustomerRate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
                             RateCalculations rateCalculations = new RateCalculations();
                             
                             //Apply plant surcharges.
@@ -325,10 +327,10 @@ namespace AuthenticationServer.Controllers
             }
 
             // GRID 2 - Ground Rate
-            if (shipment.include_ground_rate_selection == "Yes" && shipment.multiple_location_rate_selection == "No" && shipment.ErrorMessage  == "") 
+            if (shipment.include_ground_rate_selection == "Yes") 
             { 
                 shipment.shopGroundFreightResponse = GetGroundFreightRate(shipment);
-                shipment.shopGroundFreightResponse.UPSServices[0].Rate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, "UPSGroundFreight", shipment.shopGroundFreightResponse.UPSServices[0].Rate, shipment.shopGroundFreightResponse.UPSServices[0].CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString());
+                shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, "UPSGroundFreight", shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate, shipment.shopGroundFreightResponse.UPSServices[0].CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString());
             }
 
             // GRID 3 - LTL Rates
@@ -432,7 +434,7 @@ namespace AuthenticationServer.Controllers
         private ShopRateResponse GetGroundFreightRate(Shipment shipment)
         {
             ShopRateResponse shopRateResponse = new ShopRateResponse();
-            if (shipment.ErrorMessage == "" || shipment.ErrorMessage == null)
+            //if (shipment.ErrorMessage == "" || shipment.ErrorMessage == null)
             {
                 UPSRequest upsRequest = new UPSRequest(shipment, new Plant { Id = shipment.PlantId }, UPSRequest.RequestOption.Rate);
                 shopRateResponse.UPSServices = upsRequest.UPSServices;
@@ -559,7 +561,7 @@ namespace AuthenticationServer.Controllers
                     StringBuilder postData = new StringBuilder("<?xml version=\"1.0\"?>");
                     postData.Append("<quote>");
                     postData.Append("<requestedMode>LTL</requestedMode>");
-                    postData.Append("<requestedPickupDate>" + pickupDate + "</requestedPickupDate>");
+                    postData.Append("<requestedPickupDate>" + System.DateTime.Now.ToString("yyyy-MM-dd") + "</requestedPickupDate>");
                     postData.Append("<shipper>");
                     postData.Append("<city>" + shipFromCity + "</city>");
                     postData.Append("<region>" + shipFromState + "</region>");
@@ -591,11 +593,7 @@ namespace AuthenticationServer.Controllers
                         }
                         postData.Append("</accessorials>");
                     }
-                    //postData += "<accessorials>";
-                    //postData += "<accessorial>";
-                    //postData += "<type>LIFTGATE-PICKUP</type>";
-                    //postData += "</accessorial>";
-                    //postData += "</accessorials>";
+
                     postData.Append("</quote>");
                     #endregion
                     
@@ -613,10 +611,12 @@ namespace AuthenticationServer.Controllers
                     // Close the Stream object.
                     dataStream.Close();
 
-                    StringBuilder results = new StringBuilder(postData.ToString());
-                    results.Append("\n\n\n");
-                    results.Append("<br/>" + url + "rate/quote?loginToken=" + token);
-                    results.Append("\n\n\n");
+                    shipment.requestMessage = postData.ToString();
+
+                    StringBuilder results = new StringBuilder();
+                    results.Append("<div id=\"results\">");
+                    results.Append("<table class=\"results-table\"><tr><td>").Append("<br/>" + url + "rate/quote?loginToken=" + token).Append("</td>");
+                    results.Append("<td id=\"xmlRequest\">").Append(postData.ToString()).Append("</td></tr></table>");
                     // Get the response.
                     WebResponse WebResponse = request.GetResponse();
                     // Display the status.
@@ -636,6 +636,8 @@ namespace AuthenticationServer.Controllers
                     WebResponse.Close();
 
                     combinedResponses += responseFromServer;
+
+                    shipment.responseMessage = responseFromServer;
                     xmlResponse = responseFromServer;
                     #region Parse response
                     XDocument xmlDoc = XDocument.Parse(responseFromServer);
@@ -646,8 +648,14 @@ namespace AuthenticationServer.Controllers
                         string carrier = rate.Element("carrier").Element("name").Value.Trim();
                         string direct = rate.Element("direct").Value.Trim();
                         string transitDays = (rate.Element("transitDays").Value.Trim().Length > 0) ? rate.Element("transitDays").Value.Trim() : "-";
-                        double cost = double.Parse(rate.Element("cost").Element("totalAmount").Value.Trim());
+                        double originalBaseAmount = double.Parse(rate.Element("cost").Element("baseAmount").Value.Trim());
+                        double originalFuelAmount = double.Parse(rate.Element("cost").Element("fuelAmount").Value.Trim());
+                        double originalAccessorialAmount = double.Parse(rate.Element("cost").Element("accessorialAmount").Value.Trim());
+                        double originalTotalAmount = double.Parse(rate.Element("cost").Element("totalAmount").Value.Trim());
+                        double customerCost = double.Parse(rate.Element("cost").Element("totalAmount").Value.Trim());
                         double totalCharges = 0;
+                        double plantSurcharge = 0;
+
 
                         #region -- Define variables for markup calculations --
                         double markupPercentage = 0;
@@ -655,29 +663,40 @@ namespace AuthenticationServer.Controllers
                         double perShipmentCharge = dPerShipmentChargeLTL[plantCode];
                         #endregion
 
-                        results.Append("Cost is " + cost.ToString() + "\n");
+                        results.Append("Cost is " + customerCost.ToString() + "\n");
                         results.Append("Markup percentage is " + markupPercentage.ToString() + "\n");
                         results.Append("Number of Packages is " + shipment.number_of_packages + "\n");
                         results.Append("Per package charge is " + perPackageCharge.ToString() + "\n");
                         results.Append("Per shipment charge is " + perShipmentCharge.ToString() + "\n");
 
-                        totalCharges = cost;
-                        if (dUpchargeLTL[plantCode] > 0) { totalCharges += ((dUpchargeLTL[plantCode] / 100) * cost); }
+                        totalCharges = customerCost;
+                        if (dUpchargeLTL[plantCode] > 0)
+                        {
+                            plantSurcharge = (dUpchargeLTL[plantCode] / 100);
+                            totalCharges += (plantSurcharge * customerCost);
+                        }
                         if (perPackageCharge > 0) { totalCharges += (perPackageCharge * shipment.number_of_packages); }
                         totalCharges += perShipmentCharge;
 
                         results.Append("Calculated total charge is " + totalCharges.ToString() + "\n\n");
 
-                        //if ((carrier != "LTL BENCHMARK") || (Session["DefaultPlant"].ToString() == "POR"))
                         if (carrier != "LTL BENCHMARK")
                         {
                             UPSService service = new UPSService();
                             service.PlantCode = plantCode;
                             service.ServiceName = carrier;
-                            service.Rate = cost.ToString("C");
+                            service.CustomerRate = customerCost.ToString("C");
                             service.TotalCost = totalCharges.ToString("C");
+
                             service.TransitDays = transitDays.ToString();
-                            service.Direct = direct;
+                            service.Plant_Surcharge = (plantSurcharge * originalTotalAmount).ToString("C");
+                            service.Plant_PerPackageCharge = (perPackageCharge * shipment.number_of_packages).ToString("C");
+                            service.Plant_ShipmentCharge = perShipmentCharge.ToString("C");
+
+                            service.RatedShipment_BaseServiceCharge_MonetaryValue = originalBaseAmount.ToString("C");
+                            service.RatedShipment_TransportationCharges_MonetaryValue = originalFuelAmount.ToString("C");
+                            service.RatedShipment_AccessorialCharges_MonetaryValue = originalAccessorialAmount.ToString("C");
+                            service.RatedShipment_TotalCharges_MonetaryValue = originalTotalAmount.ToString("C");
 
                             ltlServices.Add(service);
 
@@ -687,16 +706,20 @@ namespace AuthenticationServer.Controllers
                             UPSService service = new UPSService {
                                 PlantCode = plantCode,
                                 ServiceName = carrier,
-                                Rate = cost.ToString("C"),
+                                CustomerRate = customerCost.ToString("C"),
                                 TransitDays = transitDays.ToString(),
-                                Direct = direct
+                                Direct = direct,
+                                RatedShipment_BaseServiceCharge_MonetaryValue = originalBaseAmount.ToString("C"),
+                                RatedShipment_TransportationCharges_MonetaryValue = originalFuelAmount.ToString("C"),
+                                RatedShipment_AccessorialCharges_MonetaryValue = originalAccessorialAmount.ToString("C"),
+                                RatedShipment_TotalCharges_MonetaryValue = totalCharges.ToString("C")
                             };
 
                             ltlServices.Add (service);
                         }
 
-                        //List<Plant> plants = Plant.Plants();
-                        //foreach(var surcharge in )
+                        results.Append("</div>");
+                        shipment.results = results.ToString();
                         response.UPSServices = ltlServices.ToArray();
                     }
                     #endregion
@@ -759,6 +782,9 @@ namespace AuthenticationServer.Controllers
         private ShopRateResponse GetLessThanTruckloadRates_TI(Shipment shipment)
         {
             float PlantUpcharges = GetPlantUpcharges(shipment, "TI");
+            double plantSurcharge = 0;
+            double plantPackageCharge = 0;
+            double plantShipmentCharge = 0;
             ShopRateResponse response = new ShopRateResponse();
             if (shipment.AcctNum.IsNullOrWhiteSpace()) shipment.AcctNum = "0";
             try
@@ -785,6 +811,22 @@ namespace AuthenticationServer.Controllers
                     dPerShipmentChargeLTL.Add(drCharges["PlantCode"].ToString(), Convert.ToDouble(drCharges["PerShipmentCharge"].ToString()));
                     dUpchargeLTL.Add(drCharges["PlantCode"].ToString(), Convert.ToDouble(drCharges["Ground"].ToString()));
                 }
+                if (dUpchargeLTL[shipment.PlantId] > 0)
+                {
+                    plantSurcharge = dUpchargeLTL[shipment.PlantId];
+                    plantSurcharge = (plantSurcharge / 100);
+                }
+
+                if (dPerPackageChargeLTL[shipment.PlantId] > 0)
+                {
+                    plantPackageCharge = dPerPackageChargeLTL[shipment.PlantId];
+                }
+
+                if (dPerShipmentChargeLTL[shipment.PlantId] > 0)
+                {
+                    plantShipmentCharge = dPerShipmentChargeLTL[shipment.PlantId];
+                }
+
                 #endregion
 
                 StringBuilder sbResults = new StringBuilder();
@@ -879,7 +921,7 @@ namespace AuthenticationServer.Controllers
                     request.Append("<data>");
                         request.Append("<RateRequest><RatingLevel isCompanyAccountNumber=\"true\">WISE03RATE</RatingLevel>");
                         request.Append("<Constraints>");
-                            request.Append("<PaymentTerms>Third Party</PaymentTerms>");
+                            request.Append("<PaymentTerms>Prepaid</PaymentTerms>");
 
                             string accessorials = GetAccessorials(shipment);
                             if(accessorials.Length > 0)
@@ -908,11 +950,11 @@ namespace AuthenticationServer.Controllers
                         request.Append("</Items>");
 
                     request.Append("<Events>");
-                        request.Append("<Event sequence=\"1\" type=\"Pickup\" date=\"").Append(System.DateTime.Now.ToString("MM/dd/yyyy HH:mm")).Append("\">");
+                        request.Append("<Event sequence=\"1\" type=\"Pickup\" date=\"").Append(shipment.pick_up_date.ToString("MM/dd/yyyy HH:mm")).Append("\">");
                         request.Append("<Location><City>").Append(shipFromCity).Append("</City><State>").Append(shipFromState).Append("</State><Zip>").Append(shipFromZip).Append("</Zip><Country>").Append(shipFromCountry).Append("</Country></Location>");
                         request.Append("</Event>");
 
-                        request.Append("<Event sequence=\"2\" type=\"Drop\" date=\"").Append(System.DateTime.Now.AddDays(1).ToString("MM/dd/yyyy HH:mm")).Append("\">");
+                        request.Append("<Event sequence=\"2\" type=\"Drop\" date=\"").Append(shipment.pick_up_date.ToString("MM/dd/yyyy HH:mm")).Append("\">");
                         request.Append("<Location><City>").Append(shipment.Corrected_City).Append("</City><State>").Append(shipment.State_selection).Append("</State><Zip>").Append(shipment.Zip).Append("</Zip><Country>").Append(shipment.Country_selection).Append("</Country></Location>");
                         request.Append("</Event>");
                     request.Append("</Events>");
@@ -940,6 +982,8 @@ namespace AuthenticationServer.Controllers
                     dataStream.Write(byteArray, 0, byteArray.Length);
                     dataStream.Close();
 
+                    shipment.requestMessage = postData.ToString();
+
                     StringBuilder results = new StringBuilder(postData.ToString());
                     results.Append("\n\n\n");
                     results.Append("<br/>" + url);
@@ -964,7 +1008,7 @@ namespace AuthenticationServer.Controllers
 
                     combinedResponses += responseFromServer;
                     xmlResponse = responseFromServer;
-
+                    shipment.responseMessage = responseFromServer;
 
                     #region Parse response
                     // Decode response.
@@ -975,30 +1019,78 @@ namespace AuthenticationServer.Controllers
 
                     // Parse the result.
                     XDocument decodedXmlDoc = XDocument.Parse(decodedString);
-                    var priceSheets = decodedXmlDoc.Descendants("PriceSheet").Select(sheet => new
+                    var priceSheets = decodedXmlDoc.Descendants("PriceSheet").Select((pricesheet, index) => new
                     {
-                        CarrierName = sheet.Element("CarrierName")?.Value,
-                        Rate = sheet.Element("SubTotal")?.Value,
-                        TotalCost = sheet.Element("Total")?.Value,
-                        TransitDays = sheet.Element("ServiceDays")?.Value,
-                        Direct = string.Empty // Information not supplied.
+                        PriceSheetIndex = index + 1,
+                        CarrierName = pricesheet.Element("CarrierName")?.Value,
+                        Rate = pricesheet.Element("SubTotal")?.Value,
+                        TotalCost = pricesheet.Element("Total")?.Value,
+                        TransitDays = pricesheet.Element("ServiceDays")?.Value,
+                        FuelCharge = pricesheet
+                            .Element("Charges")?
+                            .Elements("Charge")
+                            .FirstOrDefault(charge => (string)charge.Attribute("type") == "ACCESSORIAL_FUEL")
+                            ?.Element("Amount")?.Value, // Adjust if you want a specific child node like <Amount>
+                        TotalAccessorialAmount = pricesheet
+                            .Element("Charges")?
+                            .Elements("Charge")
+                            .Where(charge => (string)charge.Attribute("type") == "ACCESSORIAL")
+                            .Sum(charge => decimal.TryParse(charge.Element("Amount")?.Value, out var amount) ? amount : 0) // Sums all amounts
+                        //AccessorialTotal = pricesheet.Element("AccessorialTotal")?.Value
+
                     });
 
                     foreach ( var priceSheet in priceSheets)
                     {
-                        float _totalCost = ((PlantUpcharges / 100) * float.Parse(priceSheet.TotalCost)) + float.Parse(priceSheet.TotalCost);
-                        int _transitDays = (int)float.Parse(priceSheet.TransitDays);
+                        double totalCharges = Convert.ToDouble(priceSheet.TotalCost);
+
+                        if(plantSurcharge > 0)
+                        {
+                            totalCharges += (plantSurcharge * Convert.ToDouble(priceSheet.TotalCost));
+                        }
+
+                        if(plantPackageCharge > 0)
+                        {
+                            totalCharges += (plantPackageCharge * shipment.number_of_packages);
+                        }
+
+                        totalCharges += plantShipmentCharge;
+
                         UPSService service = new UPSService();
+
                         service.PlantCode = plantCode;
                         service.ServiceName = priceSheet.CarrierName;
-                        //service.Rate = priceSheet.Rate;  // commented to prevent confusion as to which cost vallue to use.
-                        service.TotalCost = _totalCost.ToString("C");
-                        service.TransitDays = _transitDays.ToString();
-                        service.Direct = priceSheet.Direct;
+                        service.CustomerRate = priceSheet.TotalCost;
+                        service.TotalCost = totalCharges.ToString("C");
+
+                        service.TransitDays = priceSheet.TransitDays;
+                        service.Plant_Surcharge = (plantSurcharge * Convert.ToDouble(priceSheet.TotalCost)).ToString("C");
+                        service.Plant_PerPackageCharge = (plantPackageCharge * shipment.number_of_packages).ToString("C");
+                        service.Plant_ShipmentCharge = plantShipmentCharge.ToString("C");
+
+                        service.RatedShipment_BaseServiceCharge_MonetaryValue = priceSheet.Rate;
+                        service.RatedShipment_TransportationCharges_MonetaryValue = double.Parse(priceSheet.FuelCharge).ToString("C");
+                        service.RatedShipment_AccessorialCharges_MonetaryValue = priceSheet.TotalAccessorialAmount.ToString();
+                        service.RatedShipment_TotalCharges_MonetaryValue = priceSheet.TotalCost;
 
                         ltlServices.Add(service);
                     }
+
                     response.UPSServices = ltlServices.ToArray();
+
+                    try
+                    {
+                        response.UPSServices = response.UPSServices
+    .Where(s => !string.IsNullOrWhiteSpace(s.TransitDays) && !string.IsNullOrWhiteSpace(s.RatedShipment_TotalCharges_MonetaryValue)) // Filter out invalid rows
+    .OrderByDescending(s => float.TryParse(s.TransitDays, out float days) ? days : float.MinValue) // Parse TransitDays or use default for invalid values
+    .ThenBy(s => float.TryParse(s.RatedShipment_TotalCharges_MonetaryValue, out float cost) ? cost : float.MinValue) // Parse TotalCharges or use default
+    .ToArray();
+                    }
+                    catch(Exception ex)
+                    {
+                        // If there is a problem returnthe list unsorted.
+                        response.UPSServices = ltlServices.ToArray();
+                    }
                     #endregion
                 }
 
@@ -1237,16 +1329,16 @@ namespace AuthenticationServer.Controllers
                     switch (uPSService.PlantCode)
                     {
                         case "ALP":
-                            _alp_rate.Add(uPSService.Rate);
+                            _alp_rate.Add(uPSService.CustomerRate);
                             break;
                         case "BUT":
-                            _but_rate.Add(uPSService.Rate);
+                            _but_rate.Add(uPSService.CustomerRate);
                             break;
                         case "FTW":
-                            _ftw_rate.Add(uPSService.Rate);
+                            _ftw_rate.Add(uPSService.CustomerRate);
                             break;
                         case "POR":
-                            _por_rate.Add(uPSService.Rate);
+                            _por_rate.Add(uPSService.CustomerRate);
                             break;
                     }
                 }
@@ -1381,17 +1473,24 @@ namespace AuthenticationServer.Controllers
         { 
             StringBuilder accessorials = new StringBuilder();
 
-            if (shipment.notify_before_delivery) { accessorials.Append("<Service code=\"NOTIFY\">Notify Before Delivery</Service>");  }
-            if (shipment.liftgate_pickup) { accessorials.Append("<Service code=\"LIFT_GATE_PICKUP\">Liftgate Pickup</Service>"); }
-            if (shipment.liftgate_delivery) { accessorials.Append("<Service code=\"LIFT_GATE_DELIVERY\">Liftgate Delivery</Service>"); }
-            if (shipment.limited_access_pickup) { accessorials.Append("<Service code=\"LIMITED_ACCESS_PICKUP\">Limited Access Pickup</Service>"); }
-            if (shipment.limited_access_delivery) { accessorials.Append("<Service code=\"LIMITED_ACCESS_DELIVERY\">Limited Access Delivery</Service>"); }
-            if (shipment.residential_pickup) { accessorials.Append("<Service code=\"RESIDENTIAL_PICKUP\">Resitential Pickup</Service>"); }
-            if (shipment.residential_delivery) { accessorials.Append("<Service code=\"RESIDENTIAL_DELIVERY\">Resitential Delivery</Service>"); }
-            if (shipment.inside_pickup) { accessorials.Append("<Service code=\"INSIDE_PICKUP\">Inside Pickup</Service>"); }
-            if (shipment.inside_delivery) { accessorials.Append("<Service code=\"INSIDE_DELIVERY\">Inside Pickup</Service>"); }
-            if (shipment.sort_and_segregate) { accessorials.Append("<Service code=\"SORT_AND_SEGREGATE\">Sort and Segregate</Service>"); }
-            if (shipment.stopoff_charge) { accessorials.Append("<Service code=\"STOPOFF\">Stopoff Charge</Service>"); } // ? Not sure this is correct based on https://qa-api-docs.mercurygate.net/documentation/standard-data.html
+            // NPDEL	Notification Prior to Delivery
+            if (shipment.notify_before_delivery) { accessorials.Append("<ServiceFlag code=\"NPDEL\" />");  }
+            // LIFT	Liftgate Service
+            if (shipment.liftgate_pickup) { accessorials.Append("<ServiceFlag code=\"LIFT\" />"); }
+            if (shipment.liftgate_delivery) { accessorials.Append("<ServiceFlag code=\"LIFT\" />"); }
+            // LAPD	Limited Access Delivery
+            if (shipment.limited_access_pickup) { accessorials.Append("<ServiceFlag code=\"LAPD\" />"); }
+            if (shipment.limited_access_delivery) { accessorials.Append("<ServiceFlag code=\"LAPD\" />"); }
+            // RESD	Residential Delivery
+            if (shipment.residential_pickup) { accessorials.Append("<ServiceFlag code=\"RESD\" />"); }
+            if (shipment.residential_delivery) { accessorials.Append("<ServiceFlag code=\"RESD\" />"); }
+            // IDEL	Inside Delivery
+            if (shipment.inside_pickup) { accessorials.Append("<ServiceFlag code=\"IDEL\" />"); }
+            if (shipment.inside_delivery) { accessorials.Append("<ServiceFlag code=\"IDEL\" />"); }
+            // ???
+            if (shipment.sort_and_segregate) { accessorials.Append("<ServiceFlag code=\"SORT\" />"); }
+            // ???
+            if (shipment.stopoff_charge) { accessorials.Append("<ServiceFlag code=\"STOPOFF\" />"); } // ? Not sure this is correct based on https://qa-api-docs.mercurygate.net/documentation/standard-data.html
 
             return accessorials.ToString();
         }

@@ -86,7 +86,7 @@ namespace AuthenticationServer.Models
         static Dictionary<string, string> _PlantNames = new Dictionary<string, string>();
 
         static string _TransportationInsightDemoUrl = "https://t-insightws.mercurygate.net/MercuryGate/common/remoteService.jsp";
-        static string _TransportationInsightProdUrl = "";
+        static string _TransportationInsightProdUrl = "https://t-insightws.mercurygate.net/MercuryGate/common/remoteService.jsp";
         static string _TransprtationInsightApiUsername = "WiseWSTest";
         static string _TransprtationInsightApiPassword = "cRfx2PBt8SEAZFwjK3";
         static bool _TransprtationInsightDemoMode = true;

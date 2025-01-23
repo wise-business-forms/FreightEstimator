@@ -249,6 +249,7 @@
     <Compile Include="Models\Services\UPSRequest.cs" />
     <Compile Include="Models\Services\XAVResponse.cs" />
     <Compile Include="Models\Geography.cs" />
+    <Compile Include="Models\TICharge.cs" />
     <Compile Include="Models\UPSService.cs" />
     <Compile Include="Models\ShopRateResponse.cs" />
     <Compile Include="Models\Shipment.cs" />
@@ -338,6 +339,8 @@
     <Content Include="Views\Test\Index.cshtml" />
     <Content Include="Views\Log.cshtml" />
     <Content Include="Views\Log\Index.cshtml" />
+    <Content Include="Areas\Admin\Index.cshtml" />
+    <Content Include="Areas\Admin\Login.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

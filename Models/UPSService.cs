@@ -13,7 +13,7 @@ namespace AuthenticationServer.Models
         public string CWT { get; set; }   
         public string Direct {  get; set; }
         public string PlantCode { get; set; }
-        public string Rate { get; set; }
+        public string CustomerRate { get; set; }
         public string CWTRate { get; set; }
         public enum ServiceCode
         {
@@ -59,7 +59,7 @@ namespace AuthenticationServer.Models
         public string ServiceName { get; set; }
         public string ShipFrom { get; set; }   
         public string TotalCost { get; set; }
-        public string TransitDays { get; set; }
+        public string TransitDays { get; set; }        
 
         public string Plant_CarrierId { get; set; }
         public string Plant_PerPackageCharge { get; set; }
@@ -67,18 +67,23 @@ namespace AuthenticationServer.Models
         /// <summary>
         /// This is the service charge for this rate.
         /// </summary>
-        public string Plant_Surcharge { get; set; }       
+        public string Plant_Surcharge { get; set; }
 
         /// <summary>
-        /// The value for the transportation costs associated with the shipment.        
+        /// The original value for the accessorial costs associated with the shipment.        
+        /// </summary>
+        public string RatedShipment_AccessorialCharges_MonetaryValue { get; set; }
+
+        /// <summary>
+        /// The original value for the transportation costs associated with the shipment.        
         /// </summary>
         public string RatedShipment_TransportationCharges_MonetaryValue { get; set; }
         /// <summary>
-        /// The base value of the specific service for the shipment. This is equal to transportation charges - fuel surcharges
+        /// The original base value of the specific service for the shipment.
         /// </summary>
         public string RatedShipment_BaseServiceCharge_MonetaryValue { get; set; }
         /// <summary>
-        /// The value for the accessorial charges associated with the shipment.
+        /// The original value for the accessorial charges associated with the shipment.
         /// </summary>
         public string RatedShipment_ServiceOptionsCharges_MonetaryValue { get; set; }
         /// <summary>

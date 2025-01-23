@@ -40,50 +40,26 @@
                             <br />
                             <div class="alert alert-info text-center" role="alert">
                                 Send all queries or problem you may encounter to <a href="mailto:helpdesk@wbf.com">helpdesk@wbf.com</a>
-                                <br />
-                                For next couple of weeks as we work out any issues we will be including the change log below.
                             </div>
                         </div>
                         <div class="col"></div>
-                    </div>
-                    <div>
-                        <!--
-                        <h6>Change Log</h6>
-                        <div class="table">
-                            8/8/2024
-                            <ul>
-                                <li>Centered shipment form.</li>
-                                <li>Default zeros now disappear when entering field.</li>
-                                <li>Added <b>ShipFrom</b> information to confirmation page.</li>
-                            </ul>
-
-                            8/12/2024
-                            <ul>
-                                <li>Fixed calculation when shipping a single package with ground freight.</li>
-                                <li>Feight Class now shows up and hides approprietly.</li>
-                                <li>Country now defaults to the US.</li>
-                                <li>States have been abbreviated.</li>
-                                <li>Shipment confirmation now shows more detail including address classification if found.</li>
-                            </ul>
-
-                            8/19/2024
-                            <ul>
-                                <li>Rate without street address.</li>
-                                <li>Alpharetta (ALP) now requires account information.</li>
-                                <li>Rate page now shows accessorial information.</li>
-                                <li>Address correction now works.</li>
-                            </ul>
-
-                            9/12/2024
-                            <ul>
-                                <li>Corrected long term issue correcting CWT rates.</li>
-                                <li>Fixed an issue when changing weight vallues.</li>
-                            </ul>
-                        </div>
-                         -->
                     </div>
                 </main>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    const originalXml = "<?xml version=\"1.0\" ?>< quote ><requestedMode>LTL</requestedMode><requestedPickupDate>2024-12-12</requestedPickupDate><shipper><city>Fort Wayne</city><region>IN</region><country>US</country><postalCode>46818</postalCode></shipper><consignee><city>CORAOPOLIS</city><region>PA</region><country>US</country><postalCode>15108-4212</postalCode></consignee><lineItems><lineItem><freightClass>55</freightClass><weight>160</weight><weightUnit>LB</weightUnit></lineItem></lineItems></quote > ";
+    const escapedXml = originalXml
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+        
+    document.getElementById("xmlRequest").textContent = "<pre>" + escapedXml + "</pre>";
+    document.getElementById('hideXML').addEventListener('click', function () {
+        const content = document.getElementById('XML-DATA');
+        content.classList.add('hidden'); // Add the 'hidden' class to hide the element
+    });
+    </script>

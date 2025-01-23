@@ -1,6 +1,6 @@
 ﻿@model  AuthenticationServer.Models.Shipment
 @{
-    
+
     ViewBag.Title = "ShipmentConfirmation";
     System.Data.DataTable table = ViewBag.MultiView as System.Data.DataTable;
     System.Data.DataTable MultiGroundFreight = ViewBag.MultiGroundFreight as System.Data.DataTable;
@@ -14,10 +14,12 @@
 
     int rowIndex = 0;
 
-    var debug = false; // Use to show the raw carrier values.
+    var has_accessorials = false;
+
+    var debug = true; // Use to show the raw carrier values.
 
     var serviceNameTranslations = new Dictionary<string, string>
-    {
+{
         { "UPSGround", "UPS Ground" },
         { "UPS3DaySelect", "UPS 3 Day Select" },
         { "UPS2ndDayAir", "UPS 2nd Day Air" },
@@ -27,6 +29,9 @@
         { "NextDayAirEarlyAM", "Next Day Air Early AM" }
     };
 
+    var _plantSurcharge = "";
+    var _packageCharge = "";
+    var _shipmentCharge = "";
 }
 <div class="container shadow min-vh-10 py-2 content-panel">
     <div class="row">
@@ -34,14 +39,6 @@
             <div class="row d-flex">
                 <a href="/Help#rates" class="links text-end">? Help</a>
             </div>
-            @if (debug)
-            {
-                <div class="row d-flex">
-                    <div class="text-center debug-title">
-                        DEBUG MODE
-                    </div>
-                </div>
-            }
             <div class="row">
                 <div class="col-5">
                     @if (Model != null)
@@ -68,32 +65,42 @@
                             <div class="confirmation-address">
                                 Accessorials:&nbsp;
                                 @if (Model.notify_before_delivery)
-                                {<div class="confirmation-value">NOTIFY-BEFORE-DELIVERY</div>}
+                                {<div class="confirmation-value">NOTIFY-BEFORE-DELIVERY</div>has_accessorials = true;
+                                }
                                 @if (Model.liftgate_pickup)
-                                {<div class="confirmation-value">LIFTGATE-PICKUP</div>}
+                                {<div class="confirmation-value">LIFTGATE-PICKUP</div>has_accessorials = true;
+                                }
                                 @if (Model.liftgate_delivery)
-                                {<div class="confirmation-value">LIFTGATE-DEVLIVERY</div>}
+                                {<div class="confirmation-value">LIFTGATE-DELIVERY</div>has_accessorials = true;
+                                }
                                 @if (Model.limited_access_pickup)
-                                {<div class="confirmation-value">LIMITED-ACCESS-PICKUP</div>}
+                                {<div class="confirmation-value">LIMITED-ACCESS-PICKUP</div>has_accessorials = true;
+                                }
                                 @if (Model.limited_access_delivery)
-                                {<div class="confirmation-value">LIMITED-ACCESS-DELIVERY</div>}
+                                {<div class="confirmation-value">LIMITED-ACCESS-DELIVERY</div>has_accessorials = true;
+                                }
                                 @if (Model.residential_delivery)
-                                {<div class="confirmation-value">RESIDENTIAL-DEVLIVERY</div>}
+                                {<div class="confirmation-value">RESIDENTIAL-DELIVERY</div>has_accessorials = true;
+                                }
                                 @if (Model.inside_pickup)
-                                {<div class="confirmation-value">INSIDE-PICKUP</div>}
+                                {<div class="confirmation-value">INSIDE-PICKUP</div>has_accessorials = true;
+                                }
                                 @if (Model.inside_delivery)
-                                {<div class="confirmation-value">INSIDE-DEVLIVERY</div>}
+                                {<div class="confirmation-value">INSIDE-DELIVERY</div>has_accessorials = true;
+                                }
                                 @if (Model.sort_and_segregate)
-                                {<div class="confirmation-value">SORT-AND-SEGREGATE</div>}
+                                {<div class="confirmation-value">SORT-AND-SEGREGATE</div>has_accessorials = true;
+                                }
                                 @if (Model.stopoff_charge)
-                                {<div class="confirmation-value">STOPOFF-CHARGE</div>}
+                                {<div class="confirmation-value">STOPOFF-CHARGE</div>has_accessorials = true;
+                                }
                             </div>
                         }
                         <br />
                         <div class="confirmation-address d-flex">Address is:&nbsp;<div class="confirmation-value">@Model.Address_Classification</div></div>
                         <div class="confirmation-address d-flex">Billing weight: @Model.billing_weight lbs. ( @Model.number_of_packages pkgs)</div>
                         <br />
-                        <div class="d-flex">Date: @System.DateTime.Now.ToLongDateString()</div>
+                        <div class="d-flex">Date: @Model.pick_up_date.ToString("g")</div>
                     }
                 </div>
                 <div class=" col-3 ms-auto ">
@@ -119,27 +126,7 @@
         </div>
     </div>
 </div>
-@{
-    if (debug)
-    {
-        <div class="container shadow min-vh-10 py-2 content-panel">
-            <div class="row">
-                <div class="col">
-                    <div class="container">
-                        <div class="row">
-                            <div class="col-1"></div>
-                            <div class="col-10">                                
-                                Neg. Rate = Negotiated Rate Charges - The value for the Negotiated Rate total charges associated with the shipment.
-                                <br />Raw Rate&nbsp; = Total Charges - The value for the total charges associated with the shipment.
-                            </div>
-                             <div class="col-1"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
-}
+
 <div class="container shadow min-vh-10 py-2 content-panel">
     <div class="row">
         <div class="col">
@@ -156,20 +143,16 @@
                                 {
                                     <div class="container">
                                         <div class="row">
-                                            <div class="col">
-                                                <table class="shipGrid">
+                                            <div class="col-10">
+                                                <table class="shipGrid" id="upsRateTable">
                                                     <thead>
                                                         <tr>
                                                             <th scope="col">Ship From</th>
                                                             <th scope="col">Service</th>
-                                                            <th scope="col">Rate</th>
+                                                            <th scope="col">Cus. Rate</th>
                                                             <th scope="col">CWT?</th>
-                                                            @if (debug)
-                                                            {
-                                                                <th scope="col" class="debug-column-header">Neg. Rate</th>
-                                                                <th scope="col" class="debug-column-header">Raw Rate</th>
-                                                            }
-
+                                                            <th scope="col" class="debug-column-header" style="display: none">Neg. Rate</th>
+                                                            <th scope="col" class="debug-column-header" style="display: none">Raw Rate</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -183,20 +166,19 @@
                                                             <tr class="@rowClass">
                                                                 <td>@service.ShipFrom</td>
                                                                 <td>@displayServiceName</td>
-                                                                <td>@service.Rate</td>
+                                                                <td>@service.CustomerRate</td>
                                                                 <td>@_cwt</td>
-                                                                @if (debug)
-                                                                {
-                                                                    <td class="debug-column">$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
-                                                                    <td class="debug-column">$@service.RatedShipment_TotalCharges_MonetaryValue</td>
-                                                                }
+                                                                <td class="debug-column" style="display: none">$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
+                                                                <td class="debug-column" style="display: none">$@service.RatedShipment_TotalCharges_MonetaryValue</td>
                                                             </tr>
                                                             rowIndex++;
                                                         }
                                                     </tbody>
                                                 </table>
                                             </div>
-                                            <div class="col"><img src="~/Content/img/LOGO_L.gif" /></div>
+                                            <div class="col">
+                                                <img src="~/Content/img/LOGO_L.gif" />
+                                            </div>
                                         </div>
                                     </div>
                                 }
@@ -242,7 +224,7 @@
                                         <div class="col center-column">
                                             <div class="confirmation-value">Unable to rate shipments of more than 50 packages via UPS.</div>
                                             <br />
-                                            @if(Model.ErrorMessage == "Address not validated")
+                                            @if (Model.ErrorMessage == "Address not validated")
                                             {
                                                 <div class="confirmation-value">Address could not be validated.  Please double check manually.</div>
                                             }
@@ -302,22 +284,21 @@
                                     </div>
                                 </div>
                             }
-                            else if (Model.include_ground_rate_selection == "Yes" && Model.multiple_location_rate_selection == "No")
+                            else if (Model.include_ground_rate_selection == "Yes" )
                             {
                                 <div class="container">
                                     <div class="row">
-                                        <div class="col">
-                                            <table class="shipGrid">
+                                        <div class="col-10">
+                                            <table class="shipGrid" id="m33RateTable">
                                                 <thead>
                                                     <tr>
                                                         <th scope="col">Ship From</th>
                                                         <th scope="col">Service</th>
-                                                        <th scope="col">Rate</th>
-                                                        @if (debug)
-                                                        {
-                                                            <th scope="col" class="debug-column-header">Neg. Rate</th>
-                                                            <th scope="col" class="debug-column-header">Raw Rate</th>
-                                                        }
+                                                        <th scope="col">Customer Cost</th>
+                                                        <!--
+                                                        <th scope="col" class="debug-column-header" id="ExtraData">Neg. Rate</th>
+                                                        <th scope="col" class="debug-column-header" id="ExtraData">Raw Rate</th>
+                                                        -->
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -327,19 +308,20 @@
                                                         <tr class="@rowClass">
                                                             <td>@service.PlantCode</td>
                                                             <td>@(service.ServiceName == "UPSGround" ? "Ground Freight" : service.ServiceName)</td>
-                                                            <td>@service.Rate</td>
-                                                            @if (debug)
-                                                            {
-                                                                <td class="debug-column">$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
-                                                                <td class="debug-column">$@service.RatedShipment_TotalCharges_MonetaryValue</td>
-                                                            }
+                                                            <td>@service.CustomerRate</td>
+                                                            <!--
+                                                            <td id="ExtraData" class="debug-column">$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
+                                                            <td id="ExtraData" class="debug-column">$@service.RatedShipment_TotalCharges_MonetaryValue</td>
+                                                            -->
                                                         </tr>
                                                         rowIndex++;
-                                                    }
+                                                    }                                                    
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <div class="col"><img src="~/Content/img/LOGO_L.gif" /></div>
+                                        <div class="col">
+                                            <img src="~/Content/img/LOGO_L.gif" />
+                                        </div>
                                     </div>
 
                                 </div>
@@ -347,104 +329,183 @@
 
                             if (Model.include_ltl_rate_selection == "Yes")
                             {
-                    <div class="container">
-                        @try
-                        {
-                            if (Model.shopLessThanTruckloadResponseM33.UPSServices.Length > 0)
-                            {
-                                <div class="row">
-                                    <div class="col">
-                                        <table class="shipGrid">
-                                            <thead>
-                                                <tr>
-                                                    <th scope="col">Ship From</th>
-                                                    <th scope="col">Service</th>
-                                                    <th scope="col">Transit Days</th>
-                                                    <th scope="col">Direct</th>
-                                                    <th scope="col">Rate</th>
-                                                    @if (debug)
-                                                    {
-                                                        <th scope="col" class="debug-column-header">Neg. Rate</th>
-                                                        <th scope="col" class="debug-column-header">Raw Rate</th>
-                                                    }
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach (var service in Model.shopLessThanTruckloadResponseM33.UPSServices)
-                                                {
-                                                    var rowClass = rowIndex % 2 == 0 ? "" : "alt";
-                                                    <tr class="@rowClass">
-                                                        <td>@service.PlantCode</td>
-                                                        <td>@service.ServiceName</td>
-                                                        <td>@service.TransitDays</td>
-                                                        <td>@service.Direct</td>
-                                                        <td>@service.TotalCost</td>
-                                                        @if (debug)
-                                                        {
-                                                            <td class="debug-column">$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
-                                                            <td class="debug-column">$@service.RatedShipment_TotalCharges_MonetaryValue</td>
-                                                        }
+                                <div class="container">
+                                    @try
+                                    {
+                                        if (Model.shopLessThanTruckloadResponseM33.UPSServices.Length > 0)
+                                        {
+                                            <div class="row">
+                                                <div class="col-10">
+                                                    <table class="shipGrid" id="m33RateTable">
+                                                        <thead>
+                                                            <tr>
+                                                                <th scope="col" title="Shipping plant ID.">Ship From</th>
+                                                                <th scope="col" title="Carrier Service">Service</th>
+                                                                <th scope="col" title="Expected number of days in transit from origin to destination.">Transit Days</th>
+                                                                <th scope="col" title="The total cost of the shipment including all markup, service fees and surcharges.">Customer Cost</th>
+
+                                                                <!-- values for calculations -->
+                                                                <th scope="col" title="Plant per package charge." class="debug-column-header" style="display: none">Plant Surchg.</th>
+                                                                <th scope="col" title="Plant per package charge." class="debug-column-header" style="display: none">Pkg Chg.</th>
+                                                                <th scope="col" title="Plant per shipment charge." class="debug-column-header" style="display: none">Shipt. Chg.</th>
+
+                                                                <!-- original API values -->
+                                                                <th scope="col" title="Total charge from the carrier including all of their fees." class="debug-column-header" style="display: none">Carrier Chg.</th>
+                                                                <th scope="col" title="Our negotiated rate from the carrier." class="debug-column-header" style="display: none">Base Rate</th>
+                                                                <th scope="col" title="Transportation charges." class="debug-column-header" style="display: none">Fuel Chg.</th>
+                                                                <th scope="col" title="Accessorial charges." class="debug-column-header" style="display: none">Acc. Chg.</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach (var service in Model.shopLessThanTruckloadResponseM33.UPSServices)
+                                                            {
+                                                                _plantSurcharge = (double.Parse(service.Plant_Surcharge, System.Globalization.NumberStyles.Currency, System.Globalization.CultureInfo.CurrentCulture) / double.Parse(service.RatedShipment_TotalCharges_MonetaryValue, System.Globalization.NumberStyles.Currency, System.Globalization.CultureInfo.CurrentCulture)).ToString("P0");
+                                                                _packageCharge = service.Plant_PerPackageCharge;
+                                                                _shipmentCharge = service.Plant_ShipmentCharge;
+
+                                                                var rowClass = rowIndex % 2 == 0 ? "" : "alt";
+
+                                                                if (
+                                                                    (service.RatedShipment_AccessorialCharges_MonetaryValue == "$0.00" && has_accessorials) ||
+                                                                    (service.RatedShipment_AccessorialCharges_MonetaryValue != "$0.00" && !has_accessorials)
+                                                                    )
+                                                                {
+                                                                    rowClass = "error-row";
+                                                                }
+
+                                                                <tr class="@rowClass">
+                                                                    <td>@service.PlantCode</td><!-- 0: Ship From -->
+                                                                    <td>@service.ServiceName</td><!-- 1: Service -->
+                                                                    <td>@service.TransitDays</td><!-- 2: Transit Days -->
+                                                                    <td>@service.TotalCost</td><!-- 3: Total Costs -->
+                                                                    <!-- values for calculations -->
+                                                                    <td style="display: none" class="debug-column">@service.Plant_Surcharge</td> <!-- 4: Rate -->
+                                                                    <td style="display: none" class="debug-column">@service.Plant_PerPackageCharge</td> <!-- 5: Rate -->
+                                                                    <td style="display: none" class="debug-column">@service.Plant_ShipmentCharge</td><!-- 6: Shipt. Chg. -->
+                                                                    <!-- original API values -->
+                                                                    <td style="display: none" class="debug-column"><strong>@service.RatedShipment_TotalCharges_MonetaryValue</strong></td><!-- 7: Total Charge -->
+                                                                    <td style="display: none" class="debug-column"><strong>@service.RatedShipment_BaseServiceCharge_MonetaryValue</strong></td><!-- 8: Base Rate -->
+                                                                    <td style="display: none" class="debug-column"><strong>@service.RatedShipment_TransportationCharges_MonetaryValue</strong></td><!-- 9: Fuel Chg. -->
+                                                                    <td style="display: none" class="debug-column"><strong>@service.RatedShipment_AccessorialCharges_MonetaryValue</strong></td><!-- 10: Accessorial -->
+                                                                </tr>
+                                                                rowIndex++;
+                                                            }
+                                                        </tbody>
+                                                        <tfoot id="debug-help-m33" style="display: none">
+                                                            <tr>
+                                                                <td colspan="4">
+                                                                    Plant surcharge: @_plantSurcharge<br />
+                                                                </td>
+                                                                <td colspan="7">
+                                                                    Customer Cost = Plant Surcharge + Package Charge + Shipment Charge + Carrier Charge
+                                                                    <br />
+                                                                    Carrier Charge = Base Rate + Fuel Charge + Accessorial Charge
+                                                                    <br />
+                                                                    All figures in bold are unaltered from the carrier.
+                                                                </td>
+                                                            </tr>
+                                                        </tfoot>
+                                                    </table>
+                                                </div>
+                                                <div class="col">
+                                                    <img src="~/Content/img/m33logo.jpg" width="75" height="75" />
+                                                    <br />
+                                                    <button id="m33Button" onclick="toggleM33Columns([4,5,6,7,8,9,10])" class="toggleButton"></button>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+
+                                    }
+                                    <div class="row">
+                                        <div class="col-10">
+                                            <table class="shipGrid" id="TIRateTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th scope="col" title="Shipping plant ID.">Ship From</th>
+                                                        <th scope="col" title="Carrier Service">Service</th>
+                                                        <th scope="col" title="Expected number of days in transit from origin to destination.">Transit Days</th>
+                                                        <th scope="col" title="The total cost of the shipment including all markup, service fees and surcharges.">Customer Cost</th>
+
+                                                        <!-- values for calculations -->
+                                                        <th scope="col" title="Plant per package charge." class="debug-column-header" style="display: none">Plant Surchg.</th>
+                                                        <th scope="col" title="Plant per package charge." class="debug-column-header" style="display: none">Pkg Chg.</th>
+                                                        <th scope="col" title="Plant per shipment charge." class="debug-column-header" style="display: none">Shipt. Chg.</th>
+
+                                                        <!-- original API values -->
+                                                        <th scope="col" title="Total charge from the carrier including all of their fees." class="debug-column-header" style="display: none">Carrier Chg.</th>
+                                                        <th scope="col" title="Our negotiated rate from the carrier." class="debug-column-header" style="display: none">Base Rate</th>
+                                                        <th scope="col" title="Transportation charges." class="debug-column-header" style="display: none">Fuel Chg.</th>
+                                                        <th scope="col" title="Accessorial charges." class="debug-column-header" style="display: none">Acc. Chg.</th>
+
                                                     </tr>
-                                                    rowIndex++;
-                                                }
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div class="col"><img src="~/Content/img/m33logo.jpg" width="75" height="75" /></div>
-                                </div>
-                            }
-                            else
-                            {
+                                                </thead>
+                                                <tbody>
 
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-
-                        }
-                        <!--
-                            <div class="row">
-                                <div class="col">
-                                    <table class="shipGrid">
-                                        <thead>
-                                            <tr>
-                                                <th scope="col">Ship From</th>
-                                                <th scope="col">Service</th>
-                                                <th scope="col">Transit Days</th>
-                                                <th scope="col">Direct</th>
-                                                <th scope="col">Rate</th>
-                                                @if (debug)
-                                                {
-                                                    <th scope="col" class="debug-column-header">Neg. Rate</th>
-                                                    <th scope="col" class="debug-column-header">Raw Rate</th>
-                                                }
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var service in Model.shopLessThanTruckloadResponseTransportInsight.UPSServices)
-                                            {
-                                                var rowClass = rowIndex % 2 == 0 ? "" : "alt";
-                                                <tr class="@rowClass">
-                                                    <td>@service.PlantCode</td>
-                                                    <td>@service.ServiceName</td>
-                                                    <td>@service.TransitDays</td>
-                                                    <td>@service.Direct</td>on
-                                                    <td>@service.TotalCost</td>
-                                                    @if (debug)
+                                                    @foreach (var service in Model.shopLessThanTruckloadResponseTransportInsight.UPSServices)
                                                     {
-                                                        <td class="debug-column">$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
-                                                        <td class="debug-column">$@service.RatedShipment_TotalCharges_MonetaryValue</td>
+                                                        _plantSurcharge = (double.Parse(service.Plant_Surcharge, System.Globalization.NumberStyles.Currency, System.Globalization.CultureInfo.CurrentCulture) / double.Parse(service.RatedShipment_TotalCharges_MonetaryValue, System.Globalization.NumberStyles.Currency, System.Globalization.CultureInfo.CurrentCulture)).ToString("P0");
+                                                        _packageCharge = service.Plant_PerPackageCharge;
+                                                        _shipmentCharge = service.Plant_ShipmentCharge;
+
+                                                        var rowClass = rowIndex % 2 == 0 ? "" : "alt";
+
+                                                        if (
+                                                            (service.RatedShipment_AccessorialCharges_MonetaryValue == "$0.00" && has_accessorials) ||
+                                                            (service.RatedShipment_AccessorialCharges_MonetaryValue != "$0.00" && !has_accessorials)
+                                                            )
+                                                        {
+                                                            //rowClass = "error-row";
+                                                        }
+
+                                                        <tr class="@rowClass">
+                                                            <td>@service.PlantCode</td><!-- 0: Ship From -->
+                                                            <td>@service.ServiceName</td><!-- 1: Service -->
+                                                            <td>@service.TransitDays</td><!-- 2: Transit Days -->
+                                                            <td>@service.TotalCost</td><!-- 3: Total Costs -->
+                                                            <!-- values for calculations -->
+                                                            <td style="display: none" class="debug-column">@service.Plant_Surcharge</td> <!-- 4: Rate -->
+                                                            <td style="display: none" class="debug-column">@service.Plant_PerPackageCharge</td> <!-- 5: Rate -->
+                                                            <td style="display: none" class="debug-column">@service.Plant_ShipmentCharge</td><!-- 6: Shipt. Chg. -->
+                                                            <!-- original API values -->
+                                                            <td style="display: none" class="debug-column"><strong>@service.RatedShipment_TotalCharges_MonetaryValue</strong></td><!-- 7: Total Charge -->
+                                                            <td style="display: none" class="debug-column"><strong>@service.RatedShipment_BaseServiceCharge_MonetaryValue</strong></td><!-- 8: Base Rate -->
+                                                            <td style="display: none" class="debug-column"><strong>@service.RatedShipment_TransportationCharges_MonetaryValue</strong></td><!-- 9: Fuel Chg. -->
+                                                            <td style="display: none" class="debug-column"><strong>@service.RatedShipment_AccessorialCharges_MonetaryValue</strong></td><!-- 10: Accessorial -->
+
+                                                        </tr>
+                                                        rowIndex++;
                                                     }
-                                                </tr>
-                                                rowIndex++;
-                                            }
-                                        </tbody>
-                                    </table>
+                                                </tbody>
+                                                <tfoot id="debug-help-ti" style="display: none">
+                                                    <tr>
+                                                        <td colspan="4">
+                                                            Plant surcharge: @_plantSurcharge<br />
+                                                        </td>
+                                                        <td colspan="7">
+                                                            Customer Cost = Plant Surcharge + Package Charge + Shipment Charge + Carrier Charge
+                                                            <br />
+                                                            Carrier Charge = Base Rate + Fuel Charge + Accessorial Charge
+                                                            <br />
+                                                            All figures in bold are unaltered from the carrier.
+                                                        </td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                        <div class="col">
+                                            <img src="~/Content/img/TI_logo.png" width="75" height="75" />
+                                            <br />
+                                            <button id="TIButton" onclick="toggleTIColumns([4,5,6,7,8,9,10])" class="toggleButton"></button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col"><img src="~/Content/img/TI_logo.png" width="75" height="75" /></div>
-                            </div>
-                        -->
-                    </div>
                             }
                         }
                         else
@@ -468,7 +529,6 @@
 </div>
 
 
-
 <div class="row align-items-center">
     <div class="col-1"></div>
     <div class="col center-column">
@@ -485,13 +545,100 @@
     <div class="col-1"></div>
 </div>
 
+
 <script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+        // Select the button by its ID
+        //document.getElementById('m33Button').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data"
+        document.getElementById('TIButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data"
+    });
+
+
     function goBack() {
         window.history.back();
     }
 
     function goHome() {
         window.location.href = "/Home";
+    }
+
+    function toggleUPSColumns(colIndices) {
+
+
+        // Get the table
+        var table = document.getElementById('upsRateTable');
+        // Iterate over all rows
+        for (var row of table.rows) {
+            // Iterate over the specified column indices
+            for (var colIndex of colIndices) {
+                // Get the cell in the specified column
+                var cell = row.cells[colIndex];
+                if (cell) {
+                    // Toggle visibility
+                    if (cell.style.display === 'none') {
+                        cell.style.display = '';  // Show the cell
+                        document.getElementById('upsButton').innerHTML = "<i class=\"fas fa-eye-slash\"></i> Hide Extra Data"
+                        document.getElementById('debug-div').display = '';
+                    } else {
+                        cell.style.display = 'none';  // Hide the cell
+                        document.getElementById('upsButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data"
+                        document.getElementById('debug-div').display = 'none';
+                    }
+                }
+            }
+        }
+    }
+
+    function toggleM33Columns(colIndices) {
+
+        // Get the table
+        var table = document.getElementById('m33RateTable');
+        // Iterate over all rows
+        for (var row of table.rows) {
+            // Iterate over the specified column indices
+            for (var colIndex of colIndices) {
+                // Get the cell in the specified column
+                var cell = row.cells[colIndex];
+                if (cell) {
+                    // Toggle visibility
+                    if (cell.style.display === 'none') {
+                        cell.style.display = '';  // Show the cell
+                        document.getElementById('debug-help-m33').style.display = ''
+                        document.getElementById('m33Button').innerHTML = "<i class=\"fas fa-eye-slash\"></i> Hide Extra Data"
+                    } else {
+                        cell.style.display = 'none';  // Hide the cell
+                        document.getElementById('debug-help-m33').style.display = 'none'
+                        document.getElementById('m33Button').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data"
+                    }
+                }
+            }
+        }
+    }
+
+    function toggleTIColumns(colIndices) {
+
+        // Get the table
+        var table = document.getElementById('TIRateTable');
+        // Iterate over all rows
+        for (var row of table.rows) {
+            // Iterate over the specified column indices
+            for (var colIndex of colIndices) {
+                // Get the cell in the specified column
+                var cell = row.cells[colIndex];
+                if (cell) {
+                    // Toggle visibility
+                    if (cell.style.display === 'none') {
+                        cell.style.display = '';  // Show the cell
+                        document.getElementById('debug-help-ti').style.display = ''
+                        document.getElementById('TIButton').innerHTML = "<i class=\"fas fa-eye-slash\"></i> Hide Extra Data"
+                    } else {
+                        cell.style.display = 'none';  // Hide the cell
+                        document.getElementById('debug-help-ti').style.display = 'none'
+                        document.getElementById('TIButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data"
+                    }
+                }
+            }
+        }
     }
 </script>
 
