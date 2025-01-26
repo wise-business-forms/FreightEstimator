@@ -289,8 +289,10 @@
                                     </div>
                                     <div class="col">
                                         <img src="~/Content/img/LOGO_L.gif" />
-                                        <br />
-                                        <button id="upsButton" onclick="toggleUPSColumns([4,5,6,7,8,9,10])" class="toggleButton"></button>
+                                        <!--
+    <br />
+    <button id="upsButton" onclick="toggleUPSColumns([4,5,6,7,8,9,10])" class="toggleButton"></button>
+        -->
                                     </div>
                                 </div>
 
@@ -396,8 +398,10 @@
                                         </div>
                                         <div class="col">
                                             <img src="~/Content/img/LOGO_L.gif" />
-                                            <br />
-                                            <button id="upsGroundButton" onclick="toggleUPSGroundColumns([4,5,6,7,8,9,10])" class="toggleButton"></button>
+                                            <!--
+    <br />
+    <button id="upsGroundButton" onclick="toggleUPSGroundColumns([4,5,6,7,8,9,10])" class="toggleButton"></button>
+        -->
                                         </div>
                                     </div>
 
@@ -630,10 +634,11 @@
 <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function () {
         // Select the button by its ID
-        //document.getElementById('m33Button').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data"
+        document.getElementById('upsButton').display = 'none';
+        //document.getElementById('upsButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";
+        //document.getElementById('upsGroundButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";
         document.getElementById('TIButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";
-        document.getElementById('upsButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";
-        document.getElementById('upsGroundButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";
+        
     });
 
 
