@@ -237,6 +237,65 @@
                                 </div>
                             }
 
+                            <!-- BASE UPS RATES -->
+                            <div class="container">
+                                <div class="row">
+                                    <div class="col-10">
+                                        <table class="shipGrid" id="upsRateTable">
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col" title="Shipping plant ID.">Ship From</th>
+                                                    <th scope="col" title="Carrier Service">Service</th>
+                                                    <th scope="col" title="The total cost of the shipment including all markup, service fees and surcharges.">Customer Cost</th>
+
+                                                    <!-- values for calculations -->
+                                                    <th scope="col" title="Plant per package charge." class="debug-column-header" style="display: none">Plant Surchg.</th>
+                                                    <th scope="col" title="Plant per package charge." class="debug-column-header" style="display: none">Pkg Chg.</th>
+                                                    <th scope="col" title="Plant per shipment charge." class="debug-column-header" style="display: none">Shipt. Chg.</th>
+
+                                                    <!-- original API values -->
+                                                    <th scope="col" title="Total charge from the carrier including all of their fees." class="debug-column-header" style="display: none">Carrier Chg.</th>
+                                                    <th scope="col" title="Our negotiated rate from the carrier." class="debug-column-header" style="display: none">Base Rate</th>
+                                                    <th scope="col" title="Transportation charges." class="debug-column-header" style="display: none">Fuel Chg.</th>
+                                                    <th scope="col" title="Accessorial charges." class="debug-column-header" style="display: none">Acc. Chg.</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var service in Model.shopCompareRates[0].UPSServices)
+                                                {
+                                                    var rowClass = rowIndex % 2 == 0 ? "" : "alt";
+                                                    <tr class="@rowClass">
+                                                        <td>@service.PlantCode</td>
+                                                        <td>@(serviceNameTranslations[service.ServiceName])</td>
+                                                        <td>@service.CustomerRate</td>
+
+                                                        <!-- values for calculations -->
+                                                        <td style="display: none" class="debug-column">@service.Plant_Surcharge</td> <!-- 4: Rate -->
+                                                        <td style="display: none" class="debug-column">@service.Plant_PerPackageCharge</td> <!-- 5: Rate -->
+                                                        <td style="display: none" class="debug-column">@service.Plant_ShipmentCharge</td><!-- 6: Shipt. Chg. -->
+                                                        <!-- original API values -->
+                                                        <td style="display: none" class="debug-column"><strong>@service.RatedShipment_TotalCharges_MonetaryValue</strong></td><!-- 7: Total Charge -->
+                                                        <td style="display: none" class="debug-column"><strong>@service.RatedShipment_BaseServiceCharge_MonetaryValue</strong></td><!-- 8: Base Rate -->
+                                                        <td style="display: none" class="debug-column"><strong>@service.RatedShipment_TransportationCharges_MonetaryValue</strong></td><!-- 9: Fuel Chg. -->
+                                                        <td style="display: none" class="debug-column"><strong>@service.RatedShipment_AccessorialCharges_MonetaryValue</strong></td><!-- 10: Accessorial -->
+                                                    </tr>
+                                                    rowIndex++;
+                                                }
+
+
+
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="col">
+                                        <img src="~/Content/img/LOGO_L.gif" />
+                                        <br />
+                                        <button id="upsButton" onclick="toggleUPSColumns([4,5,6,7,8,9,10])" class="toggleButton"></button>
+                                    </div>
+                                </div>
+
+                            </div>
+
                             <!-- GRID 2 - UPS Ground Freight -->
                             if (Model.include_ground_rate_selection == "Yes" && Model.multiple_location_rate_selection == "Yes")
                             {
@@ -284,21 +343,28 @@
                                     </div>
                                 </div>
                             }
-                            else if (Model.include_ground_rate_selection == "Yes" )
+                            else if (Model.include_ground_rate_selection == "Yes")
                             {
                                 <div class="container">
                                     <div class="row">
                                         <div class="col-10">
-                                            <table class="shipGrid" id="m33RateTable">
+                                            <table class="shipGrid" id="upsGroundRateTable">
                                                 <thead>
                                                     <tr>
-                                                        <th scope="col">Ship From</th>
-                                                        <th scope="col">Service</th>
-                                                        <th scope="col">Customer Cost</th>
-                                                        <!--
-                                                        <th scope="col" class="debug-column-header" id="ExtraData">Neg. Rate</th>
-                                                        <th scope="col" class="debug-column-header" id="ExtraData">Raw Rate</th>
-                                                        -->
+                                                        <th scope="col" title="Shipping plant ID.">Ship From</th>
+                                                        <th scope="col" title="Carrier Service">Service</th>
+                                                        <th scope="col" title="The total cost of the shipment including all markup, service fees and surcharges.">Customer Cost</th>
+
+                                                        <!-- values for calculations -->
+                                                        <th scope="col" title="Plant per package charge." class="debug-column-header" style="display: none">Plant Surchg.</th>
+                                                        <th scope="col" title="Plant per package charge." class="debug-column-header" style="display: none">Pkg Chg.</th>
+                                                        <th scope="col" title="Plant per shipment charge." class="debug-column-header" style="display: none">Shipt. Chg.</th>
+
+                                                        <!-- original API values -->
+                                                        <th scope="col" title="Total charge from the carrier including all of their fees." class="debug-column-header" style="display: none">Carrier Chg.</th>
+                                                        <th scope="col" title="Our negotiated rate from the carrier." class="debug-column-header" style="display: none">Base Rate</th>
+                                                        <th scope="col" title="Transportation charges." class="debug-column-header" style="display: none">Fuel Chg.</th>
+                                                        <th scope="col" title="Accessorial charges." class="debug-column-header" style="display: none">Acc. Chg.</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -309,23 +375,38 @@
                                                             <td>@service.PlantCode</td>
                                                             <td>@(service.ServiceName == "UPSGround" ? "Ground Freight" : service.ServiceName)</td>
                                                             <td>@service.CustomerRate</td>
-                                                            <!--
-                                                            <td id="ExtraData" class="debug-column">$@service.RatedShipment_NegotiatedRateCharges_TotalCharge</td>
-                                                            <td id="ExtraData" class="debug-column">$@service.RatedShipment_TotalCharges_MonetaryValue</td>
-                                                            -->
+
+                                                            <!-- values for calculations -->
+                                                            <td style="display: none" class="debug-column">@service.Plant_Surcharge</td> <!-- 4: Rate -->
+                                                            <td style="display: none" class="debug-column">@service.Plant_PerPackageCharge</td> <!-- 5: Rate -->
+                                                            <td style="display: none" class="debug-column">@service.Plant_ShipmentCharge</td><!-- 6: Shipt. Chg. -->
+                                                            <!-- original API values -->
+                                                            <td style="display: none" class="debug-column"><strong>@service.RatedShipment_TotalCharges_MonetaryValue</strong></td><!-- 7: Total Charge -->
+                                                            <td style="display: none" class="debug-column"><strong>@service.RatedShipment_BaseServiceCharge_MonetaryValue</strong></td><!-- 8: Base Rate -->
+                                                            <td style="display: none" class="debug-column"><strong>@service.RatedShipment_TransportationCharges_MonetaryValue</strong></td><!-- 9: Fuel Chg. -->
+                                                            <td style="display: none" class="debug-column"><strong>@service.RatedShipment_AccessorialCharges_MonetaryValue</strong></td><!-- 10: Accessorial -->
                                                         </tr>
                                                         rowIndex++;
-                                                    }                                                    
+                                                    }
+
+
+
                                                 </tbody>
                                             </table>
                                         </div>
                                         <div class="col">
                                             <img src="~/Content/img/LOGO_L.gif" />
+                                            <br />
+                                            <button id="upsGroundButton" onclick="toggleUPSGroundColumns([4,5,6,7,8,9,10])" class="toggleButton"></button>
                                         </div>
                                     </div>
 
                                 </div>
                             }
+
+
+
+
 
                             if (Model.include_ltl_rate_selection == "Yes")
                             {
@@ -410,7 +491,7 @@
                                                 <div class="col">
                                                     <img src="~/Content/img/m33logo.jpg" width="75" height="75" />
                                                     <br />
-                                                    <button id="m33Button" onclick="toggleM33Columns([4,5,6,7,8,9,10])" class="toggleButton"></button>
+                                                    <button id="TIButton" onclick="toggleM33Columns([4,5,6,7,8,9,10])" class="toggleButton"></button>
                                                 </div>
                                             </div>
                                         }
@@ -550,7 +631,9 @@
     document.addEventListener("DOMContentLoaded", function () {
         // Select the button by its ID
         //document.getElementById('m33Button').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data"
-        document.getElementById('TIButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data"
+        document.getElementById('TIButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";
+        document.getElementById('upsButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";
+        document.getElementById('upsGroundButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";
     });
 
 
@@ -578,11 +661,34 @@
                     if (cell.style.display === 'none') {
                         cell.style.display = '';  // Show the cell
                         document.getElementById('upsButton').innerHTML = "<i class=\"fas fa-eye-slash\"></i> Hide Extra Data"
-                        document.getElementById('debug-div').display = '';
                     } else {
                         cell.style.display = 'none';  // Hide the cell
                         document.getElementById('upsButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data"
-                        document.getElementById('debug-div').display = 'none';
+                    }
+                }
+            }
+        }
+    }
+
+    function toggleUPSGroundColumns(colIndices) {
+
+
+        // Get the table
+        var table = document.getElementById('upsGroundRateTable');
+        // Iterate over all rows
+        for (var row of table.rows) {
+            // Iterate over the specified column indices
+            for (var colIndex of colIndices) {
+                // Get the cell in the specified column
+                var cell = row.cells[colIndex];
+                if (cell) {
+                    // Toggle visibility
+                    if (cell.style.display === 'none') {
+                        cell.style.display = '';  // Show the cell
+                        document.getElementById('upsGroundButton').innerHTML = "<i class=\"fas fa-eye-slash\"></i> Hide Extra Data"
+                    } else {
+                        cell.style.display = 'none';  // Hide the cell
+                        document.getElementById('upsGroundButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data"
                     }
                 }
             }

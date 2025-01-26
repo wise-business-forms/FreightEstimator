@@ -331,6 +331,8 @@ namespace AuthenticationServer.Controllers
             { 
                 shipment.shopGroundFreightResponse = GetGroundFreightRate(shipment);
                 shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, "UPSGroundFreight", shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate, shipment.shopGroundFreightResponse.UPSServices[0].CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString());
+
+                
             }
 
             // GRID 3 - LTL Rates
