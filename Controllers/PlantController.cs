@@ -338,10 +338,20 @@ namespace AuthenticationServer.Controllers
             // GRID 3 - LTL Rates
             if (shipment.include_ltl_rate_selection == "Yes")
             {
-                shipment.shopLessThanTruckloadResponseM33= GetLessThanTruckloadRates_M33(shipment);
+                //shipment.shopLessThanTruckloadResponseM33= GetLessThanTruckloadRates_M33(shipment);
                 shipment.shopLessThanTruckloadResponseTransportInsight = GetLessThanTruckloadRates_TI(shipment);
             }
-            
+
+            // Calculate shipping weight.
+            if (shipment.last_package_weight != 0)
+            {
+                shipment.billing_weight = (shipment.number_of_packages - 1) * shipment.package_weight + shipment.last_package_weight;
+            }
+            else
+            {
+                shipment.billing_weight  = shipment.number_of_packages - 1 *shipment.package_weight;
+            }
+
 
             ViewBag.plants = Plant.Plants();
 

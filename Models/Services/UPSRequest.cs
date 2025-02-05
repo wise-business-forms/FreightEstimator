@@ -54,53 +54,64 @@ namespace AuthenticationServer.Models.Services
             string address = string.Empty;
             shipment.ErrorMessage = "";
 
-            JObject addressValidationResponse = JObject.Parse(_response);
-            var addressLine = addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["AddressLine"];
+            try
+            {
+                JObject addressValidationResponse = JObject.Parse(_response);
 
-            if(addressLine == null)  // Address was NOT corrected or validated.
-            {
-                address = shipment.Address;
-                shipment.ErrorMessage = "Address not validated";
-            }
-            else
-            {
-                if (addressLine.Type == JTokenType.Array)
+                var addressLine = addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["AddressLine"];
+
+                if (addressLine == null)  // Address was NOT corrected or validated.
                 {
-                    var addressJoin = addressLine.ToObject<List<string>>();
-                    address = string.Join(", ", addressJoin);
+                    address = shipment.Address;
+                    shipment.ErrorMessage = "Address not validated";
                 }
-                else if (addressLine.Type == JTokenType.String)
+                else
                 {
-                    address = addressLine.ToString();
+                    if (addressLine.Type == JTokenType.Array)
+                    {
+                        var addressJoin = addressLine.ToObject<List<string>>();
+                        address = string.Join(", ", addressJoin);
+                    }
+                    else if (addressLine.Type == JTokenType.String)
+                    {
+                        address = addressLine.ToString();
+                    }
                 }
-            }
-                        
-            string city = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision2"];
-            if (city == null)
-            {
-                city = shipment.City;
-            }
-            string state = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision1"];
-            if (state == null)
-            {
-                state = shipment.State_selection;
-            }
-            string postal_extention = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PostcodeExtendedLow"];
-            
-            if (shipment.Address != address || shipment.City != city || shipment.State_selection != state || (!shipment.Zip.Contains("-") && postal_extention != null) )
-            {
-                shipment.Address = address;
-                shipment.City = city;
-                shipment.State_selection = state;
-                if (!shipment.Zip.Contains("-")) { shipment.Zip = shipment.Zip + "-" + postal_extention; }
 
-                shipment.Corrected_Address = address;
-                shipment.Corrected_City = city;
-                shipment.Corrected_State_selection = state;
-            }
-            
-            shipment.Address_Classification = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressClassification"]?["Description"];           
+                //string city = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision2"];
+                var city = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["PoliticalDivision2"];
+                if (city == null)
+                {
+                    city = shipment.City;
+                }
+                //string state = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision1"];
+                string state = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["PoliticalDivision1"];
+                if (state == null)
+                {
+                    state = shipment.State_selection;
+                }
+                //string postal_extention = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PostcodeExtendedLow"];
+                string postal_extention = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["PostcodeExtendedLow"];
 
+                if (shipment.Address != address || shipment.City != city || shipment.State_selection != state || (!shipment.Zip.Contains("-") && postal_extention != null))
+                {
+                    shipment.Address = address;
+                    shipment.City = city;
+                    shipment.State_selection = state;
+                    if (!shipment.Zip.Contains("-")) { shipment.Zip = shipment.Zip + "-" + postal_extention; }
+
+                    shipment.Corrected_Address = address;
+                    shipment.Corrected_City = city;
+                    shipment.Corrected_State_selection = state;
+                }
+
+                //shipment.Address_Classification = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressClassification"]?["Description"];
+                shipment.Address_Classification = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressClassification"]["Description"];
+            }
+            catch
+            {
+
+            }
             // Rate Request
             _request = RateRequest(shipment, new Plant(shipment.PlantId), requestOption);
             _url = Configuration.UPSShopRatesURL + requestOption.ToString();            
@@ -122,7 +133,7 @@ namespace AuthenticationServer.Models.Services
                         case "RateResponse":
                             ratedShipment = rateResponse["RateResponse"]["RatedShipment"];
                             //var test = rateResponse["RateResponse"]["RatedShipment"]["BillingWeight"]["Weight"].ToString();
-                            shipment.billing_weight = float.Parse(rateResponse["RateResponse"]["RatedShipment"]["BillingWeight"]["Weight"].ToString());
+                            //shipment.billing_weight = float.Parse(rateResponse["RateResponse"]["RatedShipment"][0]["BillingWeight"]["Weight"].ToString());
                             shipment.AlertMessages = rateResponse["RateResponse"]["Response"]["Alert"].Select(a => (string)a["Description"]).ToArray();
                             break;
                         case "response":

@@ -87,8 +87,12 @@ namespace AuthenticationServer.Models
 
         static string _TransportationInsightDemoUrl = "https://t-insightws.mercurygate.net/MercuryGate/common/remoteService.jsp";
         static string _TransportationInsightProdUrl = "https://t-insightws.mercurygate.net/MercuryGate/common/remoteService.jsp";
-        static string _TransprtationInsightApiUsername = "WiseWSTest";
-        static string _TransprtationInsightApiPassword = "cRfx2PBt8SEAZFwjK3";
+
+        //static string _TransprtationInsightApiUsername = "WiseWSTest"; // DEVELOPMENT
+        //static string _TransprtationInsightApiPassword = "cRfx2PBt8SEAZFwjK3"; // DEVELOPMENT
+
+        static string _TransprtationInsightApiUsername = "WiseWS"; // PRODUCTION
+        static string _TransprtationInsightApiPassword = "DwWfTbgjHF9fTFQeL8"; // PRODUCTION
         static bool _TransprtationInsightDemoMode = true;
 
         static string _M33DemoUrl = "http://demo.m33integrated.com/api/";
