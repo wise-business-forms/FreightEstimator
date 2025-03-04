@@ -148,7 +148,7 @@ namespace AuthenticationServer.Controllers
                         foreach (UPSService service in shopRate.UPSServices)
                         {
                             service.ShipFrom = shipment.PlantId;
-                            service.CustomerRate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.CustomerRate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
+                            service.CustomerRate = RateCalculations.CalculateUPSRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.CustomerRate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
                             RateCalculations rateCalculations = new RateCalculations();
                             
                             switch (service.ServiceName)
@@ -249,15 +249,18 @@ namespace AuthenticationServer.Controllers
                 }
                 else
                 {
+                    // Get carrier rates for plant
                     ShopRateResponse shopRateResponse = new ShopRateResponse();
-                    List<PlantCharges> plantCharges = Plant.Charges(shipment.PlantId);
                     shopRateResponse = GetCompareRates(shipment);
+                    List<PlantCharges> plantCharges = Plant.Charges(shipment.PlantId);
+
+                    
                     if (shipment.ErrorMessage == "" || shipment.ErrorMessage == "Address not validated")
                     {
                         foreach (UPSService service in shopRateResponse.UPSServices)
                         {
                             service.ShipFrom = shipment.PlantId;
-                            service.CustomerRate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.CustomerRate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
+                            service.CustomerRate = RateCalculations.CalculateUPSRate(shipment.AcctNum, shipment.PlantId, service.ServiceName, service.CustomerRate, service.CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()); // Should use CWT not ServiceName for cleanliness.
                             RateCalculations rateCalculations = new RateCalculations();
                             
                             //Apply plant surcharges.
@@ -268,6 +271,7 @@ namespace AuthenticationServer.Controllers
                                 case "UPSNextDayAir":
                                     service.CWT = rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.UPSNextDayAir, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
                                     service.CWTRate = service.CWTRate + plantCharges.Select(charge => charges.NextDayAir).ToString();
+                                    //service.Plant_PerPackageCharge = shopRateResponse[]
                                     break;
                                 case "UPS2ndDayAir":
                                     service.CWT = rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.UPS2ndDayAir, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
@@ -330,7 +334,7 @@ namespace AuthenticationServer.Controllers
             if (shipment.include_ground_rate_selection == "Yes") 
             { 
                 shipment.shopGroundFreightResponse = GetGroundFreightRate(shipment);
-                shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate = RateCalculations.CalculateRate(shipment.AcctNum, shipment.PlantId, "UPSGroundFreight", shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate, shipment.shopGroundFreightResponse.UPSServices[0].CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString());
+                shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate = RateCalculations.CalculateUPSRate(shipment.AcctNum, shipment.PlantId, "UPSGroundFreight", shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate, shipment.shopGroundFreightResponse.UPSServices[0].CWTRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString());
 
                 
             }
@@ -349,7 +353,7 @@ namespace AuthenticationServer.Controllers
             }
             else
             {
-                shipment.billing_weight  = shipment.number_of_packages - 1 *shipment.package_weight;
+                shipment.billing_weight  = shipment.number_of_packages * shipment.package_weight;
             }
 
 
@@ -432,7 +436,7 @@ namespace AuthenticationServer.Controllers
             if (shipment.ErrorMessage == "" || shipment.ErrorMessage == null)
             {
                 UPSRequest uPSRequest = new UPSRequest(shipment, new Plant(shipment.PlantId), UPSRequest.RequestOption.Shop);
-                shopRateResponse.UPSServices = uPSRequest.UPSServices;
+                shopRateResponse.UPSServices = uPSRequest.UPSServices;                               
             }
             return shopRateResponse;
         }
@@ -798,6 +802,8 @@ namespace AuthenticationServer.Controllers
             double plantPackageCharge = 0;
             double plantShipmentCharge = 0;
             ShopRateResponse response = new ShopRateResponse();
+
+
             if (shipment.AcctNum.IsNullOrWhiteSpace()) shipment.AcctNum = "0";
             try
             {
@@ -949,6 +955,30 @@ namespace AuthenticationServer.Controllers
                             
                         request.Append("</Constraints>");
                         request.Append("<Items>");
+                    if (shipment.last_package_weight > 0)
+                    {
+                        for (int i = 0; i < shipment.number_of_packages-1; i++)
+                        {
+                            request.Append("<Item sequence=\"1\" freightClass=\"");
+                            request.Append("55");
+                            request.Append("\">");
+                            request.Append("<Weight units=\"lb\">");
+                            request.Append(shipment.package_weight.ToString());
+                            request.Append("</Weight>");
+                            request.Append("<Dimensions length=\"5.0\" width=\"5.0\" height=\"5.0\" units=\"in\" /></Item>");
+                        }
+
+                        // Add last package
+                        request.Append("<Item sequence=\"1\" freightClass=\"");
+                        request.Append("55");
+                        request.Append("\">");
+                        request.Append("<Weight units=\"lb\">");
+                        request.Append(shipment.last_package_weight.ToString());
+                        request.Append("</Weight>");
+                        request.Append("<Dimensions length=\"5.0\" width=\"5.0\" height=\"5.0\" units=\"in\" /></Item>");
+                    }
+                    else
+                    {
                         for (int i = 0; i < shipment.number_of_packages; i++)
                         {
                             request.Append("<Item sequence=\"1\" freightClass=\"");
@@ -959,6 +989,8 @@ namespace AuthenticationServer.Controllers
                             request.Append("</Weight>");
                             request.Append("<Dimensions length=\"5.0\" width=\"5.0\" height=\"5.0\" units=\"in\" /></Item>");
                         }
+                    }
+                        
                         request.Append("</Items>");
 
                     request.Append("<Events>");

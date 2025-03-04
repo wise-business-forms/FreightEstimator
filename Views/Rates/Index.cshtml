@@ -1,0 +1,25 @@
+﻿
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Price</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var product in Model)
+        {
+            <tr>
+                <td class="editable" data-id="@product.Id">@product.Id</td>
+                <td class="editable" data-id="@product.Id">@product.Name</td>
+                <td class="editable" data-id="@product.Id">@product.Price</td>
+            </tr>
+        }
+    </tbody>
+</table>

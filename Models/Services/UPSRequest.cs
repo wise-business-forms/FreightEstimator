@@ -33,8 +33,6 @@ namespace AuthenticationServer.Models.Services
         /// <param name="requestOption"></param>
         public UPSRequest(Shipment shipment, Plant plant, RequestOption requestOption)
         {
-            // Get surcharges for this plant.
-            plantCharges = Plant.Charges(plant.Id);
             _shipment = shipment;
 
             // For rating without address.
@@ -534,7 +532,9 @@ namespace AuthenticationServer.Models.Services
             sb.Append("[");
 
             // Add the packages...
-            if (shipment.package_weight != shipment.last_package_weight)
+
+            // if there is a last package....
+            if (shipment.last_package_weight > 0)
             {
                 for (int p = 1; p <= shipment.number_of_packages - 1; p++)
                 {
@@ -543,7 +543,7 @@ namespace AuthenticationServer.Models.Services
                 }
 
                 // Packages have to weight something.  Sometimes people will not give the last package a weight if it is the same.
-                if (shipment.last_package_weight == 0 || shipment.last_package_weight.ToString().Trim().IsNullOrWhiteSpace()) shipment.last_package_weight = shipment.package_weight;
+                //if (shipment.last_package_weight == 0 || shipment.last_package_weight.ToString().Trim().IsNullOrWhiteSpace()) shipment.last_package_weight = shipment.package_weight;
 
                 // Add last package
                 sb.Append(Package(shipment.last_package_weight, requestOption, shipment.freight_class_selected.ToString()));

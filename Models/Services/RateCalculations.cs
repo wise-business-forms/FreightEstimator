@@ -1,5 +1,6 @@
 ﻿using AuthenticationServer.Models.Carrier.UPS;
 using Microsoft.Ajax.Utilities;
+using SDK.Model;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
@@ -189,7 +190,7 @@ namespace AuthenticationServer.Models.Services
         /// <param name="lastPackage"></param>
         /// <returns></returns>
         /// <remarks>DOES NOT INCLUDE PLANT SURCHARGES</remarks>
-        internal static string CalculateRate(string accountNumber, string plantId, string serviceName, string currentRate, string CWTRate, int numberOfPackages, string packageWeight, string lastPackage)
+        internal static string CalculateUPSRate(string accountNumber, string plantId, string serviceName, string currentRate, string CWTRate, int numberOfPackages, string packageWeight, string lastPackage)
         {
             int _accountNumber = 0;
             double rate = Convert.ToDouble(currentRate);
@@ -201,7 +202,21 @@ namespace AuthenticationServer.Models.Services
             double perShipmentCharge = 0.0;
             double hundredWeightAdjustment = cwtRate / .7;
             bool cwt = false;
-            double totalWeight = (Convert.ToInt16(packageWeight) * (noPackages - 1)) + Convert.ToInt16(lastPackage);
+            double totalWeight = 0;//
+
+            if(noPackages > 1)
+            {
+                totalWeight = (Convert.ToInt16(packageWeight) * (noPackages - 1)) + Convert.ToInt16(lastPackage);
+            }
+            else
+            {
+                totalWeight = Convert.ToInt16(packageWeight);
+            }
+                                  
+
+
+            // Get surcharges for this plant.
+            var plantCharges = Plant.Charges(plantId);
 
             RateCalculations rateCalculations = new RateCalculations();
 
