@@ -22,16 +22,17 @@ namespace AuthenticationServer.Models.Services
         private List<PlantCharges> plantCharges = new List<PlantCharges>();
 
         public enum RequestOption { Rate, Shop, Ratetimeintransit, Shoptimeintransit };
+        public enum RateClassification { Published, Negotiated }
         int _counter = 0;
 
         public UPSRequest() { }
         /// <summary>
-        /// Builds the request to be sent to the UPS API.
+        /// Builds the response object from the UPS API.  This should be used to build the shipment and other objects needed.
         /// </summary>
         /// <param name="shipment"></param>
         /// <param name="plant"></param>
         /// <param name="requestOption"></param>
-        public UPSRequest(Shipment shipment, Plant plant, RequestOption requestOption)
+        public UPSRequest(Shipment shipment, Plant plant, RequestOption requestOption, RateClassification rateClassification)
         {
             _shipment = shipment;
 
@@ -111,7 +112,7 @@ namespace AuthenticationServer.Models.Services
 
             }
             // Rate Request
-            _request = RateRequest(shipment, new Plant(shipment.PlantId), requestOption);
+            _request = RateRequest(shipment, new Plant(shipment.PlantId), requestOption, rateClassification);
             _url = Configuration.UPSShopRatesURL + requestOption.ToString();            
             _response = Response(_request, _url);
 
@@ -292,9 +293,10 @@ namespace AuthenticationServer.Models.Services
                     break;
             }
             uPSService.PlantCode = _shipment.PlantId;
-            uPSService.CustomerRate = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "-";
-            uPSService.CWTRate = service.SelectToken("NegotiatedRateCharges.TotalCharge.MonetaryValue")?.ToString() ?? "-";
+            uPSService.CustomerRate = Double.Parse(service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "0.0");
+            //uPSService.CWTRate = double.TryParse(service.SelectToken("NegotiatedRateCharges.TotalCharge.MonetaryValue")?.ToString(), out double parsedValue) ? parsedValue : 0.0;
             uPSService.CWT = "No"; // Default setting
+            uPSService.TransitDays = service.SelectToken("GuaranteedDelivery.BusinessDaysInTransit")?.ToString() ?? "-";
 
             // Determine CWT
             var _shipmentWeight = _shipment.number_of_packages * _shipment.package_weight + _shipment.last_package_weight;
@@ -437,7 +439,7 @@ namespace AuthenticationServer.Models.Services
         /// </summary>
         /// <param name="shipment"></param>
         /// <returns></returns>
-        private string RateRequest(Shipment shipment, Plant plant, RequestOption requestOption)
+        private string RateRequest(Shipment shipment, Plant plant, RequestOption requestOption, RateClassification rateClassification)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("{\"RateRequest\":");
@@ -506,18 +508,7 @@ namespace AuthenticationServer.Models.Services
                 sb.Append("},"); // PaymentDetails
             }
 
-            sb.Append("\"ShipmentRatingOptions\": {");
-            //sb.Append("\"TPFCNegotiatedRatesIndicator\": \"Y\",");
-            
-            // Ground Freight
-            if (requestOption == RequestOption.Rate)
-            {               
-               sb.Append("\"FRSShipmentIndicator\": \"\",");
-            }
-
-            sb.Append("\"NegotiatedRatesIndicator\": \"\"");
-            sb.Append("},"); // ShipmentRatingOptions
-
+            sb.Append(AppendShipmentRatingOptions(requestOption, rateClassification));
 
             sb.Append("\"Service\":");
             sb.Append("{\"Code\": \"03\",");
@@ -611,6 +602,37 @@ namespace AuthenticationServer.Models.Services
 
             sb.Append("}"); // PackagingType
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Applies the Shipment Rating Options configuration.
+        /// </summary>
+        /// <param name="requestOption"></param>
+        /// <param name="rateClassification"></param>
+        /// <returns></returns>
+        private string AppendShipmentRatingOptions(RequestOption requestOption, RateClassification rateClassification)
+        {
+            if (rateClassification != RateClassification.Published)
+            {
+                StringBuilder sb = new StringBuilder("\"ShipmentRatingOptions\": {");
+
+                // Ground Freight
+                if (requestOption == RequestOption.Rate)
+                {
+                    sb.Append("\"FRSShipmentIndicator\": \"\",");
+                }
+                // UPS Ground
+                if (rateClassification == RateClassification.Negotiated)
+                {
+                    sb.Append("\"NegotiatedRatesIndicator\": \"Y\"");
+                }
+                sb.Append("},"); // ShipmentRatingOptions
+                return sb.ToString();
+            }
+            else
+            {
+                return "";
+            }
         }
     }
 }

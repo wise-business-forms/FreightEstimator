@@ -13,8 +13,7 @@ namespace AuthenticationServer.Models
         public string CWT { get; set; }   
         public string Direct {  get; set; }
         public string PlantCode { get; set; }
-        public string CustomerRate { get; set; }
-        public string CWTRate { get; set; }
+        public double CustomerRate { get; set; }
         public enum ServiceCode
         {
             UPSNextDayAir = 01,

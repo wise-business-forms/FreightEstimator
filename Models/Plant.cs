@@ -77,6 +77,11 @@ namespace AuthenticationServer.Models
             return plants;
         }
 
+        /// <summary>
+        /// Returns ALL carrier rates for a plant.
+        /// </summary>
+        /// <param name="plantID"></param>
+        /// <returns></returns>
         public static List<PlantCharges> Charges(string plantID)
         {
             List<PlantCharges> charges = new List<PlantCharges>();

@@ -262,9 +262,10 @@
                                             <table class="shipGrid" id="upsRateTable">
                                                 <thead>
                                                     <tr>
-                                                        <th scope="col" title="Shipping plant ID."class=" debug-column-header">Ship From</th>
-                                                        <th scope="col" title="Carrier Service" class="debug-column-header">Service</th>
-                                                        <th scope="col" title="The total cost of the shipment including all markup, service fees and surcharges." class="debug-column-header">Customer Cost</th>
+                                                        <th scope="col" title="Shipping plant ID.">Ship From</th>
+                                                        <th scope="col" title="Carrier Service">Service</th>
+                                                        <th scope="col" title="Expected number of days in transit from origin to destination.">Transit Days</th>
+                                                        <th scope="col" title="The total cost of the shipment including all markup, service fees and surcharges.">Customer Cost</th>
 
                                                         <!-- values for calculations -->
                                                         <th scope="col" title="Plant per package charge." class="debug-column-header" style="display: none">Plant Surchg.</th>
@@ -272,10 +273,12 @@
                                                         <th scope="col" title="Plant per shipment charge." class="debug-column-header" style="display: none">Shipt. Chg.</th>
 
                                                         <!-- original API values -->
-                                                        <th scope="col" title="Total charge from the carrier including all of their fees." class="debug-column-header" style="display: none"></th>
+                                                        <th scope="col" title="Total charge from the carrier including all of their fees." class="debug-column-header" style="display: none">Carrier Chg.</th>
                                                         <th scope="col" title="Our negotiated rate from the carrier." class="debug-column-header" style="display: none">Base Rate</th>
-                                                        <th scope="col" title="Transportation charges." class="debug-column-header" style="display: none"></th>
-                                                        <th scope="col" title="Accessorial charges." class="debug-column-header" style="display: none"></th>
+                                                        <th scope="col" title="Transportation charges." class="debug-column-header" style="display: none">Fuel Chg.</th>
+                                                        <th scope="col" title="Accessorial charges." class="debug-column-header" style="display: none">Acc. Chg.</th>
+
+                                                        <th scope="col" title="CWT Eligable" class="debug-column-header" style="display: none">CWT</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -284,19 +287,22 @@
                                                     {
                                                         var rowClass = rowIndex % 2 == 0 ? "" : "alt";
                                                     <tr class="@rowClass">
-                                                        <td>@service.PlantCode</td>
-                                                        <td class="align-content-start">@(serviceNameTranslations[service.ServiceName])</td>
-                                                        <td>@service.CustomerRate</td>
+                                                        <td>@service.PlantCode</td> <!-- 0: Ship From -->
+                                                        <td class="align-content-start">@(serviceNameTranslations[service.ServiceName])</td> <!-- 1: Service -->
+                                                        <td>@service.TransitDays</td> <!-- 2: Transit Days -->
+                                                        <td>@service.CustomerRate.ToString("C")</td> <!-- 3: Customer Cost -->
 
                                                         <!-- values for calculations -->
-                                                        <td style="display: none" class="debug-column">@service.Plant_Surcharge</td> <!-- 4: Rate -->
-                                                        <td style="display: none" class="debug-column">@service.Plant_PerPackageCharge</td> <!-- 5: Rate -->
-                                                        <td style="display: none" class="debug-column">@service.Plant_ShipmentCharge</td><!-- 6: Shipt. Chg. -->
+                                                        <td style="display: none" class="debug-column">@Double.Parse(service.Plant_Surcharge).ToString("C")</td> <!-- 4: Plant Surcharges -->
+                                                        <td style="display: none" class="debug-column">@Double.Parse(service.Plant_PerPackageCharge).ToString("C")</td> <!-- 5: Package Charges -->
+                                                        <td style="display: none" class="debug-column">@Double.Parse(service.Plant_ShipmentCharge).ToString("C")</td><!-- 6: Shipt. Chg. -->
                                                         <!-- original API values -->
-                                                        <td style="display: none" class="debug-column"><strong></strong></td><!-- 7: Total Charge -->
+                                                        <td style="display: none" class="debug-column"><strong>@service.RatedShipment_TotalCharges_MonetaryValue</strong></td><!-- 7: Total Charge -->
                                                         <td style="display: none" class="debug-column"><strong>@service.RatedShipment_NegotiatedRateCharges_TotalCharge</strong></td><!-- 8: Base Rate -->
-                                                        <td style="display: none" class="debug-column"><strong></strong></td><!-- 9: Fuel Chg. -->
-                                                        <td style="display: none" class="debug-column"><strong></strong></td><!-- 10: Accessorial -->
+                                                        <td style="display: none" class="debug-column"><strong>@service.RatedShipment_TransportationCharges_MonetaryValue</strong></td><!-- 9: Fuel Chg. -->
+                                                        <td style="display: none" class="debug-column"><strong>@service.RatedShipment_AccessorialCharges_MonetaryValue</strong></td><!-- 10: Accessorial -->
+
+                                                        <td style="display: none" class="debug-column"><strong>@service.CWT</strong></td><!-- 11: CWT Eligable -->
                                                     </tr>
                                                         rowIndex++;
                                                     }
@@ -304,11 +310,9 @@
                                             </table>
                                         </div>
                                         <div class="col">
-                                            <img src="~/Content/img/LOGO_L.gif" />
-                                            <!--
-    <br />
-    <button id="upsButton" onclick="toggleUPSColumns([4,5,6,7,8,9,10])" class="toggleButton"></button>
-        -->
+                                            <img src="~/Content/img/LOGO_L.gif" />                                            
+                                            <br />
+                                            <button id="upsButton" onclick="toggleUPSColumns([4,5,6,7,8,9,10,11])" class="toggleButton"></button>                                                   
                                         </div>
                                     </div>
 
@@ -392,7 +396,7 @@
                                                             <tr class="@rowClass">
                                                                 <td>@service.PlantCode</td>
                                                                 <td>@(service.ServiceName == "UPSGround" ? "Ground Freight" : service.ServiceName)</td>
-                                                                <td>@service.CustomerRate</td>
+                                                                <td>@service.CustomerRate.ToString("C")</td>
 
                                                                 <!-- values for calculations -->
                                                                 <td style="display: none" class="debug-column">@service.Plant_Surcharge</td> <!-- 4: Rate -->
@@ -648,13 +652,11 @@
 
 
 <script type="text/javascript">
+
+    // Set button default settings.
     document.addEventListener("DOMContentLoaded", function () {
-        // Select the button by its ID
-        //document.getElementById('upsButton').display = 'none';
-        //document.getElementById('upsButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";
-        //document.getElementById('upsGroundButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";
-        document.getElementById('TIButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";
-        
+        document.getElementById('upsButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";
+        document.getElementById('TIButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";        
     });
 
 
@@ -667,8 +669,6 @@
     }
 
     function toggleUPSColumns(colIndices) {
-
-
         // Get the table
         var table = document.getElementById('upsRateTable');
         // Iterate over all rows
@@ -692,8 +692,6 @@
     }
 
     function toggleUPSGroundColumns(colIndices) {
-
-
         // Get the table
         var table = document.getElementById('upsGroundRateTable');
         // Iterate over all rows
@@ -717,7 +715,6 @@
     }
 
     function toggleM33Columns(colIndices) {
-
         // Get the table
         var table = document.getElementById('m33RateTable');
         // Iterate over all rows
@@ -743,7 +740,6 @@
     }
 
     function toggleTIColumns(colIndices) {
-
         // Get the table
         var table = document.getElementById('TIRateTable');
         // Iterate over all rows

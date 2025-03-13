@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Web;
 using System.Web.Razor.Generator;
 
@@ -73,56 +74,64 @@ namespace AuthenticationServer.Models.Services
         /// <param name="CWT"></param>
         public RateCalculations(int accountNumber, Carriers carrier)
         {
-            SqlConnection sqlConnection = new SqlConnection(Configuration.UpsRateSqlConnection);
-            sqlConnection.Open();
-
-            SqlCommand sqlCommand = sqlConnection.CreateCommand();
-            sqlCommand.CommandText = "GetPlantCharges";
-            sqlCommand.CommandType = System.Data.CommandType.StoredProcedure;
-            sqlCommand.Parameters.Add("@Carrier", System.Data.SqlDbType.VarChar, 50).Value = carrier.ToString();
-            sqlCommand.Parameters.Add("AcctNumber", System.Data.SqlDbType.Int).Value = accountNumber;
-
-            if (carrier == Carriers.UPSCWT) {
-                using (SqlDataReader reader = sqlCommand.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        this._PerPackageChargeCWT.Add(reader["PlantCode"].ToString(), reader["PerPackageCharge"].ToString());
-                        this._PerShipmentChargeCWT.Add(reader["PlantCode"].ToString(), reader["PerShipmentCharge"].ToString());
-
-                        this._UpchargeNextDayAirCWT.Add(reader["PlantCode"].ToString(), reader["NextDayAir"].ToString());
-                        this._UpchargeSecondDayAirCWT.Add(reader["PlantCode"].ToString(), reader["SecondDayAir"].ToString());
-                        this._UpchargeGroundCWT.Add(reader["PlantCode"].ToString(), reader["Ground"].ToString());
-                        this._UpchargeThreeDaySelectCWT.Add(reader["PlantCode"].ToString(), reader["ThreeDaySelect"].ToString());
-                        this._UpchargeNextDayAirSaverCWT.Add(reader["PlantCode"].ToString(), reader["NextDayairSaver"].ToString());
-                        this._UpchargeNextDayAirEarlyAMCWT.Add(reader["PlantCode"].ToString(), reader["NextDayAirEarlyAM"].ToString());
-                        this._UpchargeSecondDayAirAMCWT.Add(reader["PlantCode"].ToString(), reader["SecondDayAirAM"].ToString());
-                        this._UpchargeSaverCWT.Add(reader["PlantCode"].ToString(), reader["Saver"].ToString());
-                    }
-                }
-            }
-            else
+            try
             {
-                using (SqlDataReader reader = sqlCommand.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        this._PerPackageCharge.Add(reader["PlantCode"].ToString(), reader["PerPackageCharge"].ToString());
-                        this._PerShipmentCharge.Add(reader["PlantCode"].ToString(), reader["PerShipmentCharge"].ToString());
+                SqlConnection sqlConnection = new SqlConnection(Configuration.UpsRateSqlConnection);
+                sqlConnection.Open();
 
-                        this._UpchargeNextDayAir.Add(reader["PlantCode"].ToString(), reader["NextDayAir"].ToString());
-                        this._UpchargeSecondDayAir.Add(reader["PlantCode"].ToString(), reader["SecondDayAir"].ToString());
-                        this._UpchargeGround.Add(reader["PlantCode"].ToString(), reader["Ground"].ToString());
-                        this._UpchargeThreeDaySelect.Add(reader["PlantCode"].ToString(), reader["ThreeDaySelect"].ToString());
-                        this._UpchargeNextDayAirSaver.Add(reader["PlantCode"].ToString(), reader["NextDayairSaver"].ToString());
-                        this._UpchargeNextDayAirEarlyAM.Add(reader["PlantCode"].ToString(), reader["NextDayAirEarlyAM"].ToString());
-                        this._UpchargeSecondDayAirAM.Add(reader["PlantCode"].ToString(), reader["SecondDayAirAM"].ToString());
-                        this._UpchargeSaver.Add(reader["PlantCode"].ToString(), reader["Saver"].ToString());
+                SqlCommand sqlCommand = sqlConnection.CreateCommand();
+                sqlCommand.CommandText = "GetPlantCharges";
+                sqlCommand.CommandType = System.Data.CommandType.StoredProcedure;
+                sqlCommand.Parameters.Add("@Carrier", System.Data.SqlDbType.VarChar, 50).Value = carrier.ToString();
+                sqlCommand.Parameters.Add("AcctNumber", System.Data.SqlDbType.Int).Value = accountNumber;
+
+                if (carrier == Carriers.UPSCWT)
+                {
+                    using (SqlDataReader reader = sqlCommand.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            this._PerPackageChargeCWT.Add(reader["PlantCode"].ToString(), reader["PerPackageCharge"].ToString());
+                            this._PerShipmentChargeCWT.Add(reader["PlantCode"].ToString(), reader["PerShipmentCharge"].ToString());
+
+                            this._UpchargeNextDayAirCWT.Add(reader["PlantCode"].ToString(), reader["NextDayAir"].ToString());
+                            this._UpchargeSecondDayAirCWT.Add(reader["PlantCode"].ToString(), reader["SecondDayAir"].ToString());
+                            this._UpchargeGroundCWT.Add(reader["PlantCode"].ToString(), reader["Ground"].ToString());
+                            this._UpchargeThreeDaySelectCWT.Add(reader["PlantCode"].ToString(), reader["ThreeDaySelect"].ToString());
+                            this._UpchargeNextDayAirSaverCWT.Add(reader["PlantCode"].ToString(), reader["NextDayairSaver"].ToString());
+                            this._UpchargeNextDayAirEarlyAMCWT.Add(reader["PlantCode"].ToString(), reader["NextDayAirEarlyAM"].ToString());
+                            this._UpchargeSecondDayAirAMCWT.Add(reader["PlantCode"].ToString(), reader["SecondDayAirAM"].ToString());
+                            this._UpchargeSaverCWT.Add(reader["PlantCode"].ToString(), reader["Saver"].ToString());
+                        }
                     }
                 }
-            }
+                else
+                {
+                    using (SqlDataReader reader = sqlCommand.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            this._PerPackageCharge.Add(reader["PlantCode"].ToString(), reader["PerPackageCharge"].ToString());
+                            this._PerShipmentCharge.Add(reader["PlantCode"].ToString(), reader["PerShipmentCharge"].ToString());
 
-            sqlConnection.Close();
+                            this._UpchargeNextDayAir.Add(reader["PlantCode"].ToString(), reader["NextDayAir"].ToString());
+                            this._UpchargeSecondDayAir.Add(reader["PlantCode"].ToString(), reader["SecondDayAir"].ToString());
+                            this._UpchargeGround.Add(reader["PlantCode"].ToString(), reader["Ground"].ToString());
+                            this._UpchargeThreeDaySelect.Add(reader["PlantCode"].ToString(), reader["ThreeDaySelect"].ToString());
+                            this._UpchargeNextDayAirSaver.Add(reader["PlantCode"].ToString(), reader["NextDayairSaver"].ToString());
+                            this._UpchargeNextDayAirEarlyAM.Add(reader["PlantCode"].ToString(), reader["NextDayAirEarlyAM"].ToString());
+                            this._UpchargeSecondDayAirAM.Add(reader["PlantCode"].ToString(), reader["SecondDayAirAM"].ToString());
+                            this._UpchargeSaver.Add(reader["PlantCode"].ToString(), reader["Saver"].ToString());
+                        }
+                    }
+                }
+
+                sqlConnection.Close();
+            }
+            catch(Exception ex)
+            {
+                throw ex;
+            }
         }
         
 
@@ -189,18 +198,17 @@ namespace AuthenticationServer.Models.Services
         /// <param name="packageWeight"></param>
         /// <param name="lastPackage"></param>
         /// <returns></returns>
-        /// <remarks>DOES NOT INCLUDE PLANT SURCHARGES</remarks>
-        internal static string CalculateUPSRate(string accountNumber, string plantId, string serviceName, string currentRate, string CWTRate, int numberOfPackages, string packageWeight, string lastPackage)
+        /// <remarks></remarks>
+        internal static double CalculateUPSRate(string accountNumber, string plantId, string serviceName, double currentRate, int numberOfPackages, string packageWeight, string lastPackage)
         {
             int _accountNumber = 0;
             double rate = Convert.ToDouble(currentRate);
-            double cwtRate = Convert.ToDouble(CWTRate);
             double noPackages = Convert.ToDouble(numberOfPackages);
             double total = 0.0;
             double markup = 0.0;
             double perPackageCharge = 0.0;
             double perShipmentCharge = 0.0;
-            double hundredWeightAdjustment = cwtRate / .7;
+            double hundredWeightAdjustment = 0.0;
             bool cwt = false;
             double totalWeight = 0;//
 
@@ -389,6 +397,8 @@ namespace AuthenticationServer.Models.Services
 
             if (cwt)
             {
+                // Baseline starts with negotiated rates divided by 70% then add upcharges.
+                hundredWeightAdjustment = .7 * currentRate;
                 total = hundredWeightAdjustment;
                 total += perShipmentCharge;
                 total += (perPackageCharge * noPackages);
@@ -407,10 +417,9 @@ namespace AuthenticationServer.Models.Services
                 {
                     case "NextDayAirEarlyAM":
                     case "UPSGroundFreight":
-                        total = cwtRate;
                         total += perShipmentCharge;
                         total += (perPackageCharge * noPackages);
-                        if (serviceName == "UPSGroundFreight"){total += ((markup / 100) * cwtRate);}
+                        if (serviceName == "UPSGroundFreight"){total += ((markup / 100) * currentRate);}
                         break;
                     default:
                         total = rate;
@@ -420,7 +429,7 @@ namespace AuthenticationServer.Models.Services
                 }
             }           
 
-            return total.ToString("C");
+            return total;
         }
 
         /// <summary>
