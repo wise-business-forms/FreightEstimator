@@ -97,6 +97,7 @@
                             </div>
                         }
                         <br />
+                        <div class="confirmation-address d-flex">Account:&nbsp;<div class="confirmation-value">@Model.AcctNum</div></div>
                         <div class="confirmation-address d-flex">Address is:&nbsp;<div class="confirmation-value">@Model.Address_Classification</div></div>
                         <div class="confirmation-address d-flex">Weight: @Model.billing_weight lbs. </div>
                         <div>
@@ -116,7 +117,7 @@
                             </Table>
                         </div>
                         <br />
-                        <div class="d-flex">Date: @Model.pick_up_date.ToString("g")</div>                        
+                        <div class="d-flex">Date: @Model.pick_up_date.ToString("g")</div>
                     }
                 </div>
                 <div class=" col-3 ms-auto ">
@@ -271,6 +272,7 @@
                                                         <th scope="col" title="Plant per package charge." class="debug-column-header" style="display: none">Plant Surchg.</th>
                                                         <th scope="col" title="Plant per package charge." class="debug-column-header" style="display: none">Pkg Chg.</th>
                                                         <th scope="col" title="Plant per shipment charge." class="debug-column-header" style="display: none">Shipt. Chg.</th>
+                                                        <th scope="col" title="CWT adjustment." class="debug-column-header" style="display: none">CWT Adj.</th>
 
                                                         <!-- original API values -->
                                                         <th scope="col" title="Total charge from the carrier including all of their fees." class="debug-column-header" style="display: none">Carrier Chg.</th>
@@ -285,34 +287,52 @@
 
                                                     @foreach (var service in Model.shopCompareRates[0].UPSServices)
                                                     {
+                                                        // Hide for published rates.
+                                                        if (service.ServiceName == "UPSGround")
+                                                        { service.RatedShipment_TotalCharges_MonetaryValue = service.RatedShipment_TotalCharges_MonetaryValue; }
+                                                        else { service.RatedShipment_TotalCharges_MonetaryValue = service.RatedShipment_NegotiatedRateCharges_TotalCharge; }
+
+                                                        _plantSurcharge = (double.Parse(service.Plant_Surcharge, System.Globalization.NumberStyles.Currency, System.Globalization.CultureInfo.CurrentCulture)).ToString("P0");
+
                                                         var rowClass = rowIndex % 2 == 0 ? "" : "alt";
-                                                    <tr class="@rowClass">
-                                                        <td>@service.PlantCode</td> <!-- 0: Ship From -->
-                                                        <td class="align-content-start">@(serviceNameTranslations[service.ServiceName])</td> <!-- 1: Service -->
-                                                        <td>@service.TransitDays</td> <!-- 2: Transit Days -->
-                                                        <td>@service.CustomerRate.ToString("C")</td> <!-- 3: Customer Cost -->
+                                                        <tr class="@rowClass">
+                                                            <td>@service.PlantCode</td> <!-- 0: Ship From -->
+                                                            <td class="align-content-start">@(serviceNameTranslations[service.ServiceName])</td> <!-- 1: Service -->
+                                                            <td>@service.TransitDays</td> <!-- 2: Transit Days -->
+                                                            <td>@service.CustomerRate.ToString("C")</td> <!-- 3: Customer Cost -->
+                                                            <!-- values for calculations -->
+                                                            <td style="display: none" class="debug-column">@Double.Parse(service.Plant_Surcharge).ToString("C")</td> <!-- 4: Plant Surcharges -->
+                                                            <td style="display: none" class="debug-column">@Double.Parse(service.Plant_PerPackageCharge).ToString("C")</td> <!-- 5: Package Charges -->
+                                                            <td style="display: none" class="debug-column">@Double.Parse(service.Plant_ShipmentCharge).ToString("C")</td><!-- 6: Shipt. Chg. -->
+                                                            <td style="display: none" class="debug-column">@Double.Parse(service.CWT_Adjustment).ToString("C")</td><!-- 7: CWT. Adj. -->
+                                                            <!-- original API values -->
+                                                            <td style="display: none" class="debug-column"><strong>@service.RatedShipment_TotalCharges_MonetaryValue</strong></td><!-- 8: Total Charge -->                                                          
 
-                                                        <!-- values for calculations -->
-                                                        <td style="display: none" class="debug-column">@Double.Parse(service.Plant_Surcharge).ToString("C")</td> <!-- 4: Plant Surcharges -->
-                                                        <td style="display: none" class="debug-column">@Double.Parse(service.Plant_PerPackageCharge).ToString("C")</td> <!-- 5: Package Charges -->
-                                                        <td style="display: none" class="debug-column">@Double.Parse(service.Plant_ShipmentCharge).ToString("C")</td><!-- 6: Shipt. Chg. -->
-                                                        <!-- original API values -->
-                                                        <td style="display: none" class="debug-column"><strong>@service.RatedShipment_TotalCharges_MonetaryValue</strong></td><!-- 7: Total Charge -->
-                                                        <td style="display: none" class="debug-column"><strong>@service.RatedShipment_NegotiatedRateCharges_TotalCharge</strong></td><!-- 8: Base Rate -->
-                                                        <td style="display: none" class="debug-column"><strong>@service.RatedShipment_TransportationCharges_MonetaryValue</strong></td><!-- 9: Fuel Chg. -->
-                                                        <td style="display: none" class="debug-column"><strong>@service.RatedShipment_AccessorialCharges_MonetaryValue</strong></td><!-- 10: Accessorial -->
-
-                                                        <td style="display: none" class="debug-column"><strong>@service.CWT</strong></td><!-- 11: CWT Eligable -->
-                                                    </tr>
+                                                            <td style="display: none" class="debug-column"><strong>@service.CWT</strong></td><!-- 9: CWT Eligable -->
+                                                        </tr>
                                                         rowIndex++;
                                                     }
                                                 </tbody>
+                                                <tfoot id="debug-help-ti" style="display: none">
+                                                    <tr>
+                                                        <td colspan="4">
+                                                            Plant surcharge: @_plantSurcharge<br />
+                                                        </td>
+                                                        <td colspan="7">
+                                                            Customer Cost = Plant Surcharge + Package Charge + Shipment Charge + Carrier Charge
+                                                            <br />
+                                                            Carrier Charge = Base Rate + Fuel Charge + Accessorial Charge
+                                                            <br />
+                                                            All figures in bold are unaltered from the carrier.
+                                                        </td>
+                                                    </tr>
+                                                </tfoot>
                                             </table>
                                         </div>
                                         <div class="col">
                                             <img src="~/Content/img/LOGO_L.gif" />                                            
                                             <br />
-                                            <button id="upsButton" onclick="toggleUPSColumns([4,5,6,7,8,9,10,11])" class="toggleButton"></button>                                                   
+                                            <button id="upsButton" onclick="toggleUPSColumns([4,5,6,7,8,9])" class="toggleButton"></button>                                                   
                                         </div>
                                     </div>
 
@@ -427,10 +447,6 @@
 
                                     </div>
                                 }
-
-
-
-
 
                                 if (Model.include_ltl_rate_selection == "Yes")
                                 {

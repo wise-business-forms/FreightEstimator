@@ -10,7 +10,8 @@ namespace AuthenticationServer.Models
     {
         private Dictionary<string, string> _CWTCodes;
 
-        public string CWT { get; set; }   
+        public string CWT { get; set; }
+        public string CWT_Adjustment { get; set; }
         public string Direct {  get; set; }
         public string PlantCode { get; set; }
         public double CustomerRate { get; set; }
@@ -59,7 +60,7 @@ namespace AuthenticationServer.Models
         public string ShipFrom { get; set; }   
         public string TotalCost { get; set; }
         public string TransitDays { get; set; }        
-
+        
         public string Plant_CarrierId { get; set; }
         public string Plant_PerPackageCharge { get; set; }
         public string Plant_ShipmentCharge { get; set; }

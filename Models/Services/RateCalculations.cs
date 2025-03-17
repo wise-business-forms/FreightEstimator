@@ -134,7 +134,6 @@ namespace AuthenticationServer.Models.Services
             }
         }
         
-
         /// <summary>
         /// Calulates the Centum Weight (CWT) eligibility for all UPS air services.
         /// </summary>
@@ -440,7 +439,7 @@ namespace AuthenticationServer.Models.Services
         /// <param name="packageWeight"></param>
         /// <param name="lastPackageWeight"></param>
         /// <returns></returns>
-        private bool HundredWeightEligable(UPSService.ServiceCode serviceCode, int numberOfPackages, string packageWeight, string lastPackageWeight)
+        public bool HundredWeightEligable(UPSService.ServiceCode serviceCode, int numberOfPackages, string packageWeight, string lastPackageWeight)
         {
             bool _eligable = false;
 
