@@ -1,7 +1,4 @@
-﻿@{
-
-}
-<div class="container shadow min-vh-100 py-2 content-panel">
+﻿<div class="container shadow min-vh-100 py-2 content-panel">
     <div class="row">
         <div class="col">
             <div class="content-panel">
@@ -11,7 +8,7 @@
                     </div>
                     <div class="row">
                         <center>
-                            <img src="/Content/img/wiseLogo.jpg" />
+                            <img src="~/Content/img/wiseLogo.jpg" />
                         </center>
                     </div>
                     <div class="row">
@@ -26,11 +23,11 @@
                                 <div class="col-4">
                                     <a href="@Url.Action("RedirectToPlant", "Home", new { loc = plant.Id})" class="btn btn-primary btn-main">@plant.Name (@plant.Id)</a>
                                 </div>
-                                    
-                             }
-                          }
-                     </div>
-                    
+
+                            }
+                        }
+                    </div>
+
                     <div class="row">
                         <div class="col"></div>
                         <div class="col-auto">
@@ -56,10 +53,10 @@
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
-        
+
     document.getElementById("xmlRequest").textContent = "<pre>" + escapedXml + "</pre>";
     document.getElementById('hideXML').addEventListener('click', function () {
         const content = document.getElementById('XML-DATA');
         content.classList.add('hidden'); // Add the 'hidden' class to hide the element
     });
-    </script>
+</script>

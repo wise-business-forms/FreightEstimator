@@ -8,15 +8,17 @@
     @Styles.Render("~/Content/css")
     @Scripts.Render("~/bundles/modernizr")
 </head>
-<body class="body-content">
+<body class="body-content" @if (HttpContext.Current.IsDebuggingEnabled) { <text> style="padding-top: 50px;" </text> }>
+    
+        @Html.Partial("_DevBanner")
 
-    @RenderBody()
-    <hr />
-    <footer>
-        <p>&copy; @DateTime.Now.Year - Wise Business Forms - Wise Answers Freight Estimator (WAFE)</p>
-    </footer>
-    @Scripts.Render("~/bundles/jquery")
-    @Scripts.Render("~/bundles/bootstrap")
-    @RenderSection("scripts", required: false)
-</body>
+        @RenderBody()
+        <hr />
+        <footer>
+            <p>&copy; @DateTime.Now.Year - Wise Business Forms - Wise Answers Freight Estimator (WAFE)</p>
+        </footer>
+        @Scripts.Render("~/bundles/jquery")
+        @Scripts.Render("~/bundles/bootstrap")
+        @RenderSection("scripts", required: false)
+    </body>
 </html>

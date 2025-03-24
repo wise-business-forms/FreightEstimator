@@ -89,7 +89,7 @@ namespace AuthenticationServer.Models
         /// <summary>
         /// The value for the total charges associated with the shipment.
         /// </summary>
-        public string RatedShipment_TotalCharges_MonetaryValue { get; set; }
+        public string RatedShipment_PublishedRateCharges_MonetaryValue { get; set; }
         /// <summary>
         /// The value for the Negotiated Rate total charges associated with the shipment.
         /// </summary>

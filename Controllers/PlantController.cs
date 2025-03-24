@@ -428,25 +428,19 @@ namespace AuthenticationServer.Controllers
             // TOTAL CUSTOMER RATE
             if (uPSService.ServiceName == "UPSGround")
             {
-                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_TotalCharges_MonetaryValue);               
+                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_PublishedRateCharges_MonetaryValue);               
             }
             else
             {
-                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge);
-                uPSService.RatedShipment_TotalCharges_MonetaryValue = uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge;
-
-                // Apply CWT Adjustment only to negotiated services.
-                if (uPSService.CWT.ToUpper() == "TRUE")
-                {
-                    uPSService.CWT_Adjustment = ((Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge) / 0.7) - Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge)).ToString();
-                    uPSService.CustomerRate = uPSService.CustomerRate + Double.Parse(uPSService.CWT_Adjustment);
-                }
+                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge);     
+                uPSService.CWT_Adjustment = ((Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge) / 0.7) - Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge)).ToString();
+                uPSService.CustomerRate = uPSService.CustomerRate + Double.Parse(uPSService.CWT_Adjustment);
             }
 
             // Set plant surcharge.
             if (markup > 0)
             {
-                uPSService.Plant_Surcharge = ((markup / 100) * Double.Parse(uPSService.RatedShipment_TotalCharges_MonetaryValue)).ToString();
+                uPSService.Plant_Surcharge = ((markup / 100) * Double.Parse(uPSService.RatedShipment_PublishedRateCharges_MonetaryValue)).ToString();
             }
 
             // Add final upcharges.
@@ -525,40 +519,9 @@ namespace AuthenticationServer.Controllers
             ShopRateResponse shopRateResponse = new ShopRateResponse();
             if (shipment.ErrorMessage == "" || shipment.ErrorMessage == null)
             {
-                // Return negotiated rates.
-                UPSRequest uPSRequestNegotiated = new UPSRequest(shipment, new Plant(shipment.PlantId), UPSRequest.RequestOption.Shop, UPSRequest.RateClassification.Negotiated);
-                List<UPSService> uPSNegotiatedRates = uPSRequestNegotiated.UPSServices.ToList();
-
-                // Return published rates.
-                UPSRequest uPSRequestPublished = new UPSRequest(shipment, new Plant(shipment.PlantId), UPSRequest.RequestOption.Shop, UPSRequest.RateClassification.Published);
-                List<UPSService> uPSPublishedRates = uPSRequestPublished.UPSServices.ToList();
-
-                // Combine the results
-                List<UPSService> combinedRates = new List<UPSService>();
-
-                if (uPSPublishedRates != null)
-                {
-                    foreach (UPSService service in uPSPublishedRates)
-                    {
-                        if (service.ServiceName == "UPSGround") // Only Ground
-                        {
-                            combinedRates.Add(service);
-                        }
-                    }
-                }
-
-                if (uPSNegotiatedRates != null)
-                {
-                    foreach (UPSService service in uPSNegotiatedRates)
-                    {
-                        if (service.ServiceName != "UPSGround")  // Include ALL services except Ground.
-                        {
-                            combinedRates.Add(service);
-                        }
-                    }
-                }
-
-                shopRateResponse.UPSServices = combinedRates.ToArray();
+                // Return rates.
+                List<UPSService> uPSRates = new UPSRequest(shipment, new Plant(shipment.PlantId), UPSRequest.RequestOption.Shop, UPSRequest.RateClassification.Negotiated).UPSServices.ToList();
+                shopRateResponse.UPSServices = uPSRates.ToArray();
             }
             return shopRateResponse;
         }
@@ -834,7 +797,7 @@ namespace AuthenticationServer.Controllers
                             service.RatedShipment_BaseServiceCharge_MonetaryValue = originalBaseAmount.ToString("C");
                             service.RatedShipment_TransportationCharges_MonetaryValue = originalFuelAmount.ToString("C");
                             service.RatedShipment_AccessorialCharges_MonetaryValue = originalAccessorialAmount.ToString("C");
-                            service.RatedShipment_TotalCharges_MonetaryValue = originalTotalAmount.ToString("C");
+                            service.RatedShipment_PublishedRateCharges_MonetaryValue = originalTotalAmount.ToString("C");
 
                             ltlServices.Add(service);
 
@@ -850,7 +813,7 @@ namespace AuthenticationServer.Controllers
                                 RatedShipment_BaseServiceCharge_MonetaryValue = originalBaseAmount.ToString("C"),
                                 RatedShipment_TransportationCharges_MonetaryValue = originalFuelAmount.ToString("C"),
                                 RatedShipment_AccessorialCharges_MonetaryValue = originalAccessorialAmount.ToString("C"),
-                                RatedShipment_TotalCharges_MonetaryValue = totalCharges.ToString("C")
+                                RatedShipment_PublishedRateCharges_MonetaryValue = totalCharges.ToString("C")
                             };
 
                             ltlServices.Add (service);
@@ -1237,7 +1200,7 @@ namespace AuthenticationServer.Controllers
                         service.RatedShipment_BaseServiceCharge_MonetaryValue = priceSheet.Rate;
                         service.RatedShipment_TransportationCharges_MonetaryValue = double.Parse(priceSheet.FuelCharge).ToString("C");
                         service.RatedShipment_AccessorialCharges_MonetaryValue = priceSheet.TotalAccessorialAmount.ToString();
-                        service.RatedShipment_TotalCharges_MonetaryValue = priceSheet.TotalCost;
+                        service.RatedShipment_PublishedRateCharges_MonetaryValue = priceSheet.TotalCost;
 
                         ltlServices.Add(service);
                     }
@@ -1247,9 +1210,9 @@ namespace AuthenticationServer.Controllers
                     try
                     {
                         response.UPSServices = response.UPSServices
-    .Where(s => !string.IsNullOrWhiteSpace(s.TransitDays) && !string.IsNullOrWhiteSpace(s.RatedShipment_TotalCharges_MonetaryValue)) // Filter out invalid rows
+    .Where(s => !string.IsNullOrWhiteSpace(s.TransitDays) && !string.IsNullOrWhiteSpace(s.RatedShipment_PublishedRateCharges_MonetaryValue)) // Filter out invalid rows
     .OrderByDescending(s => float.TryParse(s.TransitDays, out float days) ? days : float.MinValue) // Parse TransitDays or use default for invalid values
-    .ThenBy(s => float.TryParse(s.RatedShipment_TotalCharges_MonetaryValue, out float cost) ? cost : float.MinValue) // Parse TotalCharges or use default
+    .ThenBy(s => float.TryParse(s.RatedShipment_PublishedRateCharges_MonetaryValue, out float cost) ? cost : float.MinValue) // Parse TotalCharges or use default
     .ToArray();
                     }
                     catch(Exception ex)

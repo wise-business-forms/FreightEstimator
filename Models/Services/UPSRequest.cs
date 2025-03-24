@@ -316,7 +316,7 @@ namespace AuthenticationServer.Models.Services
             uPSService.RatedShipment_TransportationCharges_MonetaryValue = service.SelectToken("TransportationCharges.MonetaryValue")?.ToString() ?? "0";
             uPSService.RatedShipment_BaseServiceCharge_MonetaryValue = service.SelectToken("BaseServiceCharge.MonetaryValue")?.ToString() ?? "0";
             uPSService.RatedShipment_ServiceOptionsCharges_MonetaryValue = service.SelectToken("ServiceOptionsCharges.MonetaryValue")?.ToString() ?? "0";
-            uPSService.RatedShipment_TotalCharges_MonetaryValue = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "0";
+            uPSService.RatedShipment_PublishedRateCharges_MonetaryValue = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "0";
             uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge = service.SelectToken("NegotiatedRateCharges.TotalCharge.MonetaryValue")?.ToString() ?? "0";
 
             
