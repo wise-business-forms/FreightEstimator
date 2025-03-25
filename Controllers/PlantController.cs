@@ -18,6 +18,8 @@ using AuthenticationServer.Models.Carrier.UPS;
 using System.ComponentModel.DataAnnotations;
 using System.Xml.XPath;
 using System.Globalization;
+using System.Security.Policy;
+using System.Text.RegularExpressions;
 
 namespace AuthenticationServer.Controllers
 {
@@ -393,13 +395,12 @@ namespace AuthenticationServer.Controllers
             uPSService.CWT_Adjustment = "0"; // Set default value.
             uPSService.Plant_Surcharge = "0"; // Set default vallue.
 
-            // Since we are dealing with UPS only two carrier IDs matter.
+            // Set the carrier ID based on whether or not it is CWTT.  Since we are dealing with UPS only two carrier IDs matter.
             uPSService.Plant_CarrierId = uPSService.CWT.ToUpper() == "TRUE" ? "UPSCWT" : "UPS";
 
             uPSService.Plant_PerPackageCharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).PerPackageCharge.ToString();
             uPSService.Plant_ShipmentCharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).PerShipmentCharge.ToString();
 
-            // Apply marke up per the carrier specified.
             switch (serviceCode)
             {
                 case UPSService.ServiceCode.UPSGround:
@@ -426,15 +427,18 @@ namespace AuthenticationServer.Controllers
             }
 
             // TOTAL CUSTOMER RATE
-            if (uPSService.ServiceName == "UPSGround")
+            // It was decided 3/21/2025 by all of the GMs that:
+            // If UPS/FEDEX CWT use negotiated (that means <100 if air, > 200 if ground)
+            // If not UPS / FEDEX CWT use published
+            // Remove the (negotiated / .7) cwt weight adjustment.
+
+            if (uPSService.CWT.ToUpper() == "TRUE")
             {
-                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_PublishedRateCharges_MonetaryValue);               
+                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge);
             }
             else
             {
-                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge);     
-                uPSService.CWT_Adjustment = ((Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge) / 0.7) - Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge)).ToString();
-                uPSService.CustomerRate = uPSService.CustomerRate + Double.Parse(uPSService.CWT_Adjustment);
+                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_PublishedRateCharges_MonetaryValue);
             }
 
             // Set plant surcharge.

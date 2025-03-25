@@ -121,7 +121,7 @@
                     }
                 </div>
                 <div class=" col-3 ms-auto ">
-                    <img src="/Content/img/wiseLogo.jpg" />
+                    <img src="~/Content/img/wiseLogo.jpg" />
                 </div>
             </div>
             @if (Model.Corrected_Address != null || Model.Corrected_City != null || Model.Corrected_Country != null || Model.Corrected_State_selection != null)
@@ -269,14 +269,15 @@
                                                         <th scope="col" title="The total cost of the shipment including all markup, service fees and surcharges.">Customer Cost</th>
 
                                                         <!-- values for calculations -->
+                                                        <th scope="col" title="Shows whether or not it qualifies for CWT." class="debug-column-header" style="display: none">CWT?</th>
                                                         <th scope="col" title="Plant per package charge." class="debug-column-header" style="display: none">Plant Surchg.</th>
-                                                        <th scope="col" title="The applied CWT adjustment." class="debug-column-header" style="display: none">CWT Adj.</th>
+                                                        
                                                         <th scope="col" title="The published carrier rate." class="debug-column-header" style="display: none">Published</th>
                                                         <th scope="col" title="Difference of Negotiated vs. Published Rates" class="debug-column-header" style="display: none">Diff</th>
                                                         <th scope="col" title="The negotiated carrier rate." class="debug-column-header" style="display: none">Negotiated</th>
                                                         <th scope="col" title="Customer Rate - Negotiated Rate" class="debug-column-header" style="display: none">Wise Profit$</th>
                                                         <th scope="col" title="Wise Profit / Negotiated Rate" class="debug-column-header" style="display: none">Wise Profit%</th>
-                                                        <th scope="col" title="Shows whether or not it qualifies for CWT." class="debug-column-header" style="display: none">CWT?</th>
+
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -300,18 +301,19 @@
                                                         var rowClass = rowIndex % 2 == 0 ? "" : "alt";
                                                         <tr class="@rowClass">
                                                             <td>@service.PlantCode</td> <!-- 0: Ship From -->
-                                                            <td class="align-content-start"  data-ship-method="@(serviceNameTranslations[service.ServiceName])">@(serviceNameTranslations[service.ServiceName])</td> <!-- 1: Service -->
+                                                            <td class="align-content-start" data-ship-method="@(serviceNameTranslations[service.ServiceName])">@(serviceNameTranslations[service.ServiceName])</td> <!-- 1: Service -->
                                                             <td>@service.TransitDays</td> <!-- 2: Transit Days -->
                                                             <td>@service.CustomerRate.ToString("C")</td> <!-- 3: Customer Cost -->
                                                             <!-- values for calculations -->
+                                                            <td style="display: none" class="debug-column" data-cwt="@(service.CWT)">@service.CWT</td><!-- 9: CWT? -->
                                                             <td style="display: none" class="debug-column">@Double.Parse(service.Plant_Surcharge).ToString("C")</td> <!-- 4: Plant Surcharges -->
-                                                            <td style="display: none" class="debug-column">@Double.Parse(service.CWT_Adjustment).ToString("C")</td><!-- 5: CWT. Adj. -->
+                                                            
                                                             <td style="display: none" class="debug-column"><strong>@Double.Parse(service.RatedShipment_PublishedRateCharges_MonetaryValue).ToString("C")</strong></td><!-- 6: Published. -->
                                                             <td style="display: none" class="debug-column">@_diff.ToString("C")</td><!-- 7: Diff. -->
                                                             <td style="display: none" class="debug-column"><strong>@Double.Parse(service.RatedShipment_NegotiatedRateCharges_TotalCharge).ToString("C")</strong></td><!-- 8: Negotiated. -->
                                                             <td style="display: none" class="debug-column">@_wiseProfitD.ToString("C")</td><!-- 10: CWT? -->
                                                             <td style="display: none" class="debug-column">@_wiseProfitP.ToString("P00")</td><!-- 11: CWT? -->
-                                                            <td style="display: none" class="debug-column">@service.CWT</td><!-- 9: CWT? -->
+
                                                         </tr>
                                                         rowIndex++;
                                                     }
@@ -675,8 +677,7 @@
 
     // Set button default settings.
     document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById('upsButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";
-        document.getElementById('TIButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";        
+        document.getElementById('upsButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";      
     });
 
 
@@ -691,58 +692,48 @@
     function toggleUPSColumns(colIndices) {
         var table = document.getElementById('upsRateTable');
 
-        // Process header row (first row)
+        // Process header row (first row) - Toggle visibility
         var headerRow = table.rows[0];
         for (var colIndex of colIndices) {
             var headerCell = headerRow.cells[colIndex];
             if (headerCell) {
-                var computedStyle = window.getComputedStyle(headerCell);
-                if (computedStyle.display === 'none') {
-                    headerCell.style.display = '';
-                } else {
-                    headerCell.style.display = 'none';
-                }
+                headerCell.style.display = headerCell.style.display === 'none' ? '' : 'none';
             }
         }
 
-        // Process data rows (rows 1 and onward)
+        // Process data rows (rows 1 and onward) - Toggle visibility and apply formatting
         for (var i = 1; i < table.rows.length; i++) {
             var row = table.rows[i];
-            var shipMethodCell = row.cells[1];
-            var shipMethod = shipMethodCell.getAttribute('data-ship-method');
+            var cwtCell = row.cells[4]; // Correctly select the CWT cell.
+            var cwtString = null; // Initialize cwtString to null
+            if (cwtCell) {
+                cwtString = cwtCell.getAttribute('data-cwt');
+            }
+            var cwt = cwtString === 'True'; // Correctly compare to "True"
 
             for (var colIndex of colIndices) {
                 var cell = row.cells[colIndex];
                 if (cell) {
-                    var computedStyle = window.getComputedStyle(cell);
-                    if (computedStyle.display === 'none') {
-                        cell.style.display = '';
-                        document.getElementById('debug-help-ups').style.display = '';
-                        document.getElementById('upsButton').innerHTML = "<i class=\"fas fa-eye-slash\"></i> Hide Extra Data";
+                    // Toggle visibility
+                    cell.style.display = cell.style.display === 'none' ? '' : 'none';
 
-                        // Apply background color only to the 6th cell
-                        if (colIndex === 6 && shipMethod === 'UPS Ground') {
-                            cell.style.backgroundColor = '#36ff00';
-                        } else if (colIndex === 6) {
-                            cell.style.backgroundColor = '';
-                        }
+                    // Update debug and button
+                    var isVisible = cell.style.display !== 'none';
+                    document.getElementById('debug-help-ups').style.display = isVisible ? '' : 'none';
+                    document.getElementById('upsButton').innerHTML = isVisible ? "<i class=\"fas fa-eye-slash\"></i> Hide Extra Data" : "<i class=\"fas fa-eye\"></i> Show Extra Data";
 
-                        // Apply background color only to the 8th cell
-                        if (colIndex === 8 && shipMethod !== 'UPS Ground') {
-                            cell.style.backgroundColor = '#36ff00';
-                        } else if (colIndex === 8) {
-                            cell.style.backgroundColor = '';
+                    // Apply formatting based on cwt and colIndex
+                    if (colIndex === 6 || colIndex === 8) { // Only process columns Published and Negotiated
+                        if (cwtString === "True") { // If cwt is true
+                            cell.style.backgroundColor = colIndex === 8 ? '#36ff00' : '';
+                        } else { // If cwt is false
+                            cell.style.backgroundColor = colIndex === 6 ? '#36ff00' : '';
                         }
-                    } else {
-                        cell.style.display = 'none';
-                        document.getElementById('debug-help-ups').style.display = 'none';
-                        document.getElementById('upsButton').innerHTML = "<i class=\"fas fa-eye\"></i> Show Extra Data";
                     }
                 }
             }
         }
     }
-
     function toggleUPSGroundColumns(colIndices) {
         // Get the table
         var table = document.getElementById('upsGroundRateTable');
