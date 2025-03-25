@@ -20,6 +20,7 @@ using System.Xml.XPath;
 using System.Globalization;
 using System.Security.Policy;
 using System.Text.RegularExpressions;
+using System.Web.UI.WebControls;
 
 namespace AuthenticationServer.Controllers
 {
@@ -394,6 +395,7 @@ namespace AuthenticationServer.Controllers
             uPSService.ServiceName = serviceCode.ToString();
             uPSService.CWT_Adjustment = "0"; // Set default value.
             uPSService.Plant_Surcharge = "0"; // Set default vallue.
+            uPSService.RatedShipment_Surcharge = "0"; // Set default vallue.
 
             // Set the carrier ID based on whether or not it is CWTT.  Since we are dealing with UPS only two carrier IDs matter.
             uPSService.Plant_CarrierId = uPSService.CWT.ToUpper() == "TRUE" ? "UPSCWT" : "UPS";
@@ -404,25 +406,25 @@ namespace AuthenticationServer.Controllers
             switch (serviceCode)
             {
                 case UPSService.ServiceCode.UPSGround:
-                    markup = Double.Parse(plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).Ground.ToString());
+                    uPSService.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).Ground.ToString();
                     break;
                 case UPSService.ServiceCode.UPS3DaySelect:
-                    markup = Double.Parse(plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).ThreeDaySelect.ToString());
+                    uPSService.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).ThreeDaySelect.ToString();
                     break;
                 case UPSService.ServiceCode.UPS2ndDayAir:
-                    markup = Double.Parse(plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).SecondDayAir.ToString());
+                    uPSService.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).SecondDayAir.ToString();
                     break;
                 case UPSService.ServiceCode.SecondDayAirAM:
-                    markup = Double.Parse(plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).SecondDayAirAM.ToString());
+                    uPSService.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).SecondDayAirAM.ToString();
                     break;
                 case UPSService.ServiceCode.NextDayAirSaver:
-                    markup = Double.Parse(plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).NextDayAirSaver.ToString());
+                    uPSService.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).NextDayAirSaver.ToString();
                     break;
                 case UPSService.ServiceCode.UPSNextDayAir:
-                    markup = Double.Parse(plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).NextDayAir.ToString());
+                    uPSService.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).NextDayAir.ToString();
                     break;
                 case UPSService.ServiceCode.NextDayAirEarlyAM:
-                    markup = Double.Parse(plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).NextDayAirEarlyAM.ToString());
+                    uPSService.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).NextDayAirEarlyAM.ToString();
                     break;
             }
 
@@ -442,14 +444,14 @@ namespace AuthenticationServer.Controllers
             }
 
             // Set plant surcharge.
-            if (markup > 0)
+            if (double.Parse(uPSService.Plant_Surcharge) > 0)
             {
-                uPSService.Plant_Surcharge = ((markup / 100) * Double.Parse(uPSService.RatedShipment_PublishedRateCharges_MonetaryValue)).ToString();
+                uPSService.RatedShipment_Surcharge = ((double.Parse(uPSService.Plant_Surcharge) / 100) * Double.Parse(uPSService.RatedShipment_PublishedRateCharges_MonetaryValue)).ToString();
             }
 
             // Add final upcharges.
             uPSService.CustomerRate = uPSService.CustomerRate + 
-                Double.Parse(uPSService.Plant_Surcharge) + 
+                Double.Parse(uPSService.RatedShipment_Surcharge) + 
                 Double.Parse(uPSService.Plant_ShipmentCharge) + 
                 (Double.Parse(uPSService.Plant_PerPackageCharge) * shipment.number_of_packages);
 
@@ -794,7 +796,7 @@ namespace AuthenticationServer.Controllers
                             service.TotalCost = totalCharges.ToString("C");
 
                             service.TransitDays = transitDays.ToString();
-                            service.Plant_Surcharge = (plantSurcharge * originalTotalAmount).ToString("C");
+                            service.RatedShipment_Surcharge = (plantSurcharge * originalTotalAmount).ToString("C");
                             service.Plant_PerPackageCharge = (perPackageCharge * shipment.number_of_packages).ToString("C");
                             service.Plant_ShipmentCharge = perShipmentCharge.ToString("C");
 
@@ -1197,7 +1199,7 @@ namespace AuthenticationServer.Controllers
                         service.TotalCost = totalCharges.ToString("C");
 
                         service.TransitDays = priceSheet.TransitDays;
-                        service.Plant_Surcharge = (plantSurcharge * Convert.ToDouble(priceSheet.TotalCost)).ToString("C");
+                        service.RatedShipment_Surcharge = (plantSurcharge * Convert.ToDouble(priceSheet.TotalCost)).ToString("C");
                         service.Plant_PerPackageCharge = (plantPackageCharge * shipment.number_of_packages).ToString("C");
                         service.Plant_ShipmentCharge = plantShipmentCharge.ToString("C");
 

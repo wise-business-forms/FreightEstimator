@@ -291,8 +291,7 @@
 
                                                         _packageCharge = float.Parse(service.Plant_PerPackageCharge) * Model.number_of_packages;
                                                         _shipmentCharge = float.Parse(service.Plant_ShipmentCharge);
-
-                                                        _plantSurcharge = (double.Parse(service.Plant_Surcharge, System.Globalization.NumberStyles.Currency, System.Globalization.CultureInfo.CurrentCulture)).ToString("P0");
+                                                        _plantSurcharge = service.Plant_Surcharge; // (double.Parse(service.Plant_Surcharge, System.Globalization.NumberStyles.Currency, System.Globalization.CultureInfo.CurrentCulture)).ToString("P00");
 
                                                         double _diff = Double.Parse(service.RatedShipment_PublishedRateCharges_MonetaryValue) - @Double.Parse(service.RatedShipment_NegotiatedRateCharges_TotalCharge);
                                                         double _wiseProfitD = service.CustomerRate - @Double.Parse(service.RatedShipment_NegotiatedRateCharges_TotalCharge);
@@ -306,7 +305,7 @@
                                                             <td>@service.CustomerRate.ToString("C")</td> <!-- 3: Customer Cost -->
                                                             <!-- values for calculations -->
                                                             <td style="display: none" class="debug-column" data-cwt="@(service.CWT)">@service.CWT</td><!-- 9: CWT? -->
-                                                            <td style="display: none" class="debug-column">@Double.Parse(service.Plant_Surcharge).ToString("C")</td> <!-- 4: Plant Surcharges -->
+                                                            <td style="display: none" class="debug-column">@Double.Parse(service.RatedShipment_Surcharge).ToString("C")</td> <!-- 4: Plant Surcharges -->
                                                             
                                                             <td style="display: none" class="debug-column"><strong>@Double.Parse(service.RatedShipment_PublishedRateCharges_MonetaryValue).ToString("C")</strong></td><!-- 6: Published. -->
                                                             <td style="display: none" class="debug-column">@_diff.ToString("C")</td><!-- 7: Diff. -->
@@ -321,10 +320,11 @@
                                                 <tfoot id="debug-help-ups" style="display: none">
                                                     <tr>
                                                         <td colspan="3">
-                                                            Per Package charge: @_packageCharge.ToString("C")<br />
-                                                            Shipment charge: @_shipmentCharge.ToString("C")
+                                                            Plant Surcharge: @_plantSurcharge.ToString()%<br />
+                                                            Per Package Charge: @_packageCharge.ToString("C")<br />
+                                                            Shipment Charge: @_shipmentCharge.ToString("C")
                                                         </td>
-                                                        <td colspan="6">
+                                                        <td colspan="8">
                                                             Customer Cost = Plant Surcharge + Package Charge + Shipment Charge + Carrier Charge
                                                             <br />
                                                             Carrier Charge = Base Rate + Fuel Charge + Accessorial Charge

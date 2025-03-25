@@ -64,11 +64,16 @@ namespace AuthenticationServer.Models
         public string Plant_CarrierId { get; set; }
         public string Plant_PerPackageCharge { get; set; }
         public string Plant_ShipmentCharge { get; set; }
+        
         /// <summary>
         /// This is the service charge for this rate.
         /// </summary>
         public string Plant_Surcharge { get; set; }
 
+        /// <summary>
+        /// The calulated surcharge total for the shipment under this service.
+        /// </summary>
+        public string RatedShipment_Surcharge { get; set; }
         /// <summary>
         /// The original value for the accessorial costs associated with the shipment.        
         /// </summary>
