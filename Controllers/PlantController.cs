@@ -446,7 +446,7 @@ namespace AuthenticationServer.Controllers
             // Set plant surcharge.
             if (double.Parse(uPSService.Plant_Surcharge) > 0)
             {
-                uPSService.RatedShipment_Surcharge = ((double.Parse(uPSService.Plant_Surcharge) / 100) * Double.Parse(uPSService.RatedShipment_PublishedRateCharges_MonetaryValue)).ToString();
+                uPSService.RatedShipment_Surcharge = ((double.Parse(uPSService.Plant_Surcharge) / 100) * Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge)).ToString();
             }
 
             // Add final upcharges.
