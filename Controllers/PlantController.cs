@@ -543,7 +543,7 @@ namespace AuthenticationServer.Controllers
             ShopRateResponse shopRateResponse = new ShopRateResponse();
             //if (shipment.ErrorMessage == "" || shipment.ErrorMessage == null)
             {
-                UPSRequest upsRequest = new UPSRequest(shipment, new Plant { Id = shipment.PlantId }, UPSRequest.RequestOption.Rate, UPSRequest.RateClassification.Published);
+                UPSRequest upsRequest = new UPSRequest(shipment, new Plant { Id = shipment.PlantId }, UPSRequest.RequestOption.Rate, UPSRequest.RateClassification.Negotiated);
                 shopRateResponse.UPSServices = upsRequest.UPSServices;
             }
             return shopRateResponse;

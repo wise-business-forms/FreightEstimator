@@ -237,132 +237,7 @@ namespace AuthenticationServer.Models.Services
             }
 
             switch (serviceName)
-            {
-                case "UPSGround":
-                    if (rateCalculations.HundredWeightGroundEligable(UPSService.ServiceCode.UPSGround, numberOfPackages, packageWeight, lastPackage))
-                    {
-                        cwt = true;
-                        
-                        rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
-                        perShipmentCharge = Convert.ToDouble(rateCalculations.PerShipmentChargeCWT[plantId]);                        
-                        markup = Convert.ToDouble(rateCalculations.UpchargeGroundCWT[plantId]);
-                    }
-                    else
-                    {
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeGround[plantId]);
-                    }
-
-                    break;
-                case "UPS3DaySelect":
-                    if (rateCalculations.HundredWeightGroundEligable(UPSService.ServiceCode.UPS3DaySelect, numberOfPackages, packageWeight, lastPackage))
-                    {
-                        cwt = true;
-                        rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
-                        perShipmentCharge = Convert.ToDouble(rateCalculations.PerShipmentChargeCWT[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeThreeDaySelectCWT[plantId]);
-                    }
-                    else
-                    {
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(rateCalculations._UpchargeThreeDaySelect[plantId]);
-                    }
-                    break;
-                case "UPSNextDayAir":
-                    if (rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.UPSNextDayAir, numberOfPackages, packageWeight, lastPackage))
-                    {
-                        cwt = true;
-                        rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
-                        perShipmentCharge = Convert.ToDouble(rateCalculations.PerShipmentChargeCWT[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAirCWT[plantId]);
-                    }
-                    else
-                    {
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAir[plantId]);
-                    }
-                    break;
-                case "UPS2ndDayAir":
-                    if (rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.UPS2ndDayAir, numberOfPackages, packageWeight, lastPackage))
-                    {
-                        cwt = true;
-                        rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
-                        perShipmentCharge = Convert.ToDouble(rateCalculations.PerShipmentChargeCWT[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeSecondDayAirCWT[plantId]);
-                    }
-                    else
-                    {
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeSecondDayAir[plantId]);
-                    }
-                    break;
-                case "SecondDayAirAM":
-                    if (rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.SecondDayAirAM, numberOfPackages, packageWeight, lastPackage))
-                    {
-                        cwt = true;
-                        rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
-                        perShipmentCharge = Convert.ToDouble(rateCalculations.PerShipmentChargeCWT[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeSecondDayAirAMCWT[plantId]);
-                    }
-                    else
-                    {
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeSecondDayAirAM[plantId]);
-                    }
-                    break;
-                case "NextDayAirSaver":
-                    if (rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.NextDayAirSaver, numberOfPackages, packageWeight, lastPackage))
-                    {
-                        cwt = true;
-                        rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
-                        perShipmentCharge = Convert.ToDouble(rateCalculations.PerShipmentChargeCWT[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAirSaverCWT[plantId]);
-                    }
-                    else
-                    {
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAirSaver[plantId]);
-                    }
-
-                    break;
-                case "NextDayAirEarlyAM":                    
-                    if (rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.NextDayAirEarlyAM, numberOfPackages, packageWeight, lastPackage))
-                    {
-                        //cwt = false; // Since no negotiated rate is returned and published rate are retuened the same we are not checking for CWT.
-                        cwt = true;
-                        rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
-                        perShipmentCharge = Convert.ToDouble(rateCalculations.PerShipmentChargeCWT[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAirSaverCWT[plantId]);
-                    }
-                    else
-                    {
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeNextDayAirSaver[plantId]);
-                    }
-                    break;
-                case "UPSSaver":
-                    if (rateCalculations.HundredWeightAirEligable(UPSService.ServiceCode.UPSSaver, numberOfPackages, packageWeight, lastPackage))
-                    {
-                        cwt = true;
-                        rateCalculations = new RateCalculations(_accountNumber, Carriers.UPSCWT);
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageChargeCWT[plantId]);
-                        perShipmentCharge = Convert.ToDouble(rateCalculations.PerShipmentChargeCWT[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeSaverCWT[plantId]);
-                    }
-                    else
-                    {
-                        perPackageCharge = Convert.ToDouble(rateCalculations.PerPackageCharge[plantId]);
-                        markup = Convert.ToDouble(rateCalculations.UpchargeSaver[plantId]);
-                    }
-
-                    break;
+            {               
                 case "UPSGroundFreight":                    
                     RateCalculations rateGFCalculations = new RateCalculations(0, Carriers.GF);
                     perPackageCharge = Convert.ToDouble(rateGFCalculations.PerPackageCharge[plantId]);
@@ -418,7 +293,7 @@ namespace AuthenticationServer.Models.Services
                     case "UPSGroundFreight":
                         total += perShipmentCharge;
                         total += (perPackageCharge * noPackages);
-                        if (serviceName == "UPSGroundFreight"){total += ((markup / 100) * currentRate);}
+                        if (serviceName == "UPSGroundFreight"){total += ((markup / 100) * currentRate) + currentRate;}
                         break;
                     default:
                         total = rate;
