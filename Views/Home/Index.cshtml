@@ -46,17 +46,3 @@
         </div>
     </div>
 </div>
-
-<script>
-    const originalXml = "<?xml version=\"1.0\" ?>< quote ><requestedMode>LTL</requestedMode><requestedPickupDate>2024-12-12</requestedPickupDate><shipper><city>Fort Wayne</city><region>IN</region><country>US</country><postalCode>46818</postalCode></shipper><consignee><city>CORAOPOLIS</city><region>PA</region><country>US</country><postalCode>15108-4212</postalCode></consignee><lineItems><lineItem><freightClass>55</freightClass><weight>160</weight><weightUnit>LB</weightUnit></lineItem></lineItems></quote > ";
-    const escapedXml = originalXml
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-
-    document.getElementById("xmlRequest").textContent = "<pre>" + escapedXml + "</pre>";
-    document.getElementById('hideXML').addEventListener('click', function () {
-        const content = document.getElementById('XML-DATA');
-        content.classList.add('hidden'); // Add the 'hidden' class to hide the element
-    });
-</script>

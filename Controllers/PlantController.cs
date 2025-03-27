@@ -117,6 +117,13 @@ namespace AuthenticationServer.Controllers
 
         public ActionResult ShipmentConfirmation(Shipment shipment)
         {
+            string environmentName = Environment.GetEnvironmentVariable("ASPNET_ENVIRONMENT");
+            if (string.IsNullOrEmpty(environmentName))
+            {
+                // Default to "Production" if the environment variable is not set
+                environmentName = "Production";
+            }
+            ViewBag.Environment = environmentName;
             // Calculate billing weight 
             if (shipment.last_package_weight > 0)
             {
