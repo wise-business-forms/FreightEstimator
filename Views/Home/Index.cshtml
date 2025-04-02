@@ -1,7 +1,4 @@
-﻿@{
-
-}
-<div class="container shadow min-vh-100 py-2 content-panel">
+﻿<div class="container shadow min-vh-100 py-2 content-panel">
     <div class="row">
         <div class="col">
             <div class="content-panel">
@@ -11,7 +8,7 @@
                     </div>
                     <div class="row">
                         <center>
-                            <img src="/Content/img/wiseLogo.jpg" />
+                            <img src="~/Content/img/wiseLogo.jpg" />
                         </center>
                     </div>
                     <div class="row">
@@ -26,11 +23,11 @@
                                 <div class="col-4">
                                     <a href="@Url.Action("RedirectToPlant", "Home", new { loc = plant.Id})" class="btn btn-primary btn-main">@plant.Name (@plant.Id)</a>
                                 </div>
-                                    
-                             }
-                          }
-                     </div>
-                    
+
+                            }
+                        }
+                    </div>
+
                     <div class="row">
                         <div class="col"></div>
                         <div class="col-auto">
@@ -49,17 +46,3 @@
         </div>
     </div>
 </div>
-
-<script>
-    const originalXml = "<?xml version=\"1.0\" ?>< quote ><requestedMode>LTL</requestedMode><requestedPickupDate>2024-12-12</requestedPickupDate><shipper><city>Fort Wayne</city><region>IN</region><country>US</country><postalCode>46818</postalCode></shipper><consignee><city>CORAOPOLIS</city><region>PA</region><country>US</country><postalCode>15108-4212</postalCode></consignee><lineItems><lineItem><freightClass>55</freightClass><weight>160</weight><weightUnit>LB</weightUnit></lineItem></lineItems></quote > ";
-    const escapedXml = originalXml
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-        
-    document.getElementById("xmlRequest").textContent = "<pre>" + escapedXml + "</pre>";
-    document.getElementById('hideXML').addEventListener('click', function () {
-        const content = document.getElementById('XML-DATA');
-        content.classList.add('hidden'); // Add the 'hidden' class to hide the element
-    });
-    </script>

@@ -1,0 +1,8 @@
+﻿@if (HttpContext.Current.IsDebuggingEnabled)
+{
+    <div class="alert alert-danger text-center mb-0" style="background-color: #ffcccc; color: #8b0000; font-weight: bold; padding: 15px; position: fixed; top: 0; left: 0; width: 100%; z-index: 1000;">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>DEVELOPMENT ENVIRONMENT - DO NOT USE FOR PRODUCTION</strong>
+        <a href="https://gate.wbf.com" class="btn btn-success btn-sm" style="margin-left: 20px;">Go to Production Site</a>
+    </div>
+}

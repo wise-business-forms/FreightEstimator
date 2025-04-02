@@ -18,6 +18,9 @@ using AuthenticationServer.Models.Carrier.UPS;
 using System.ComponentModel.DataAnnotations;
 using System.Xml.XPath;
 using System.Globalization;
+using System.Security.Policy;
+using System.Text.RegularExpressions;
+using System.Web.UI.WebControls;
 
 namespace AuthenticationServer.Controllers
 {
@@ -114,6 +117,13 @@ namespace AuthenticationServer.Controllers
 
         public ActionResult ShipmentConfirmation(Shipment shipment)
         {
+            string environmentName = Environment.GetEnvironmentVariable("ASPNET_ENVIRONMENT");
+            if (string.IsNullOrEmpty(environmentName))
+            {
+                // Default to "Production" if the environment variable is not set
+                environmentName = "Production";
+            }
+            ViewBag.Environment = environmentName;
             // Calculate billing weight 
             if (shipment.last_package_weight > 0)
             {
@@ -392,66 +402,63 @@ namespace AuthenticationServer.Controllers
             uPSService.ServiceName = serviceCode.ToString();
             uPSService.CWT_Adjustment = "0"; // Set default value.
             uPSService.Plant_Surcharge = "0"; // Set default vallue.
+            uPSService.RatedShipment_Surcharge = "0"; // Set default vallue.
 
-            // Since we are dealing with UPS only two carrier IDs matter.
+            // Set the carrier ID based on whether or not it is CWTT.  Since we are dealing with UPS only two carrier IDs matter.
             uPSService.Plant_CarrierId = uPSService.CWT.ToUpper() == "TRUE" ? "UPSCWT" : "UPS";
 
             uPSService.Plant_PerPackageCharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).PerPackageCharge.ToString();
             uPSService.Plant_ShipmentCharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).PerShipmentCharge.ToString();
 
-            // Apply marke up per the carrier specified.
             switch (serviceCode)
             {
                 case UPSService.ServiceCode.UPSGround:
-                    markup = Double.Parse(plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).Ground.ToString());
+                    uPSService.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).Ground.ToString();
                     break;
                 case UPSService.ServiceCode.UPS3DaySelect:
-                    markup = Double.Parse(plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).ThreeDaySelect.ToString());
+                    uPSService.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).ThreeDaySelect.ToString();
                     break;
                 case UPSService.ServiceCode.UPS2ndDayAir:
-                    markup = Double.Parse(plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).SecondDayAir.ToString());
+                    uPSService.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).SecondDayAir.ToString();
                     break;
                 case UPSService.ServiceCode.SecondDayAirAM:
-                    markup = Double.Parse(plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).SecondDayAirAM.ToString());
+                    uPSService.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).SecondDayAirAM.ToString();
                     break;
                 case UPSService.ServiceCode.NextDayAirSaver:
-                    markup = Double.Parse(plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).NextDayAirSaver.ToString());
+                    uPSService.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).NextDayAirSaver.ToString();
                     break;
                 case UPSService.ServiceCode.UPSNextDayAir:
-                    markup = Double.Parse(plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).NextDayAir.ToString());
+                    uPSService.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).NextDayAir.ToString();
                     break;
                 case UPSService.ServiceCode.NextDayAirEarlyAM:
-                    markup = Double.Parse(plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).NextDayAirEarlyAM.ToString());
+                    uPSService.Plant_Surcharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).NextDayAirEarlyAM.ToString();
                     break;
             }
 
             // TOTAL CUSTOMER RATE
-            if (uPSService.ServiceName == "UPSGround")
+            // It was decided 3/21/2025 by all of the GMs that:
+            // If UPS/FEDEX CWT use negotiated (that means <100 if air, > 200 if ground)
+            // If not UPS / FEDEX CWT use published
+            // Remove the (negotiated / .7) cwt weight adjustment.
+
+            if (uPSService.CWT.ToUpper() == "TRUE")
             {
-                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_TotalCharges_MonetaryValue);               
+                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge);
             }
             else
             {
-                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge);
-                uPSService.RatedShipment_TotalCharges_MonetaryValue = uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge;
-
-                // Apply CWT Adjustment only to negotiated services.
-                if (uPSService.CWT.ToUpper() == "TRUE")
-                {
-                    uPSService.CWT_Adjustment = ((Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge) / 0.7) - Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge)).ToString();
-                    uPSService.CustomerRate = uPSService.CustomerRate + Double.Parse(uPSService.CWT_Adjustment);
-                }
+                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_PublishedRateCharges_MonetaryValue);
             }
 
             // Set plant surcharge.
-            if (markup > 0)
+            if (double.Parse(uPSService.Plant_Surcharge) > 0)
             {
-                uPSService.Plant_Surcharge = ((markup / 100) * Double.Parse(uPSService.RatedShipment_TotalCharges_MonetaryValue)).ToString();
+                uPSService.RatedShipment_Surcharge = ((double.Parse(uPSService.Plant_Surcharge) / 100) * Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge)).ToString();
             }
 
             // Add final upcharges.
             uPSService.CustomerRate = uPSService.CustomerRate + 
-                Double.Parse(uPSService.Plant_Surcharge) + 
+                Double.Parse(uPSService.RatedShipment_Surcharge) + 
                 Double.Parse(uPSService.Plant_ShipmentCharge) + 
                 (Double.Parse(uPSService.Plant_PerPackageCharge) * shipment.number_of_packages);
 
@@ -525,40 +532,9 @@ namespace AuthenticationServer.Controllers
             ShopRateResponse shopRateResponse = new ShopRateResponse();
             if (shipment.ErrorMessage == "" || shipment.ErrorMessage == null)
             {
-                // Return negotiated rates.
-                UPSRequest uPSRequestNegotiated = new UPSRequest(shipment, new Plant(shipment.PlantId), UPSRequest.RequestOption.Shop, UPSRequest.RateClassification.Negotiated);
-                List<UPSService> uPSNegotiatedRates = uPSRequestNegotiated.UPSServices.ToList();
-
-                // Return published rates.
-                UPSRequest uPSRequestPublished = new UPSRequest(shipment, new Plant(shipment.PlantId), UPSRequest.RequestOption.Shop, UPSRequest.RateClassification.Published);
-                List<UPSService> uPSPublishedRates = uPSRequestPublished.UPSServices.ToList();
-
-                // Combine the results
-                List<UPSService> combinedRates = new List<UPSService>();
-
-                if (uPSPublishedRates != null)
-                {
-                    foreach (UPSService service in uPSPublishedRates)
-                    {
-                        if (service.ServiceName == "UPSGround") // Only Ground
-                        {
-                            combinedRates.Add(service);
-                        }
-                    }
-                }
-
-                if (uPSNegotiatedRates != null)
-                {
-                    foreach (UPSService service in uPSNegotiatedRates)
-                    {
-                        if (service.ServiceName != "UPSGround")  // Include ALL services except Ground.
-                        {
-                            combinedRates.Add(service);
-                        }
-                    }
-                }
-
-                shopRateResponse.UPSServices = combinedRates.ToArray();
+                // Return rates.
+                List<UPSService> uPSRates = new UPSRequest(shipment, new Plant(shipment.PlantId), UPSRequest.RequestOption.Shop, UPSRequest.RateClassification.Negotiated).UPSServices.ToList();
+                shopRateResponse.UPSServices = uPSRates.ToArray();
             }
             return shopRateResponse;
         }
@@ -574,7 +550,7 @@ namespace AuthenticationServer.Controllers
             ShopRateResponse shopRateResponse = new ShopRateResponse();
             //if (shipment.ErrorMessage == "" || shipment.ErrorMessage == null)
             {
-                UPSRequest upsRequest = new UPSRequest(shipment, new Plant { Id = shipment.PlantId }, UPSRequest.RequestOption.Rate, UPSRequest.RateClassification.Published);
+                UPSRequest upsRequest = new UPSRequest(shipment, new Plant { Id = shipment.PlantId }, UPSRequest.RequestOption.Rate, UPSRequest.RateClassification.Negotiated);
                 shopRateResponse.UPSServices = upsRequest.UPSServices;
             }
             return shopRateResponse;
@@ -827,14 +803,14 @@ namespace AuthenticationServer.Controllers
                             service.TotalCost = totalCharges.ToString("C");
 
                             service.TransitDays = transitDays.ToString();
-                            service.Plant_Surcharge = (plantSurcharge * originalTotalAmount).ToString("C");
+                            service.RatedShipment_Surcharge = (plantSurcharge * originalTotalAmount).ToString("C");
                             service.Plant_PerPackageCharge = (perPackageCharge * shipment.number_of_packages).ToString("C");
                             service.Plant_ShipmentCharge = perShipmentCharge.ToString("C");
 
                             service.RatedShipment_BaseServiceCharge_MonetaryValue = originalBaseAmount.ToString("C");
                             service.RatedShipment_TransportationCharges_MonetaryValue = originalFuelAmount.ToString("C");
                             service.RatedShipment_AccessorialCharges_MonetaryValue = originalAccessorialAmount.ToString("C");
-                            service.RatedShipment_TotalCharges_MonetaryValue = originalTotalAmount.ToString("C");
+                            service.RatedShipment_PublishedRateCharges_MonetaryValue = originalTotalAmount.ToString("C");
 
                             ltlServices.Add(service);
 
@@ -850,7 +826,7 @@ namespace AuthenticationServer.Controllers
                                 RatedShipment_BaseServiceCharge_MonetaryValue = originalBaseAmount.ToString("C"),
                                 RatedShipment_TransportationCharges_MonetaryValue = originalFuelAmount.ToString("C"),
                                 RatedShipment_AccessorialCharges_MonetaryValue = originalAccessorialAmount.ToString("C"),
-                                RatedShipment_TotalCharges_MonetaryValue = totalCharges.ToString("C")
+                                RatedShipment_PublishedRateCharges_MonetaryValue = totalCharges.ToString("C")
                             };
 
                             ltlServices.Add (service);
@@ -1230,14 +1206,14 @@ namespace AuthenticationServer.Controllers
                         service.TotalCost = totalCharges.ToString("C");
 
                         service.TransitDays = priceSheet.TransitDays;
-                        service.Plant_Surcharge = (plantSurcharge * Convert.ToDouble(priceSheet.TotalCost)).ToString("C");
+                        service.RatedShipment_Surcharge = (plantSurcharge * Convert.ToDouble(priceSheet.TotalCost)).ToString("C");
                         service.Plant_PerPackageCharge = (plantPackageCharge * shipment.number_of_packages).ToString("C");
                         service.Plant_ShipmentCharge = plantShipmentCharge.ToString("C");
 
                         service.RatedShipment_BaseServiceCharge_MonetaryValue = priceSheet.Rate;
                         service.RatedShipment_TransportationCharges_MonetaryValue = double.Parse(priceSheet.FuelCharge).ToString("C");
                         service.RatedShipment_AccessorialCharges_MonetaryValue = priceSheet.TotalAccessorialAmount.ToString();
-                        service.RatedShipment_TotalCharges_MonetaryValue = priceSheet.TotalCost;
+                        service.RatedShipment_PublishedRateCharges_MonetaryValue = priceSheet.TotalCost;
 
                         ltlServices.Add(service);
                     }
@@ -1247,9 +1223,9 @@ namespace AuthenticationServer.Controllers
                     try
                     {
                         response.UPSServices = response.UPSServices
-    .Where(s => !string.IsNullOrWhiteSpace(s.TransitDays) && !string.IsNullOrWhiteSpace(s.RatedShipment_TotalCharges_MonetaryValue)) // Filter out invalid rows
+    .Where(s => !string.IsNullOrWhiteSpace(s.TransitDays) && !string.IsNullOrWhiteSpace(s.RatedShipment_PublishedRateCharges_MonetaryValue)) // Filter out invalid rows
     .OrderByDescending(s => float.TryParse(s.TransitDays, out float days) ? days : float.MinValue) // Parse TransitDays or use default for invalid values
-    .ThenBy(s => float.TryParse(s.RatedShipment_TotalCharges_MonetaryValue, out float cost) ? cost : float.MinValue) // Parse TotalCharges or use default
+    .ThenBy(s => float.TryParse(s.RatedShipment_PublishedRateCharges_MonetaryValue, out float cost) ? cost : float.MinValue) // Parse TotalCharges or use default
     .ToArray();
                     }
                     catch(Exception ex)

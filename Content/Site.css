@@ -69,6 +69,20 @@
     background-color:bisque;
 }
 
+.dev-banner {
+    background-color: #ffcccc;
+    color: #8b0000;
+    font-weight: bold;
+    padding: 40px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    border-bottom: 2px solid #8b0000; /* Add a border */
+    font-size: 1.2em; /* Make the font larger */
+}
+
 .error-row {
     background: #FFC300 !important;
 }
@@ -97,6 +111,11 @@
     vertical-align: top;
     line-height: 1.3em;
 }
+
+.original {
+    font-weight: 500;
+}
+
 .results-table {
     border-collapse: collapse;
     background-color: #f2f2f2;
