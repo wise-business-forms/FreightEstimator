@@ -594,10 +594,6 @@
 
                                                     @foreach (var service in Model.shopLessThanTruckloadResponseTransportInsight.UPSServices)
                                                     {
-                                                        _plantSurcharge = (double.Parse(service.Plant_Surcharge, System.Globalization.NumberStyles.Currency, System.Globalization.CultureInfo.CurrentCulture) / double.Parse(service.RatedShipment_PublishedRateCharges_MonetaryValue, System.Globalization.NumberStyles.Currency, System.Globalization.CultureInfo.CurrentCulture)).ToString("P0");
-                                                        _packageCharge = float.Parse(service.Plant_PerPackageCharge) * Model.number_of_packages; ;
-                                                        _shipmentCharge = float.Parse(service.Plant_ShipmentCharge);
-
                                                         var rowClass = rowIndex % 2 == 0 ? "" : "alt";
 
                                                         if (
