@@ -3,23 +3,468 @@
     ViewBag.Title = "Index";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
+<style>
+    .rate-table {
+        border: solid;
+    }
 
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Price</th>
-        </tr>
-    </thead>
+    .rate-table-header {
+        background-color: #9ec5fe;
+    }
+
+    .rate-criteria {
+        background-color: #e2e3e5;
+        border: none;
+    }
+
+    .rate-used {
+        background-color: #d1e7dd;
+    }
+
+    .rate-markup-calculation {
+        background-color: #d1e7dd;
+    }
+
+    .rate-table-col-header{
+        font-weight: bold;
+    }
+
+    .rate-table-row-noncwt {
+        background-color: #e2e3e5;
+    }
+</style>
+
+<div class="alert alert-danger" role="alert" style="text-align: center;">
+    PROPOSED 3-25-2025
+</div>
+
+<div class="container text-center rate-table">
+    <div class="row rate-table-header">
+        <div class="col-3" style="text-align: left;">
+            Current UPS Std (NON-CWT)<br /> <span style="font-style:italic; color:floralwhite;">Does not include FedEx yet as logic is not in the system</span>
+        </div>
+        <div class="col">
+            Ground
+        </div>
+        <div class="col">
+            3 Day Ground
+        </div>
+        <div class="col">
+            2nd Day Air
+        </div>
+        <div class="col">
+            2nd Day Air AM
+        </div>
+        <div class="col">
+            Next Day Saver Air
+        </div>
+        <div class="col">
+            Next Day Early AM Air
+        </div>
+        <div class="col">
+            Saver Air
+        </div>
+    </div>
+    <div class="row rate-criteria">
+        <div class="col-3" style="text-align: left;">Criteria: If Air &lt; 100lbs; if Ground &lt; 200lbs</div>
+        <div class="col">
+            &lt; 200lbs
+        </div>
+        <div class="col">
+            &lt; 200lbs
+        </div>
+        <div class="col">
+            &lt; 100lbs
+        </div>
+        <div class="col">
+            &lt; 100lbs
+        </div>
+        <div class="col">
+            &lt; 100lbs
+        </div>
+        <div class="col">
+            &lt; 100lbs
+        </div>
+        <div class="col">
+            &lt; 100lbs
+        </div>
+    </div>
+    <div class="row rate-used">
+        <div class="col-3" style="text-align: left;">Rate Used</div>
+        <div class="col">
+            Published
+        </div>
+        <div class="col">
+            Published
+        </div>
+        <div class="col">
+            Published
+        </div>
+        <div class="col">
+            Published
+        </div>
+        <div class="col">
+            Published
+        </div>
+        <div class="col">
+            Published
+        </div>
+        <div class="col">
+            Published
+        </div>
+    </div>
+    <div class="row rate-markup-calculation">
+        <div class="col-3" style="text-align: left;">Mark Up Calculation</div>
+        <div class="col">
+            None
+        </div>
+        <div class="col">
+            None
+        </div>
+        <div class="col">
+            None
+        </div>
+        <div class="col">
+            None
+        </div>
+        <div class="col">
+            None
+        </div>
+        <div class="col">
+            None
+        </div>
+        <div class="col">
+            None
+        </div>
+    </div>
+    <div class="row rate-table-col-header">
+        <div class="col-3" style="text-align: left;">&nbsp;</div>
+        <div class="col">
+            Per Ctn*
+        </div>
+        <div class="col">
+            Per Shipment
+        </div>
+        <div class="col">
+            Markup
+        </div>
+        <div class="col">
+            Markup
+        </div>
+        <div class="col">
+            Markup
+        </div>
+        <div class="col">
+            Markup
+        </div>
+        <div class="col">
+            Markup
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-3 rate-plant-name" style="text-align: left;">ALP</div>
+        <div class="col rate-table-row-noncwt">
+            None
+        </div>
+        <div class="col rate-table-row-noncwt">
+            None
+        </div>
+        <div class="col rate-table-row-noncwt">
+            None
+        </div>
+        <div class="col rate-table-row-noncwt">
+            None
+        </div>
+        <div class="col rate-table-row-noncwt">
+            None
+        </div>
+        <div class="col rate-table-row-noncwt">
+            None
+        </div>
+        <div class="col rate-table-row-noncwt">
+            None
+        </div>
+    </div>
+</div>
+
+<br />
+<div class="container text-center rate-table">
+    <div class="row rate-table-header">
+        <div class="col-md-3 p-2 rate-table-header" style="text-align: left;">
+            Current UPS Hundred Weight (CWT)<br /> <span style="font-style:italic; color:floralwhite;">Does not include FedEx yet as logic is not in the system</span>
+        </div>
+        <div class="col p-2">
+            Ground
+        </div>
+        <div class="col p-2">
+            3 Day Ground
+        </div>
+        <div class="col p-2">
+            2nd Day Air
+        </div>
+        <div class="col p-2">
+            2nd Day Air AM
+        </div>
+        <div class="col p-2">
+            Next Day Saver Air
+        </div>
+        <div class="col p-2">
+            Next Day Early AM Air
+        </div>
+        <div class="col p-2">
+            Saver Air
+        </div>
+    </div>
+    <div class="row rate-criteria">
+        <div class="col-md-3 p-2 rate-criteria" style="text-align: left;">Criteria: If Air &gt; 100lbs; if Ground &gt; 200lbs</div>
+        <div class="col p-2">
+            &gt; 200lbs
+        </div>
+        <div class="col p-2">
+            &gt; 200lbs
+        </div>
+        <div class="col p-2">
+            &gt; 100lbs
+        </div>
+        <div class="col p-2">
+            &gt; 100lbs
+        </div>
+        <div class="col p-2">
+            &gt; 100lbs
+        </div>
+        <div class="col p-2">
+            &gt; 100lbs
+        </div>
+        <div class="col p-2">
+            &gt; 100lbs
+        </div>
+    </div>
+    <div class="row rate-used">
+        <div class="col-3" style="text-align: left;">Rate Used</div>
+        <div class="col">
+            Negotiated
+        </div>
+        <div class="col">
+            Negotiated
+        </div>
+        <div class="col">
+            Negotiated
+        </div>
+        <div class="col">
+            Negotiated
+        </div>
+        <div class="col">
+            Negotiated
+        </div>
+        <div class="col">
+            Negotiated
+        </div>
+        <div class="col">
+            Negotiated
+        </div>
+    </div>
+    <div class="row rate-markup-calculation">
+        <div class="col-3" style="text-align: left;">Mark Up Calculation</div>
+        <div class="col">
+            Negotiated<br /> + Markup
+        </div>
+        <div class="col">
+            Negotiated<br /> + Markup
+        </div>
+        <div class="col">
+            Negotiated<br /> + Markup
+        </div>
+        <div class="col">
+            Negotiated<br /> + Markup
+        </div>
+        <div class="col">
+            Negotiated<br /> + Markup
+        </div>
+        <div class="col">
+            Negotiated<br /> + Markup
+        </div>
+        <div class="col">
+            Negotiated<br /> + Markup
+        </div>
+    </div>
+    <div class="row rate-table-col-header">
+        <div class="col-3" style="text-align: left;">&nbsp;</div>
+        <div class="col">
+            Per Ctn*
+        </div>
+        <div class="col">
+            Per Shipment
+        </div>
+        <div class="col">
+            FOR PLANTROL - MANUAL PROCESS UNTIL CHANGED
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-3 rate-plant-name" style="text-align: left;">ALP</div>
+        <div class="col rate-table-row-noncwt">
+            None
+        </div>
+        <div class="col rate-table-row-noncwt">
+            None
+        </div>
+        <div class="col rate-table-row-noncwt">
+            None
+        </div>
+        <div class="col rate-table-row-noncwt">
+            None
+        </div>
+        <div class="col rate-table-row-noncwt">
+            None
+        </div>
+        <div class="col rate-table-row-noncwt">
+            None
+        </div>
+        <div class="col rate-table-row-noncwt">
+            None
+        </div>
+    </div>
+</div>
+<table style="border:solid;">
     <tbody>
-        @foreach (var product in Model)
-        {
-            <tr>
-                <td class="editable" data-id="@product.Id">@product.Id</td>
-                <td class="editable" data-id="@product.Id">@product.Name</td>
-                <td class="editable" data-id="@product.Id">@product.Price</td>
-            </tr>
-        }
+        <tr class="alert alert-primary">
+            <td class="editable" data-id="" colspan="3"> Current UPS Hundred Weight (CWT)<br /> <i> Does not include FedEx yet as logic is not in shte system</i> </td>
+            <td class="editable" data-id=""> Ground</td>
+            <td class="editable" data-id=""> 3 Day Ground</td>
+            <td class="editable" data-id=""> 2nd Day Air</td>
+            <td class="editable" data-id=""> 2nd Day Air AM</td>
+            <td class="editable" data-id=""> Next Day Saver Air</td>
+            <td class="editable" data-id=""> Next Day Early AM Air</td>
+            <td class="editable" data-id=""> Saver Air</td>
+        </tr>
+        <tr class="alert alert-secondary">
+            <td class="editable" data-id="" colspan="3"> Criteria: If Air &gt; 100lbs; if Ground &gt; 200lbs</td>
+            <td class="editable" data-id=""> &gt; 200lbs</td>
+            <td class="editable" data-id=""> &gt; 200lbs</td>
+            <td class="editable" data-id=""> &gt; 100lbs</td>
+            <td class="editable" data-id=""> &gt; 100lbs</td>
+            <td class="editable" data-id=""> &gt; 100lbs</td>
+            <td class="editable" data-id=""> &gt; 100lbs</td>
+            <td class="editable" data-id=""> &gt; 100lbs</td>
+        </tr>
+        <tr class="alert alert-success">
+            <td class="editable" data-id="" colspan="3"> Rate Used</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+        </tr>
+        <tr class="alert alert-success">
+            <td class="editable" data-id="" colspan="3"> Mark Up Calculation</td>
+            <td class="editable" data-id=""> Negotiated + Markup</td>
+            <td class="editable" data-id=""> Negotiated + Markup</td>
+            <td class="editable" data-id=""> Negotiated + Markup</td>
+            <td class="editable" data-id=""> Negotiated + Markup</td>
+            <td class="editable" data-id=""> Negotiated + Markup</td>
+            <td class="editable" data-id=""> Negotiated + Markup</td>
+            <td class="editable" data-id=""> Negotiated + Markup</td>
+        </tr>
+        <tr>
+            <th> Per Ctn*</th>
+            <th> Per Shipment</th>
+            <th colspan="8"> FOR PLANTROL - MANUAL PROCESS UNTIL CHANGED</th>
+        </tr>
+        <tr>
+            <th> ALP</th>
+            <th style="background: #808080"> None</th>
+            <th style="background: #808080"> None</th>
+            <th style="background: #80b97e"> 99.9%</th>
+            <th style="background: #80b97e"> 99.9%</th>
+            <th style="background: #80b97e"> 99.9%</th>
+            <th style="background: #80b97e"> 99.9%</th>
+            <th style="background: #80b97e"> 99.9%</th>
+            <th style="background: #80b97e"> 99.9%</th>
+            <th style="background: #80b97e"> 99.9%</th>
+            <th style="background: #80b97e"> 99.9%</th>
+        </tr>
     </tbody>
 </table>
+
+<table style="border:solid;">
+    <tbody>
+        <tr class="alert alert-primary">
+            <td class="editable" data-id="" colspan="10"> Current UPS GROUND</td>
+        </tr>
+        <tr class="alert alert-success">
+            <td class="editable" data-id="" colspan="3"> Rate Used</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+        </tr>
+        <tr class="alert alert-success">
+            <td class="editable" data-id="" colspan="3"> Mark Up Calculation</td>
+            <td class="editable" data-id=""> Negotiated + Markup</td>
+            <td class="editable" data-id=""> Negotiated + Markup</td>
+            <td class="editable" data-id=""> Negotiated + Markup</td>
+            <td class="editable" data-id=""> Negotiated + Markup</td>
+            <td class="editable" data-id=""> Negotiated + Markup</td>
+            <td class="editable" data-id=""> Negotiated + Markup</td>
+            <td class="editable" data-id=""> Negotiated + Markup</td>
+        </tr>
+        <tr>
+            <th> Per Ctn*</th>
+            <th> Per Shipment</th>
+            <th colspan="8"> GROUND</th>
+        </tr>
+        <tr>
+            <th> ALP</th>
+            <th style="background: #808080"> None</th>
+            <th style="background: #808080"> None</th>
+            <th style="background: #80b97e" colspan="7"> 99.9%</th>
+        </tr>
+    </tbody>
+</table>
+
+<table style="border:solid;">
+    <tbody>
+        <tr class="alert alert-primary">
+            <td class="editable" data-id="" colspan="10"> LTL Charges per Plant</td>
+        </tr>
+        <tr class="alert alert-success">
+            <td class="editable" data-id="" colspan="3"> Rate Used</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+            <td class="editable" data-id=""> Negotiated</td>
+        </tr>
+        <tr class="alert alert-success">
+            <td class="editable" data-id="" colspan="3"> Mark Up Calculation</td>
+            <td class="editable" data-id=""> Negotiated<br /> + Markup</td>
+            <td class="editable" data-id=""> Negotiated<br /> + Markup</td>
+            <td class="editable" data-id=""> Negotiated<br /> + Markup</td>
+            <td class="editable" data-id=""> Negotiated<br /> + Markup</td>
+            <td class="editable" data-id=""> Negotiated<br /> + Markup</td>
+            <td class="editable" data-id=""> Negotiated<br /> + Markup</td>
+            <td class="editable" data-id=""> Negotiated<br /> + Markup</td>
+        </tr>
+        <tr>
+            <td colspan="3"> &nbsp;</td>
+            <th style="text-align:center;"> Per Ctn*</th>
+            <th style="text-align:center;"> Per Shipment</th>
+            <th style="text-align:center;"> Currently</th>
+            <th style="text-align:center;" colspan="4"> </th>
+        </tr>
+        <tr>
+            <td colspan="3"> ALP</tdcolspan="3" >
+            <td style="background: #808080; text-align:center;"> None</td>
+            <td style="background: #808080; text-align:center;"> None</td>
+            <td style="background: #80b97e; text-align:center;"> 99.9%</td>
+            <td style="background: #FFFFFF" colspan="3"> </td>
+        </tr>
+    </tbody>
+</table>
+
