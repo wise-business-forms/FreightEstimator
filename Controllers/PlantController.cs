@@ -916,7 +916,7 @@ namespace AuthenticationServer.Controllers
                 SqlCommand cmdCharges = sqlConnection.CreateCommand();
                 cmdCharges.CommandText = "GetPlantCharges";
                 cmdCharges.CommandType = System.Data.CommandType.StoredProcedure;
-                cmdCharges.Parameters.Add("@Carrier", System.Data.SqlDbType.VarChar, 50).Value = "M33";
+                cmdCharges.Parameters.Add("@Carrier", System.Data.SqlDbType.VarChar, 50).Value = "TI";
                 cmdCharges.Parameters.Add("@AcctNumber", System.Data.SqlDbType.Int).Value = shipment.AcctNum;
 
                 SqlDataReader drCharges = cmdCharges.ExecuteReader();
@@ -1196,7 +1196,7 @@ namespace AuthenticationServer.Controllers
                             totalCharges += (plantPackageCharge * shipment.number_of_packages);
                         }
 
-                        totalCharges += plantShipmentCharge;
+                      totalCharges += plantShipmentCharge;
 
                         UPSService service = new UPSService();
 
