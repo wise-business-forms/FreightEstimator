@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Text.Json;
 
@@ -190,8 +191,7 @@ namespace AuthenticationServer.Models.Services
                         }
                     }
 
-
-                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, _response, "");
+                    //Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, _response, "UPS", "");
                 }
                 catch (WebException ex)
                 {
@@ -360,7 +360,8 @@ namespace AuthenticationServer.Models.Services
                     }
                     catch (Exception ex)
                     {
-                        Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _response, ex.Message, "");
+                        //Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _response, ex.Message, "UPS", "");
+                       
                     }
                 }
                 return _uPSServices;

@@ -323,7 +323,7 @@ namespace AuthenticationServer.Models.Services
                 lastPackageWeight = packageWeight;
             }
 
-            int _totalWeight = (Convert.ToInt16(packageWeight) * (numberOfPackages - 1)) + Convert.ToInt16(lastPackageWeight);
+            int _totalWeight = (Convert.ToInt16(packageWeight) * numberOfPackages) + Convert.ToInt16(lastPackageWeight);
 
             switch (serviceCode)
             {

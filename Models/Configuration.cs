@@ -33,6 +33,8 @@ namespace AuthenticationServer.Models
         static string _UPSShipFromState = "GA";
         static string _UPSShipFromZip = "30004";
 
+
+        static string _DatawarehouseSqlConnection = "Server=AZUREDB01\\AZUREDB01;Initial Catalog=Datawarehouse;uid=sa;pwd=95Montana!!!;";
         static string _UpsRateSqlConnection = "Server=AZUREDB01\\AZUREDB01;Initial Catalog=UpsRate;uid=sa;pwd=95Montana!!!;";
         static string _WiseLinkSqlConnection = "Data Source=AZUREDB01\\AZUREDB01;Initial Catalog=WBFDOTCOM;uid=sa;pwd=95Montana!!!;";
 
@@ -164,6 +166,11 @@ namespace AuthenticationServer.Models
             new SelectListItem() { Text = "Del Conf / Signature Req'd", Value = "Delivery Confirmation / Signature Required" },
             new SelectListItem() { Text = "Del Conf / Adult Sig Req'd", Value = "Delivery Confirmation / Adult Signature Required" }
         };
+
+        public static string DatawarehouseSqlConnection
+        {
+            get { return _DatawarehouseSqlConnection; }
+        }
 
         public static string UPSAccessKey
         {

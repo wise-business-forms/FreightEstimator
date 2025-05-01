@@ -30,6 +30,7 @@ namespace AuthenticationServer.Controllers
         private string _upsResponse = string.Empty;
         private DataTable _multiView;
         private DataTable _multiGroundFreight;
+        Models.Services.RateResponse rateResponse = new Models.Services.RateResponse();
 
         public ActionResult Index(string loc)
         {
@@ -132,8 +133,30 @@ namespace AuthenticationServer.Controllers
             else { 
                 shipment.billing_weight = shipment.number_of_packages * shipment.package_weight; 
             }
+
+            #region LOG REQUEST
+            //rateResponse.Source = "UPS";
+            rateResponse.PlantCode = shipment.PlantId;
+            rateResponse.DestinationAddress1 = shipment.Address;
+            rateResponse.DestinationAddress2 = string.Empty;
+            rateResponse.DestinationAddress3 = string.Empty;
+            rateResponse.DestinationCity = shipment.City;
+            rateResponse.DestinationState = shipment.State_selection;
+            rateResponse.DestinationPostalCode = shipment.Zip;
+            rateResponse.Weight = (int)shipment.package_weight;
+            rateResponse.LFTG_PU = shipment.liftgate_pickup;
+            rateResponse.LFTG_D = shipment.liftgate_delivery;
+            rateResponse.LAP = shipment.limited_access_delivery;
+            rateResponse.LAPU = shipment.limited_access_pickup;
+            rateResponse.RESD = shipment.residential_delivery;
+            rateResponse.IND = shipment.inside_delivery;
+            rateResponse.IPU = shipment.inside_pickup;
+            rateResponse.SS = shipment.sort_and_segregate;
+            rateResponse.STPO = shipment.stopoff_charge;
+
             
-                
+            #endregion
+
             shipment.requestMessage = _upsRequest;
             shipment.responseMessage = _upsResponse;
 
@@ -265,6 +288,21 @@ namespace AuthenticationServer.Controllers
                     // Returns rates from UPS API.
                     shopRateResponse = GetCompareRates(shipment);
 
+                    #region LOG REQUEST
+                    List<string> services = new List<string>();
+                    List<string> carriers = new List<string>();
+                    List<string> rates = new List<string>();
+                    foreach (UPSService uPSService in shopRateResponse.UPSServices)
+                    {
+                        services.Add("UPS");
+                        carriers.Add(uPSService.ServiceName);
+                        rates.Add(uPSService.CustomerRate.ToString());
+                    }
+                    rateResponse.Service = services.ToArray();
+                    rateResponse.Carrier = carriers.ToArray();
+                    rateResponse.Rate = rates.ToArray();
+                    #endregion
+
                     // Apply plant charges.
                     List<PlantCharges> plantCharges = Plant.Charges(shipment.PlantId);
                     
@@ -359,7 +397,11 @@ namespace AuthenticationServer.Controllers
                 shipment.shopGroundFreightResponse = GetGroundFreightRate(shipment);
                 shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate = RateCalculations.CalculateUPSRate(shipment.AcctNum, shipment.PlantId, "UPSGroundFreight", shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString());
 
-                
+                #region
+                rateResponse.Service.Append("UPS");
+                rateResponse.Carrier.Append(shipment.shopGroundFreightResponse.UPSServices[0].ServiceName);
+                rateResponse.Rate.Append(shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate.ToString());
+                #endregion
             }
 
             // GRID 3 - LTL Rates
@@ -367,9 +409,32 @@ namespace AuthenticationServer.Controllers
             {
                 //shipment.shopLessThanTruckloadResponseM33= GetLessThanTruckloadRates_M33(shipment);
                 shipment.shopLessThanTruckloadResponseTransportInsight = GetLessThanTruckloadRates_TI(shipment);
-            }
 
-            
+                #region LOG REQUEST
+                List<string> services = new List<string>();
+                List<string> carriers = new List<string>();
+                List<string> rates = new List<string>();
+                foreach (UPSService uPSService in shipment.shopLessThanTruckloadResponseTransportInsight.UPSServices)
+                {
+                    services.Add("UPS");
+                    carriers.Add(uPSService.ServiceName);
+                    rates.Add(uPSService.CustomerRate.ToString());
+                }
+                rateResponse.Service = services.ToArray();
+                rateResponse.Carrier = carriers.ToArray();
+                rateResponse.Rate = rates.ToArray();
+
+                string[] newService = new string[rateResponse.Service.Length + shipment.shopLessThanTruckloadResponseTransportInsight.UPSServices.Length];
+                string[] newCarrier = new string[rateResponse.Carrier.Length + shipment.shopLessThanTruckloadResponseTransportInsight.UPSServices.Length];
+                string[] newRate = new string[rateResponse.Rate.Length + shipment.shopLessThanTruckloadResponseTransportInsight.UPSServices.Length];
+                rateResponse.Service.CopyTo(newService, 0);
+                shipment.shopLessThanTruckloadResponseTransportInsight.UPSServices.Select(x => x.ServiceName).ToArray().CopyTo(newService, rateResponse.Service.Length);
+                rateResponse.Carrier.CopyTo(newCarrier, 0);
+                shipment.shopLessThanTruckloadResponseTransportInsight.UPSServices.Select(x => x.ServiceName).ToArray().CopyTo(newCarrier, rateResponse.Carrier.Length);
+                rateResponse.Rate.CopyTo(newRate, 0);
+                shipment.shopLessThanTruckloadResponseTransportInsight.UPSServices.Select(x => x.CustomerRate.ToString()).ToArray().CopyTo(newRate, rateResponse.Rate.Length);
+                #endregion
+            }
 
 
             ViewBag.plants = Plant.Plants();
@@ -379,6 +444,8 @@ namespace AuthenticationServer.Controllers
 
             // MORE INFORMATION
             ViewBag.PlantRates = Plant.Charges(shipment.PlantId);
+
+            Log.LogRequest_Rate(rateResponse);
 
             return View(shipment);
         }
