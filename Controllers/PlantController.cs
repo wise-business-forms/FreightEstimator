@@ -447,6 +447,8 @@ namespace AuthenticationServer.Controllers
 
             Log.LogRequest_Rate(rateResponse);
 
+            
+
             return View(shipment);
         }
 
@@ -465,7 +467,6 @@ namespace AuthenticationServer.Controllers
             RateCalculations rateCalculations = new RateCalculations();
             PlantCharges charges = new PlantCharges();
 
-            uPSService.CWT = rateCalculations.HundredWeightEligable(serviceCode, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString()).ToString();
             uPSService.ServiceName = serviceCode.ToString();
             uPSService.CWT_Adjustment = "0"; // Set default value.
             uPSService.Plant_Surcharge = "0"; // Set default vallue.

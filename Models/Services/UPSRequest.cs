@@ -298,17 +298,14 @@ namespace AuthenticationServer.Models.Services
             uPSService.CWT = "No"; // Default setting
             uPSService.TransitDays = service.SelectToken("GuaranteedDelivery.BusinessDaysInTransit")?.ToString() ?? "-";
 
-            // Determine CWT
-            var _shipmentWeight = _shipment.number_of_packages * _shipment.package_weight + _shipment.last_package_weight;
-
-            // AIR SERVICES
-            if((serviceCode == "01" || serviceCode == "02" || serviceCode == "13" || serviceCode == "59" || serviceCode == "14") && (_shipment.number_of_packages >= 2 && _shipmentWeight >= Configuration.MinCWTPackagesAir))
+            // AIR SERVICES - If package count >= 2 and total package weight >= 100 lbs. but < 200 lbs. then it is CWT.  (Over 200 is LTL?)
+            if ((serviceCode == "01" || serviceCode == "02" || serviceCode == "13" || serviceCode == "59" || serviceCode == "14") && (_shipment.number_of_packages >= 2 && _shipment.billing_weight >= Configuration.MinCWTPackagesAir))
             {
                 uPSService.CWT = "Yes";
             }
 
-            // GROUND SERVICES
-            if ((serviceCode == "03" || serviceCode == "12") && (_shipment.number_of_packages >= 2 && _shipmentWeight >= Configuration.MinCWTPackagesGround))
+            // GROUND SERVICES - If package count >= 2 and total package weight >= 200 lbs.
+            if ((serviceCode == "03" || serviceCode == "12") && (_shipment.number_of_packages >= 2 && _shipment.billing_weight >= Configuration.MinCWTWeightGround))
             {
                 uPSService.CWT = "Yes";
             }
