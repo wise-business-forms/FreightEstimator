@@ -10,6 +10,8 @@ using System.Net.Http;
 using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+
 
 namespace AuthenticationServer.Models.Services
 {
@@ -235,6 +237,8 @@ namespace AuthenticationServer.Models.Services
         {
             UPSService uPSService = new UPSService();
             var serviceCode = service.SelectToken("Service")?.SelectToken("Code")?.ToString() ?? "No Service Code";
+            bool upsGroundFreight = false;
+
             switch (serviceCode)
             {
                 case "01":
@@ -245,6 +249,12 @@ namespace AuthenticationServer.Models.Services
                     break;
                 case "03":
                     uPSService.ServiceName = UPSService.ServiceCode.UPSGround.ToString();
+
+                    // Check to see if this is UPS GROUND FREIGHT
+                    if(service.SelectToken("FRSShipmentData") != null)
+                    {
+                        upsGroundFreight = true;
+                    }
                     break;
                 case "07":
                     uPSService.ServiceName = UPSService.ServiceCode.UPSWorldwideExpress.ToString();
@@ -298,6 +308,7 @@ namespace AuthenticationServer.Models.Services
             uPSService.CWT = "No"; // Default setting
             uPSService.TransitDays = service.SelectToken("GuaranteedDelivery.BusinessDaysInTransit")?.ToString() ?? "-";
 
+            #region Set CWT flag
             // AIR SERVICES - If package count >= 2 and total package weight >= 100 lbs. but < 200 lbs. then it is CWT.  (Over 200 is LTL?)
             if ((serviceCode == "01" || serviceCode == "02" || serviceCode == "13" || serviceCode == "59" || serviceCode == "14") && (_shipment.number_of_packages >= 2 && _shipment.billing_weight >= Configuration.MinCWTPackagesAir))
             {
@@ -309,6 +320,7 @@ namespace AuthenticationServer.Models.Services
             {
                 uPSService.CWT = "Yes";
             }
+            #endregion
 
             uPSService.RatedShipment_TransportationCharges_MonetaryValue = service.SelectToken("TransportationCharges.MonetaryValue")?.ToString() ?? "0";
             uPSService.RatedShipment_BaseServiceCharge_MonetaryValue = service.SelectToken("BaseServiceCharge.MonetaryValue")?.ToString() ?? "0";
@@ -316,9 +328,52 @@ namespace AuthenticationServer.Models.Services
             uPSService.RatedShipment_PublishedRateCharges_MonetaryValue = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "0";
             uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge = service.SelectToken("NegotiatedRateCharges.TotalCharge.MonetaryValue")?.ToString() ?? "0";
 
-            
+            // USP GROUND FREIGHT is a bit different for a couple of fields.
+            if (upsGroundFreight)
+            {
+                // Dictionary to store the total MonetaryValue for each Code
+                Dictionary<string, decimal> itemizedChargesTotals = new Dictionary<string, decimal>();
 
+                if (service["RatedResponse"]?["RatedShipment"]?["RatedPackage"] is JArray ratedPackages)
+                {
+                    foreach(JToken package in ratedPackages)
+                    {
+                        if (package["ItemizedCharges"] is JArray primaryItemizedCharges)
+                        {
+                            foreach (JToken charge in primaryItemizedCharges)
+                            {
+                                ProcessCharge(charge, itemizedChargesTotals);
+                            }
+                        }
+                    }
+                }
+
+                // Use the original Total Charges, as they present the negotiated rate as the default total, to calculate the accessorial charges which are not broken down seperately.
+                uPSService.RatedShipment_AccessorialCharges_MonetaryValue = (Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge) - Double.Parse(uPSService.RatedShipment_BaseServiceCharge_MonetaryValue)).ToString();                
+
+                // Now update the published rate.
+                uPSService.RatedShipment_PublishedRateCharges_MonetaryValue = service.SelectToken("FRSShipmentData.TransportationCharges.GrossCharge.MonetaryValue")?.ToString() ?? "0";
+            }
+            
             return uPSService;
+        }
+
+        private static void ProcessCharge(JToken charge, Dictionary<string, decimal> totals)
+        {
+            string code = charge["Code"]?.ToString();
+            string monetaryValueString = charge["MonetaryValue"]?.ToString();
+
+            if (!string.IsNullOrEmpty(code) && decimal.TryParse(monetaryValueString, out decimal monetaryValue))
+            {
+                if (totals.ContainsKey(code))
+                {
+                    totals[code] += monetaryValue;
+                }
+                else
+                {
+                    totals[code] = monetaryValue;
+                }
+            }
         }
 
 

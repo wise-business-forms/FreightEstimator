@@ -18,6 +18,7 @@ namespace AuthenticationServer.Models
         public string Zip {  get; set; }
         public string PostalCode { get; set; }
         public string Country { get; set; }
+        public List<PlantCharges> PlantCharges { get; set; }
 
         public Plant() { }        
 
@@ -35,6 +36,7 @@ namespace AuthenticationServer.Models
 
             if (drResults.Read())
             {
+                this.Id = PlantCode;
                 this.Address = drResults["Address"].ToString();
                 this.City = drResults["City"].ToString();
                 this.State = drResults["State"].ToString();
@@ -43,6 +45,8 @@ namespace AuthenticationServer.Models
             }
 
             conn.Close();
+
+            this.PlantCharges = Charges(PlantCode);
         }
 
         public static List<Plant> Plants()

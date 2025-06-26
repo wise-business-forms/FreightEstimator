@@ -10,6 +10,7 @@ namespace AuthenticationServer.Models
 {
     public class Shipment
     {
+        public Plant Plant { get; set; }        
         public string PlantId { get; set; }
         public string PlantName { get; set; }
         

@@ -51,8 +51,9 @@ namespace AuthenticationServer.Controllers
             var model = new Models.Shipment { };
 
             // Setup default values for the shipment
+            model.Plant = new Plant(loc.ToUpper());
             model.user_name = "TBD";
-            model.PlantId = loc.ToUpper();
+            model.PlantId = model.Plant.Id;
             model.PlantName = plantName;
             model.Country_selection = "United States";
             //model.pick_up_date = System.DateTime.Now.ToShortDateString();
@@ -118,6 +119,8 @@ namespace AuthenticationServer.Controllers
 
         public ActionResult ShipmentConfirmation(Shipment shipment)
         {
+            shipment.Plant = new Plant(shipment.PlantId);
+
             string environmentName = Environment.GetEnvironmentVariable("ASPNET_ENVIRONMENT");
             if (string.IsNullOrEmpty(environmentName))
             {
@@ -397,6 +400,9 @@ namespace AuthenticationServer.Controllers
                 shipment.shopGroundFreightResponse = GetGroundFreightRate(shipment);
                 shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate = RateCalculations.CalculateUPSRate(shipment.AcctNum, shipment.PlantId, "UPSGroundFreight", shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString());
 
+                RateCalculations r = new RateCalculations(0, RateCalculations.Carriers.GF);
+
+                shipment.shopGroundFreightResponse.UPSServices[0].Plant_ShipmentCharge = r.UpchargeGround[shipment.PlantId];
                 #region
                 rateResponse.Service.Append("UPS");
                 rateResponse.Carrier.Append(shipment.shopGroundFreightResponse.UPSServices[0].ServiceName);
@@ -473,7 +479,7 @@ namespace AuthenticationServer.Controllers
             uPSService.RatedShipment_Surcharge = "0"; // Set default vallue.
 
             // Set the carrier ID based on whether or not it is CWTT.  Since we are dealing with UPS only two carrier IDs matter.
-            uPSService.Plant_CarrierId = uPSService.CWT.ToUpper() == "TRUE" ? "UPSCWT" : "UPS";
+            uPSService.Plant_CarrierId = uPSService.CWT.ToUpper() == "YES" ? "UPSCWT" : "UPS";
 
             uPSService.Plant_PerPackageCharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).PerPackageCharge.ToString();
             uPSService.Plant_ShipmentCharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).PerShipmentCharge.ToString();
@@ -509,9 +515,13 @@ namespace AuthenticationServer.Controllers
             // If not UPS / FEDEX CWT use published
             // Remove the (negotiated / .7) cwt weight adjustment.
 
-            if (uPSService.CWT.ToUpper() == "TRUE")
-            {
-                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge);
+            if (uPSService.CWT.ToUpper() == "TRUE" || uPSService.CWT.ToUpper() == "YES")
+            {                
+                // MARKUP should be the NEGOTIATED rate multiplied by the surcharge expressed as a percentage.
+                var _markup = Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge) * (Double.Parse(uPSService.Plant_Surcharge) / 100);
+
+                // The CUSTOMERRATE (customer cost) should be the NEGOTIATED rate plus the MARKUP.
+                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge) + _markup;
             }
             else
             {
@@ -524,9 +534,9 @@ namespace AuthenticationServer.Controllers
                 uPSService.RatedShipment_Surcharge = ((double.Parse(uPSService.Plant_Surcharge) / 100) * Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge)).ToString();
             }
 
+
             // Add final upcharges.
             uPSService.CustomerRate = uPSService.CustomerRate + 
-                Double.Parse(uPSService.RatedShipment_Surcharge) + 
                 Double.Parse(uPSService.Plant_ShipmentCharge) + 
                 (Double.Parse(uPSService.Plant_PerPackageCharge) * shipment.number_of_packages);
 
