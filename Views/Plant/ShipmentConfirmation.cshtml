@@ -122,6 +122,8 @@
                         </div>
                         <br />
                         <div class="d-flex">Date: @Model.pick_up_date.ToString("g")</div>
+                        <!--<div class="d-flex">UPS Account Number: @Model.Plant.UpsShippingNumber</div>-->
+                        <div class="d-flex">UPS Account Number: 391287</div>
                     }
                 </div>
                 <div class=" col-3 ms-auto ">
@@ -311,7 +313,7 @@
                                                             <td style="display: none" class="debug-column"><strong>@Double.Parse(service.RatedShipment_PublishedRateCharges_MonetaryValue).ToString("C")</strong></td><!-- 7: Published. -->
                                                             <td style="display: none" class="debug-column"><strong>@Double.Parse(service.RatedShipment_NegotiatedRateCharges_TotalCharge).ToString("C")</strong></td><!-- 8: Negotiated. -->
                                                             <td style="display: none" class="debug-column"><strong></strong></td><!-- 9: Fuel Chg. -->
-                                                            <td style="display: none" class="debug-column"><strong>@Double.Parse(service.RatedShipment_AccessorialCharges_MonetaryValue).ToString("C")</strong></td><!-- 10: Acc. Chg. -->
+                                                            <td style="display: none" class="debug-column"><strong>@Double.Parse(service.RatedShipment_AccessorialCharges_MonetaryValue ?? "0").ToString("C")</strong></td><!-- 10: Acc. Chg. -->
 
                                                         </tr>
                                                         rowIndex++;

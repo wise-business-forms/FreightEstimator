@@ -18,6 +18,7 @@ namespace AuthenticationServer.Models
         public string Zip {  get; set; }
         public string PostalCode { get; set; }
         public string Country { get; set; }
+        public string UpsShippingNumber { get; set; }
         public List<PlantCharges> PlantCharges { get; set; }
 
         public Plant() { }        
@@ -30,7 +31,7 @@ namespace AuthenticationServer.Models
             SqlCommand cmd = new SqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "SELECT Address, City, State, Zip, Country FROM Plants WHERE PlantCode = '" + PlantCode + "'";
+            cmd.CommandText = "SELECT Address, City, State, Zip, Country, UpsShippingNumber FROM Plants WHERE PlantCode = '" + PlantCode + "' AND upsShippingNumber IS NOT NULL";
 
             SqlDataReader drResults = cmd.ExecuteReader();
 
@@ -42,6 +43,7 @@ namespace AuthenticationServer.Models
                 this.State = drResults["State"].ToString();
                 this.Zip = drResults["Zip"].ToString();
                 this.Country = drResults["Country"].ToString();
+                this.UpsShippingNumber = drResults["UpsShippingNumber"].ToString();
             }
 
             conn.Close();
@@ -60,7 +62,7 @@ namespace AuthenticationServer.Models
             SqlCommand cmd = new SqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "SELECT DISTINCT PlantCode, PlantName, Address, City, State, Zip, Country FROM Plants WHERE Active = 'Y'";
+            cmd.CommandText = "SELECT DISTINCT PlantCode, PlantName, Address, City, State, Zip, Country, UpsShippingNumber FROM Plants WHERE Active = 'Y' AND upsShippingNumber IS NOT NULL";
 
             SqlDataReader drResults = cmd.ExecuteReader();
 
@@ -74,6 +76,7 @@ namespace AuthenticationServer.Models
                 plant.State = drResults["State"].ToString();
                 plant.Zip = drResults["Zip"].ToString();
                 plant.Country = drResults["Country"].ToString();
+                plant.UpsShippingNumber = drResults["UpsShippingNumber"].ToString();
                 plants.Add( plant );
             }
 

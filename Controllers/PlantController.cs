@@ -478,12 +478,13 @@ namespace AuthenticationServer.Controllers
             uPSService.Plant_Surcharge = "0"; // Set default vallue.
             uPSService.RatedShipment_Surcharge = "0"; // Set default vallue.
 
-            // Set the carrier ID based on whether or not it is CWTT.  Since we are dealing with UPS only two carrier IDs matter.
+            // Set the carrier ID based on whether or not it is CWT.  Since we are dealing with UPS only two carrier IDs matter.
             uPSService.Plant_CarrierId = uPSService.CWT.ToUpper() == "YES" ? "UPSCWT" : "UPS";
 
             uPSService.Plant_PerPackageCharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).PerPackageCharge.ToString();
             uPSService.Plant_ShipmentCharge = plantCharges.FirstOrDefault(pc => pc.CarrierId == uPSService.Plant_CarrierId).PerShipmentCharge.ToString();
 
+            // Get plant surcharge...
             switch (serviceCode)
             {
                 case UPSService.ServiceCode.UPSGround:

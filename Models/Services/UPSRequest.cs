@@ -55,12 +55,36 @@ namespace AuthenticationServer.Models.Services
             string _response = Response(_request, _url);
             string address = string.Empty;
             shipment.ErrorMessage = "";
-
+            
             try
             {
                 JObject addressValidationResponse = JObject.Parse(_response);
 
-                var addressLine = addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["AddressLine"];
+
+
+                var addressLine = addressValidationResponse["XAVResponse"];
+                var city = addressValidationResponse["XAVResponse"];
+                var state = addressValidationResponse["XAVResponse"];
+                var postal_extention = addressValidationResponse["XAVResponse"];
+                var classification = addressValidationResponse["XAVResponse"];
+
+
+                try  // Sometimes the address is an array.  We only neeed the first instance.
+                {
+                    addressLine = addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["AddressLine"];
+                    city = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["PoliticalDivision2"];
+                    state = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["PoliticalDivision1"];
+                    postal_extention = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["PostcodeExtendedLow"];
+                    classification = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressClassification"]["Description"];
+                }
+                catch // And when it is not.
+                {
+                    addressLine = addressValidationResponse["XAVResponse"]["Candidate"]["AddressKeyFormat"]["AddressLine"];
+                    city = (string)addressValidationResponse["XAVResponse"]["Candidate"]["AddressKeyFormat"]["PoliticalDivision2"];
+                    state = (string)addressValidationResponse["XAVResponse"]["Candidate"]["AddressKeyFormat"]["PoliticalDivision1"];
+                    postal_extention = (string)addressValidationResponse["XAVResponse"]["Candidate"]["AddressKeyFormat"]["PostcodeExtendedLow"];
+                }
+                
 
                 if (addressLine == null)  // Address was NOT corrected or validated.
                 {
@@ -81,34 +105,37 @@ namespace AuthenticationServer.Models.Services
                 }
 
                 //string city = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision2"];
-                var city = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["PoliticalDivision2"];
+                
                 if (city == null)
                 {
                     city = shipment.City;
                 }
                 //string state = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision1"];
-                string state = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["PoliticalDivision1"];
+                
                 if (state == null)
                 {
                     state = shipment.State_selection;
                 }
                 //string postal_extention = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PostcodeExtendedLow"];
-                string postal_extention = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["PostcodeExtendedLow"];
+                
 
-                if (shipment.Address != address || shipment.City != city || shipment.State_selection != state || (!shipment.Zip.Contains("-") && postal_extention != null))
+                if (shipment.Address != address || shipment.City != city.ToString() || shipment.State_selection != state.ToString()|| (!shipment.Zip.Contains("-") && postal_extention != null))
                 {
                     shipment.Address = address;
-                    shipment.City = city;
-                    shipment.State_selection = state;
+                    shipment.City = city.ToString();
+                    shipment.State_selection = state.ToString();
                     if (!shipment.Zip.Contains("-")) { shipment.Zip = shipment.Zip + "-" + postal_extention; }
 
                     shipment.Corrected_Address = address;
-                    shipment.Corrected_City = city;
-                    shipment.Corrected_State_selection = state;
+                    shipment.Corrected_City = city.ToString();
+                    shipment.Corrected_State_selection = state.ToString();
                 }
 
-                //shipment.Address_Classification = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressClassification"]?["Description"];
-                shipment.Address_Classification = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressClassification"]["Description"];
+                // If the address classification doesn't parse as expected for some reason it will return an empty string.
+                var address_classification = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressClassification"]?["Description"] ?? string.Empty;
+
+                shipment.Address_Classification = address_classification;
+
             }
             catch
             {
@@ -116,7 +143,7 @@ namespace AuthenticationServer.Models.Services
             }
             // Rate Request
             _request = RateRequest(shipment, new Plant(shipment.PlantId), requestOption, rateClassification);
-            _url = Configuration.UPSShopRatesURL + requestOption.ToString();            
+            _url = Configuration.UPSShopRatesURL + requestOption.ToString();
             _response = Response(_request, _url);
 
             // What kind of response did we get?
@@ -310,7 +337,7 @@ namespace AuthenticationServer.Models.Services
 
             #region Set CWT flag
             // AIR SERVICES - If package count >= 2 and total package weight >= 100 lbs. but < 200 lbs. then it is CWT.  (Over 200 is LTL?)
-            if ((serviceCode == "01" || serviceCode == "02" || serviceCode == "13" || serviceCode == "59" || serviceCode == "14") && (_shipment.number_of_packages >= 2 && _shipment.billing_weight >= Configuration.MinCWTPackagesAir))
+            if ((serviceCode == "01" || serviceCode == "02" || serviceCode == "13" || serviceCode == "59" || serviceCode == "14") && (_shipment.number_of_packages >= 2 && _shipment.billing_weight >= Configuration.MinCWTWeightAir))
             {
                 uPSService.CWT = "Yes";
             }
@@ -504,7 +531,8 @@ namespace AuthenticationServer.Models.Services
             sb.Append("\"Shipment\":");
             sb.Append("{\"Shipper\":");
             sb.Append("{\"Name\": \"" + plant.Name + "\",");
-            sb.Append("\"ShipperNumber\": \"" + Configuration.ShipFromShipperNumber + "\",");
+            sb.Append("\"ShipperNumber\": \"" + plant.UpsShippingNumber.Trim() + "\",");      // Every plant uses their own shipping number.
+            //sb.Append("\"ShipperNumber\": \"" + Configuration.ShipFromShipperNumber + "\",");   // Every plant will use the same shipping number.
             sb.Append("\"Address\":");
             sb.Append("{\"AddressLine\": [");
             sb.Append("\"" + plant.Address + "\",");
@@ -556,7 +584,8 @@ namespace AuthenticationServer.Models.Services
                 sb.Append("\"PaymentDetails\":");
                 sb.Append("{\"ShipmentCharge\":");
                 sb.Append("{\"Type\": \"01\",");
-                sb.Append("\"BillShipper\": {\"AccountNumber\": \"" + Configuration.ShipFromShipperNumber + "\"}");
+                sb.Append("\"BillShipper\": {\"AccountNumber\": \"" + plant.UpsShippingNumber.Trim() + "\"}");      // Every plant uses their own shipping number.
+                //sb.Append("\"BillShipper\": {\"AccountNumber\": \"" + Configuration.ShipFromShipperNumber + "\"}");   // Every plant will use the same shipping number.
                 sb.Append("}"); // ShipmentCharge
                 sb.Append("},"); // PaymentDetails
             }
