@@ -531,8 +531,8 @@ namespace AuthenticationServer.Models.Services
             sb.Append("\"Shipment\":");
             sb.Append("{\"Shipper\":");
             sb.Append("{\"Name\": \"" + plant.Name + "\",");
-            sb.Append("\"ShipperNumber\": \"" + plant.UpsShippingNumber.Trim() + "\",");      // Every plant uses their own shipping number.
-            //sb.Append("\"ShipperNumber\": \"" + Configuration.ShipFromShipperNumber + "\",");   // Every plant will use the same shipping number.
+            //sb.Append("\"ShipperNumber\": \"" + plant.UpsShippingNumber.Trim() + "\",");      // Every plant uses their own shipping number.
+            sb.Append("\"ShipperNumber\": \"" + Configuration.ShipFromShipperNumber + "\",");   // Every plant will use the same shipping number.
             sb.Append("\"Address\":");
             sb.Append("{\"AddressLine\": [");
             sb.Append("\"" + plant.Address + "\",");
@@ -584,8 +584,8 @@ namespace AuthenticationServer.Models.Services
                 sb.Append("\"PaymentDetails\":");
                 sb.Append("{\"ShipmentCharge\":");
                 sb.Append("{\"Type\": \"01\",");
-                sb.Append("\"BillShipper\": {\"AccountNumber\": \"" + plant.UpsShippingNumber.Trim() + "\"}");      // Every plant uses their own shipping number.
-                //sb.Append("\"BillShipper\": {\"AccountNumber\": \"" + Configuration.ShipFromShipperNumber + "\"}");   // Every plant will use the same shipping number.
+                //sb.Append("\"BillShipper\": {\"AccountNumber\": \"" + plant.UpsShippingNumber.Trim() + "\"}");      // Every plant uses their own shipping number.
+                sb.Append("\"BillShipper\": {\"AccountNumber\": \"" + Configuration.ShipFromShipperNumber + "\"}");   // Every plant will use the same shipping number.
                 sb.Append("}"); // ShipmentCharge
                 sb.Append("},"); // PaymentDetails
             }
@@ -635,7 +635,8 @@ namespace AuthenticationServer.Models.Services
             if(requestOption == RequestOption.Rate)
             {
                 sb.Append("\"Commodity\":");
-                sb.Append("{\"FreightClass\": \"55\"");
+                // Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
+                sb.Append("{\"FreightClass\": \"85\"");
                 //sb.Append("{\"FreightClass\": \"" + shipment.freight_class_selected + "\"");
                 sb.Append("},");
             }
@@ -679,7 +680,8 @@ namespace AuthenticationServer.Models.Services
             if (requestOption == RequestOption.Rate)
             {
                 //sb.Append(",\"Commodity\": {\"FreightClass\": \"" + freightClass + "\"}");
-                sb.Append(",\"Commodity\": {\"FreightClass\": \"55\"}");
+                // Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
+                sb.Append(",\"Commodity\": {\"FreightClass\": \"85\"}");
             }
 
             sb.Append("}"); // PackagingType

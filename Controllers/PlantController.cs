@@ -85,7 +85,7 @@ namespace AuthenticationServer.Controllers
                 new SelectListItem { Text = "500", Value = "500"},
 
             };
-            model.freight_class_selected = 55;
+            model.freight_class_selected = 85;
             model.default_pickup_date = System.DateTime.Today;
 
             model.pick_up_date = System.DateTime.Today;
@@ -1137,7 +1137,7 @@ namespace AuthenticationServer.Controllers
                         for (int i = 0; i < shipment.number_of_packages-1; i++)
                         {
                             request.Append("<Item sequence=\"1\" freightClass=\"");
-                            request.Append("55");
+                            request.Append("85");// Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
                             request.Append("\">");
                             request.Append("<Weight units=\"lb\">");
                             request.Append(shipment.package_weight.ToString());
@@ -1147,7 +1147,7 @@ namespace AuthenticationServer.Controllers
 
                         // Add last package
                         request.Append("<Item sequence=\"1\" freightClass=\"");
-                        request.Append("55");
+                        request.Append("85");// Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
                         request.Append("\">");
                         request.Append("<Weight units=\"lb\">");
                         request.Append(shipment.last_package_weight.ToString());
@@ -1159,7 +1159,7 @@ namespace AuthenticationServer.Controllers
                         for (int i = 0; i < shipment.number_of_packages; i++)
                         {
                             request.Append("<Item sequence=\"1\" freightClass=\"");
-                            request.Append("55");
+                            request.Append("85"); // Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
                             request.Append("\">");
                             request.Append("<Weight units=\"lb\">");
                             request.Append(shipment.package_weight.ToString());
