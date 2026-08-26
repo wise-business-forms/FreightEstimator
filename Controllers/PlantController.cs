@@ -404,9 +404,13 @@ namespace AuthenticationServer.Controllers
 
                 shipment.shopGroundFreightResponse.UPSServices[0].Plant_ShipmentCharge = r.UpchargeGround[shipment.PlantId];
                 #region
-                rateResponse.Service.Append("UPS");
-                rateResponse.Carrier.Append(shipment.shopGroundFreightResponse.UPSServices[0].ServiceName);
-                rateResponse.Rate.Append(shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate.ToString());
+                // rateResponse.Service/Carrier/Rate are only populated by GRID 1 (skipped when
+                // number_of_packages > 50), so they can still be null here; Enumerable.Append
+                // also returns a new sequence rather than mutating in place, so the result must
+                // be reassigned back.
+                rateResponse.Service = (rateResponse.Service ?? Array.Empty<string>()).Append("UPS").ToArray();
+                rateResponse.Carrier = (rateResponse.Carrier ?? Array.Empty<string>()).Append(shipment.shopGroundFreightResponse.UPSServices[0].ServiceName).ToArray();
+                rateResponse.Rate = (rateResponse.Rate ?? Array.Empty<string>()).Append(shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate.ToString()).ToArray();
                 #endregion
             }
 

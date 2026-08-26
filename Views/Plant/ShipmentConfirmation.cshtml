@@ -262,7 +262,13 @@
 
                                 </div>
                             }
-                            <!-- GRID 2 - UPS Ground Freight -->                            
+                            else
+                            {
+                                <div class="row d-flex">
+                                    <div class="text-center confirmation-value">UPS Services rates are not available for shipments over 50 packages (@Model.number_of_packages packages requested). This is a limit of UPS's rate-shopping API.</div>
+                                </div>
+                            }
+                            <!-- GRID 2 - UPS Ground Freight -->
                             if (Model.include_ground_rate_selection == "Yes")
                             {
                                 <div class="container">
