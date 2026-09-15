@@ -83,6 +83,13 @@ namespace AuthenticationServer.Models
         public string results { get; set; }
         public string user_name { get; set; }
 
+        /// <summary>
+        /// Generated once per quote request (see PlantController.ShipmentConfirmation) so every
+        /// service's Calculated Rate, across both UPS and the Logistics Partner, can be tied
+        /// back to the same Quote. See CONTEXT.md: Quote ID.
+        /// </summary>
+        public Guid QuoteId { get; set; }
+
         public string[] AlertMessages { get; set; }
         public string ErrorMessage { get; set; }
     }

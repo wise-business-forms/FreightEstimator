@@ -1,26 +1,26 @@
 ﻿using AuthenticationServer.Models;
+using AuthenticationServer.Models.Carrier.UPS;
+using AuthenticationServer.Models.Data;
 using AuthenticationServer.Models.Services;
 using Microsoft.Ajax.Utilities;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Data.SqlClient;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text;
-using System.Web.Mvc;
-using System.Xml.Linq;
-
-using AuthenticationServer.Models.Carrier.UPS;
-using System.ComponentModel.DataAnnotations;
-using System.Xml.XPath;
-using System.Globalization;
 using System.Security.Policy;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Web.Mvc;
 using System.Web.UI.WebControls;
+using System.Xml.Linq;
+using System.Xml.XPath;
 
 namespace AuthenticationServer.Controllers
 {
@@ -32,7 +32,14 @@ namespace AuthenticationServer.Controllers
         private DataTable _multiGroundFreight;
         Models.Services.RateResponse rateResponse = new Models.Services.RateResponse();
 
-        public ActionResult Index(string loc)
+        public ActionResult Index(string loc, string address = null, string city = null, string state = null, string zip = null,
+            int? packages = null, float? weight = null, float? lastWeight = null,
+            bool includeLtl = false, bool liftgatePickup = false, bool liftgateDelivery = false,
+            bool limitedAccessPickup = false, bool limitedAccessDelivery = false,
+            bool residentialPickup = false, bool residentialDelivery = false,
+            bool insidePickup = false, bool insideDelivery = false,
+            bool sortAndSegregate = false, bool stopoffCharge = false,
+            bool notifyBeforeDelivery = false)
         {
             ViewBag.Param1 = loc;            
             
@@ -85,7 +92,9 @@ namespace AuthenticationServer.Controllers
                 new SelectListItem { Text = "500", Value = "500"},
 
             };
-            model.freight_class_selected = 85;
+            // Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
+            // Sep 26, 2025 - Switching from FreightClass 85 to 65 per feedback.            
+            model.freight_class_selected = 65;
             model.default_pickup_date = System.DateTime.Today;
 
             model.pick_up_date = System.DateTime.Today;
@@ -94,6 +103,26 @@ namespace AuthenticationServer.Controllers
             model.multiple_location_rate_selection = "No";
             model.include_ground_rate_selection = "No";
             model.include_ltl_rate_selection = "No";
+
+            if (!string.IsNullOrEmpty(address)) model.Address = address;
+            if (!string.IsNullOrEmpty(city)) model.City = city;
+            if (!string.IsNullOrEmpty(state)) model.State_selection = state;
+            if (!string.IsNullOrEmpty(zip)) model.Zip = zip;
+            if (packages.HasValue && packages.Value > 0) model.number_of_packages = packages.Value;
+            if (weight.HasValue && weight.Value > 0) model.package_weight = weight.Value;
+            if (lastWeight.HasValue && lastWeight.Value > 0) model.last_package_weight = lastWeight.Value;
+            if (includeLtl) model.include_ltl_rate_selection = "Yes";
+            if (liftgatePickup) model.liftgate_pickup = true;
+            if (liftgateDelivery) model.liftgate_delivery = true;
+            if (limitedAccessPickup) model.limited_access_pickup = true;
+            if (limitedAccessDelivery) model.limited_access_delivery = true;
+            if (residentialPickup) model.residential_pickup = true;
+            if (residentialDelivery) model.residential_delivery = true;
+            if (insidePickup) model.inside_pickup = true;
+            if (insideDelivery) model.inside_delivery = true;
+            if (sortAndSegregate) model.sort_and_segregate = true;
+            if (stopoffCharge) model.stopoff_charge = true;
+            if (notifyBeforeDelivery) model.notify_before_delivery = true;
 
             return View(model);
         }
@@ -120,6 +149,7 @@ namespace AuthenticationServer.Controllers
         public ActionResult ShipmentConfirmation(Shipment shipment)
         {
             shipment.Plant = new Plant(shipment.PlantId);
+            shipment.QuoteId = Guid.NewGuid();
 
             string environmentName = Environment.GetEnvironmentVariable("ASPNET_ENVIRONMENT");
             if (string.IsNullOrEmpty(environmentName))
@@ -252,6 +282,8 @@ namespace AuthenticationServer.Controllers
                                 service.Plant_PerPackageCharge = rateCalculations.PerPackageCharge[service.PlantCode];
                                 service.Plant_ShipmentCharge = rateCalculations.PerShipmentCharge[service.PlantCode];
                             }
+
+                            LogUpsQuoteServiceCalculation(shipmentResponse, service);
                         }
 
                         plantServices.Add(shopRate);
@@ -387,6 +419,8 @@ namespace AuthenticationServer.Controllers
                                     service.Plant_ShipmentCharge = _uPSService.Plant_ShipmentCharge;
                                     break;
                             }
+
+                            LogUpsQuoteServiceCalculation(shipment, service);
                         }
                         List<ShopRateResponse> shopRates = new List<ShopRateResponse> { shopRateResponse };
                         shipment.shopCompareRates = shopRates.ToArray();
@@ -403,6 +437,8 @@ namespace AuthenticationServer.Controllers
                 RateCalculations r = new RateCalculations(0, RateCalculations.Carriers.GF);
 
                 shipment.shopGroundFreightResponse.UPSServices[0].Plant_ShipmentCharge = r.UpchargeGround[shipment.PlantId];
+
+                LogUpsQuoteServiceCalculation(shipment, shipment.shopGroundFreightResponse.UPSServices[0]);
                 #region
                 // rateResponse.Service/Carrier/Rate are only populated by GRID 1 (skipped when
                 // number_of_packages > 50), so they can still be null here; Enumerable.Append
@@ -546,6 +582,43 @@ namespace AuthenticationServer.Controllers
                 (Double.Parse(uPSService.Plant_PerPackageCharge) * shipment.number_of_packages);
 
             return uPSService;
+        }
+
+        /// <summary>
+        /// Persists a UPS service's Calculated Rate + markup breakdown for reporting. The
+        /// try/catch here (not just inside Log.LogQuoteServiceCalculation) is deliberate:
+        /// it also guards QuoteServiceCalculation.FromUps itself, so this can never break
+        /// the live quote flow even if a future change to that factory starts throwing.
+        /// </summary>
+        private void LogUpsQuoteServiceCalculation(Shipment shipment, UPSService service)
+        {
+            try
+            {
+                Log.LogQuoteServiceCalculation(QuoteServiceCalculation.FromUps(shipment, service));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceWarning("LogUpsQuoteServiceCalculation failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Persists a Logistics Partner (LTL) service's Calculated Rate + markup breakdown for
+        /// reporting. See LogUpsQuoteServiceCalculation for why construction is inside the try.
+        /// </summary>
+        private void LogLogisticsPartnerQuoteServiceCalculation(
+            Shipment shipment, UPSService service,
+            double carrierRate, double perPackageCharge, double perShipmentCharge, double markupFraction, double calculatedRate)
+        {
+            try
+            {
+                Log.LogQuoteServiceCalculation(QuoteServiceCalculation.FromLogisticsPartner(
+                    shipment, service, carrierRate, perPackageCharge, perShipmentCharge, markupFraction, calculatedRate));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceWarning("LogLogisticsPartnerQuoteServiceCalculation failed: " + ex.Message);
+            }
         }
 
         private void ValidateStateForCWT(Shipment shipment)
@@ -1141,7 +1214,9 @@ namespace AuthenticationServer.Controllers
                         for (int i = 0; i < shipment.number_of_packages-1; i++)
                         {
                             request.Append("<Item sequence=\"1\" freightClass=\"");
-                            request.Append("85");// Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
+                            // Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
+                            // Sep 26, 2025 - Switching from FreightClass 85 to 65 per feedback.
+                            request.Append(ltlClass);
                             request.Append("\">");
                             request.Append("<Weight units=\"lb\">");
                             request.Append(shipment.package_weight.ToString());
@@ -1151,7 +1226,9 @@ namespace AuthenticationServer.Controllers
 
                         // Add last package
                         request.Append("<Item sequence=\"1\" freightClass=\"");
-                        request.Append("85");// Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
+                        // Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
+                        // Sep 26, 2025 - Switching from FreightClass 85 to 65 per feedback.
+                        request.Append(ltlClass);
                         request.Append("\">");
                         request.Append("<Weight units=\"lb\">");
                         request.Append(shipment.last_package_weight.ToString());
@@ -1163,7 +1240,9 @@ namespace AuthenticationServer.Controllers
                         for (int i = 0; i < shipment.number_of_packages; i++)
                         {
                             request.Append("<Item sequence=\"1\" freightClass=\"");
-                            request.Append("85"); // Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
+                            // Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
+                            // Sep 26, 2025 - Switching from FreightClass 85 to 65 per feedback.
+                            request.Append(ltlClass);
                             request.Append("\">");
                             request.Append("<Weight units=\"lb\">");
                             request.Append(shipment.package_weight.ToString());
@@ -1299,6 +1378,14 @@ namespace AuthenticationServer.Controllers
                         service.RatedShipment_PublishedRateCharges_MonetaryValue = priceSheet.TotalCost;
 
                         ltlServices.Add(service);
+
+                        LogLogisticsPartnerQuoteServiceCalculation(
+                            shipment, service,
+                            carrierRate: service.CustomerRate,
+                            perPackageCharge: plantPackageCharge * shipment.number_of_packages,
+                            perShipmentCharge: plantShipmentCharge,
+                            markupFraction: plantSurcharge,
+                            calculatedRate: totalCharges);
                     }
 
                     response.UPSServices = ltlServices.ToArray();
@@ -1306,10 +1393,10 @@ namespace AuthenticationServer.Controllers
                     try
                     {
                         response.UPSServices = response.UPSServices
-    .Where(s => !string.IsNullOrWhiteSpace(s.TransitDays) && !string.IsNullOrWhiteSpace(s.RatedShipment_PublishedRateCharges_MonetaryValue)) // Filter out invalid rows
-    .OrderByDescending(s => float.TryParse(s.TransitDays, out float days) ? days : float.MinValue) // Parse TransitDays or use default for invalid values
-    .ThenBy(s => float.TryParse(s.RatedShipment_PublishedRateCharges_MonetaryValue, out float cost) ? cost : float.MinValue) // Parse TotalCharges or use default
-    .ToArray();
+                            .Where(s => !string.IsNullOrWhiteSpace(s.TransitDays) && !string.IsNullOrWhiteSpace(s.RatedShipment_PublishedRateCharges_MonetaryValue)) // Filter out invalid rows
+                            .OrderBy(s => float.TryParse(s.CustomerRate.ToString(), out float days) ? days : float.MinValue) // Parse TransitDays or use default for invalid values
+                            .ThenBy(s => float.TryParse(s.RatedShipment_PublishedRateCharges_MonetaryValue, out float cost) ? cost : float.MinValue) // Parse TotalCharges or use default
+                            .ToArray();
                     }
                     catch(Exception ex)
                     {

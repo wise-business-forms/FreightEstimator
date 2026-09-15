@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AuthenticationServer.Models;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Data;
@@ -313,7 +314,47 @@ namespace AuthenticationServer.Models.Services
             connLog.Close();
         }
 
+        /// <summary>
+        /// Persists one service's Calculated Rate + markup breakdown for reporting. Additive only:
+        /// does not touch Requests_Rate/LogResultsLTL. Swallows failures deliberately, since a
+        /// reporting write must never break the live quote flow.
+        /// </summary>
+        public static void LogQuoteServiceCalculation(QuoteServiceCalculation calculation)
+        {
+            if (calculation == null) return;
 
+            try
+            {
+                using (var connLog = new SqlConnection(Configuration.UpsRateSqlConnection))
+                {
+                    connLog.Open();
+
+                    using (var cmdLog = new SqlCommand("LogQuoteServiceCalculation", connLog))
+                    {
+                        cmdLog.CommandType = CommandType.StoredProcedure;
+
+                        cmdLog.Parameters.Add(new SqlParameter("@QuoteId", SqlDbType.UniqueIdentifier) { Value = calculation.QuoteId });
+                        cmdLog.Parameters.Add(new SqlParameter("@Carrier", SqlDbType.VarChar, 20) { Value = (object)calculation.Carrier ?? DBNull.Value });
+                        cmdLog.Parameters.Add(new SqlParameter("@PlantCode", SqlDbType.VarChar, 10) { Value = (object)calculation.PlantCode ?? DBNull.Value });
+                        cmdLog.Parameters.Add(new SqlParameter("@UserName", SqlDbType.VarChar, 50) { Value = (object)calculation.UserName ?? DBNull.Value });
+                        cmdLog.Parameters.Add(new SqlParameter("@ServiceCode", SqlDbType.VarChar, 20) { Value = (object)calculation.ServiceCode ?? DBNull.Value });
+                        cmdLog.Parameters.Add(new SqlParameter("@ServiceName", SqlDbType.VarChar, 100) { Value = (object)calculation.ServiceName ?? DBNull.Value });
+                        cmdLog.Parameters.Add(new SqlParameter("@CarrierRate", SqlDbType.Decimal) { Precision = 18, Scale = 2, Value = (object)calculation.CarrierRate ?? DBNull.Value });
+                        cmdLog.Parameters.Add(new SqlParameter("@IsNegotiatedRate", SqlDbType.Bit) { Value = (object)calculation.IsNegotiatedRate ?? DBNull.Value });
+                        cmdLog.Parameters.Add(new SqlParameter("@PerPackageCharge", SqlDbType.Decimal) { Precision = 18, Scale = 2, Value = (object)calculation.PerPackageCharge ?? DBNull.Value });
+                        cmdLog.Parameters.Add(new SqlParameter("@PerShipmentCharge", SqlDbType.Decimal) { Precision = 18, Scale = 2, Value = (object)calculation.PerShipmentCharge ?? DBNull.Value });
+                        cmdLog.Parameters.Add(new SqlParameter("@MarkupPercent", SqlDbType.Decimal) { Precision = 9, Scale = 4, Value = (object)calculation.MarkupPercent ?? DBNull.Value });
+                        cmdLog.Parameters.Add(new SqlParameter("@CalculatedRate", SqlDbType.Decimal) { Precision = 18, Scale = 2, Value = calculation.CalculatedRate });
+
+                        cmdLog.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch
+            {
+                // Best-effort only — see summary above.
+            }
+        }
     }
 
 }
