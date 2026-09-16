@@ -13,10 +13,14 @@ The raw rate returned by a carrier's API (UPS or the Logistics Partner) for one 
 _Avoid_: Published Rate, Negotiated Rate — these are UPS-specific sub-types of Carrier Rate, not synonyms for it.
 
 **Calculated Rate**:
-The final price the app displays to the requester for a Quote, after applying plant markup, per-package/per-shipment charges, and CWT adjustment to a Carrier Rate. Persisted per service, per Quote, in `QuoteServiceCalculation` — additive to (not a replacement for) the existing raw Carrier Rate logging.
+The final price the app displays to the requester for a Quote, after applying Plant Charges (markup, per-package/per-shipment charges) and a CWT adjustment to a Carrier Rate. Persisted per service, per Quote, in `QuoteServiceCalculation` — additive to (not a replacement for) the existing raw Carrier Rate logging.
 _Avoid_: Quoted Price, Total Charges.
 
-Known gap: UPS computes this three different ways depending on which grid produced it (see the GRID1/GRID2/multi-location divergence issue in `docs/issues/`) — Calculated Rate is persisted faithfully as each path computes it today, warts and all.
+Known gap: computed four different, disagreeing ways depending on which code path produced it — UPS GRID1 single-plant, UPS GRID1 multi-plant, UPS GRID2, and LTL each have their own formula (see `docs/issues/0001`). A fix is underway: a single `CalculatedRate.Apply(CarrierRate, ChargeSchedule, RatingContext)` module is being migrated in one call site at a time, in shadow mode (see `docs/adr/0003-deepen-calculated-rate-via-shadow-mode.md`). Until a call site is fully migrated, Calculated Rate is still persisted faithfully as that path computes it today, warts and all.
+
+**Plant Charges**:
+The per-plant, per-service rates a plant applies on top of a Carrier Rate: a markup percentage, a per-package charge, and a per-shipment charge. Looked up today via `Plant.Charges()` and the `Plant_Surcharge`/`Plant_PerPackageCharge`/`Plant_ShipmentCharge` fields; one of the inputs to Calculated Rate.
+_Avoid_: Surcharge (that's specifically the markup-percentage component of Plant Charges, not a synonym for the whole thing).
 
 **Logistics Partner**:
 The company that handles our LTL (Less-Than-Truckload) shipments. Referred to as "TransportInsight" or "TI" throughout the code (`TICharge`, `Configuration.TransportInsightRateUrl`, `shopLessThanTruckloadResponseTransportInsight`).
