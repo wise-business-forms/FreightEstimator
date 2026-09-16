@@ -432,6 +432,7 @@ namespace AuthenticationServer.Controllers
             if (shipment.include_ground_rate_selection == "Yes") 
             { 
                 shipment.shopGroundFreightResponse = GetGroundFreightRate(shipment);
+                double groundFreightCarrierRate = shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate;
                 shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate = RateCalculations.CalculateUPSRate(shipment.AcctNum, shipment.PlantId, "UPSGroundFreight", shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate, shipment.number_of_packages, shipment.package_weight.ToString(), shipment.last_package_weight.ToString());
 
                 RateCalculations r = new RateCalculations(0, RateCalculations.Carriers.GF);
@@ -439,6 +440,7 @@ namespace AuthenticationServer.Controllers
                 shipment.shopGroundFreightResponse.UPSServices[0].Plant_ShipmentCharge = r.UpchargeGround[shipment.PlantId];
 
                 LogUpsQuoteServiceCalculation(shipment, shipment.shopGroundFreightResponse.UPSServices[0]);
+                RecordGrid2ShadowComparison(shipment, groundFreightCarrierRate, shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate);
                 #region
                 // rateResponse.Service/Carrier/Rate are only populated by GRID 1 (skipped when
                 // number_of_packages > 50), so they can still be null here; Enumerable.Append
@@ -618,6 +620,49 @@ namespace AuthenticationServer.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Trace.TraceWarning("LogLogisticsPartnerQuoteServiceCalculation failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Shadow-mode only (docs/adr/0003-deepen-calculated-rate-via-shadow-mode.md): computes
+        /// what CalculatedRate.Apply would have produced for this GRID2 ground freight quote and
+        /// logs it next to what RateCalculations.CalculateUPSRate (the existing, still-live
+        /// formula) actually produced. Never changes shipment/service state, and a failure here
+        /// must never break the live quote flow.
+        ///
+        /// IsCwtEligible is passed as false: CalculateUPSRate's own CWT branch is dead code
+        /// (bool cwt is never reassigned), so GRID2 always behaves as non-CWT today. Passing
+        /// false here reads the same Plant Charges GRID2 already reads, keeping the shadow
+        /// comparison isolated to the formula difference this ticket is proving, not conflated
+        /// with the separate, out-of-scope CWT eligibility bug.
+        /// </summary>
+        private void RecordGrid2ShadowComparison(Shipment shipment, double carrierRate, double existingCalculatedRate)
+        {
+            try
+            {
+                RatingContext context = new RatingContext
+                {
+                    PlantCode = shipment.PlantId,
+                    ServiceName = "UPSGroundFreight",
+                    PackageCount = shipment.number_of_packages,
+                    IsCwtEligible = false
+                };
+
+                CalculatedRate newCalculatedRate = CalculatedRate.Apply((decimal)carrierRate, new RateCalculationsChargeSchedule(), context);
+
+                CalculatedRateShadowLog.Record(new CalculatedRateShadowComparison
+                {
+                    QuoteId = shipment.QuoteId,
+                    CallSite = "GRID2",
+                    PlantCode = shipment.PlantId,
+                    ServiceName = "UPSGroundFreight",
+                    ExistingCalculatedRate = (decimal)existingCalculatedRate,
+                    NewCalculatedRate = newCalculatedRate.Amount
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceWarning("RecordGrid2ShadowComparison failed: " + ex.Message);
             }
         }
 
