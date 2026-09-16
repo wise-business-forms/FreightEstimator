@@ -247,7 +247,14 @@
     <Compile Include="Models\LTLService.cs" />
     <Compile Include="Models\Plant.cs" />
     <Compile Include="Models\PlantCharges.cs" />
+    <Compile Include="Models\QuoteServiceCalculation.cs" />
+    <Compile Include="Models\Services\CalculatedRate.cs" />
+    <Compile Include="Models\Services\IChargeSchedule.cs" />
+    <Compile Include="Models\Services\PlantServiceCharges.cs" />
+    <Compile Include="Models\Services\RateCalculationsChargeSchedule.cs" />
+    <Compile Include="Models\Services\RatingContext.cs" />
     <Compile Include="Controllers\HtmlHelpers.cs" />
+    <Compile Include="Models\RateRequestRecord.cs" />
     <Compile Include="Models\Services\Log.cs" />
     <Compile Include="Models\Services\RateCalculations.cs" />
     <Compile Include="Models\Services\RateRequest.cs" />
@@ -354,6 +361,8 @@
     <Content Include="Views\Rates\Index.cshtml" />
     <Content Include="Views\Shared\_DevBanner.cshtml" />
     <Content Include="Views\Reports\MarginReport.cshtml" />
+    <Content Include="Views\Reports\Index.cshtml" />
+    <Content Include="Views\Reports\Quotes.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
