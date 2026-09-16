@@ -558,17 +558,22 @@ namespace AuthenticationServer.Controllers
             // If not UPS / FEDEX CWT use published
             // Remove the (negotiated / .7) cwt weight adjustment.
 
-            if (uPSService.CWT.ToUpper() == "TRUE" || uPSService.CWT.ToUpper() == "YES")
-            {                
+            bool isCwtEligible = uPSService.CWT.ToUpper() == "TRUE" || uPSService.CWT.ToUpper() == "YES";
+            double carrierRate = isCwtEligible
+                ? Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge)
+                : Double.Parse(uPSService.RatedShipment_PublishedRateCharges_MonetaryValue);
+
+            if (isCwtEligible)
+            {
                 // MARKUP should be the NEGOTIATED rate multiplied by the surcharge expressed as a percentage.
-                var _markup = Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge) * (Double.Parse(uPSService.Plant_Surcharge) / 100);
+                var _markup = carrierRate * (Double.Parse(uPSService.Plant_Surcharge) / 100);
 
                 // The CUSTOMERRATE (customer cost) should be the NEGOTIATED rate plus the MARKUP.
-                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge) + _markup;
+                uPSService.CustomerRate = carrierRate + _markup;
             }
             else
             {
-                uPSService.CustomerRate = Double.Parse(uPSService.RatedShipment_PublishedRateCharges_MonetaryValue);
+                uPSService.CustomerRate = carrierRate;
             }
 
             // Set plant surcharge.
@@ -579,9 +584,11 @@ namespace AuthenticationServer.Controllers
 
 
             // Add final upcharges.
-            uPSService.CustomerRate = uPSService.CustomerRate + 
-                Double.Parse(uPSService.Plant_ShipmentCharge) + 
+            uPSService.CustomerRate = uPSService.CustomerRate +
+                Double.Parse(uPSService.Plant_ShipmentCharge) +
                 (Double.Parse(uPSService.Plant_PerPackageCharge) * shipment.number_of_packages);
+
+            RecordGrid1SingleShadowComparison(shipment, uPSService, carrierRate, isCwtEligible, uPSService.CustomerRate);
 
             return uPSService;
         }
@@ -663,6 +670,47 @@ namespace AuthenticationServer.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Trace.TraceWarning("RecordGrid2ShadowComparison failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Shadow-mode only (docs/adr/0003-deepen-calculated-rate-via-shadow-mode.md): computes
+        /// what CalculatedRate.Apply would have produced for this GRID1 single-plant service and
+        /// logs it next to what ApplyPlantCharges (the existing, still-live formula) actually
+        /// produced. Never changes uPSService state beyond what ApplyPlantCharges already set,
+        /// and a failure here must never break the live quote flow.
+        ///
+        /// isCwtEligible is passed through exactly as ApplyPlantCharges determined it - this
+        /// ticket does not recompute or correct CWT eligibility (that's the separate,
+        /// out-of-scope bug in HundredWeightEligable).
+        /// </summary>
+        private void RecordGrid1SingleShadowComparison(Shipment shipment, UPSService uPSService, double carrierRate, bool isCwtEligible, double existingCalculatedRate)
+        {
+            try
+            {
+                RatingContext context = new RatingContext
+                {
+                    PlantCode = shipment.PlantId,
+                    ServiceName = uPSService.ServiceName,
+                    PackageCount = shipment.number_of_packages,
+                    IsCwtEligible = isCwtEligible
+                };
+
+                CalculatedRate newCalculatedRate = CalculatedRate.Apply((decimal)carrierRate, new RateCalculationsChargeSchedule(), context);
+
+                CalculatedRateShadowLog.Record(new CalculatedRateShadowComparison
+                {
+                    QuoteId = shipment.QuoteId,
+                    CallSite = "GRID1Single",
+                    PlantCode = shipment.PlantId,
+                    ServiceName = uPSService.ServiceName,
+                    ExistingCalculatedRate = (decimal)existingCalculatedRate,
+                    NewCalculatedRate = newCalculatedRate.Amount
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceWarning("RecordGrid1SingleShadowComparison failed: " + ex.Message);
             }
         }
 
