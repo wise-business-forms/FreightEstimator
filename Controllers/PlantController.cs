@@ -284,6 +284,7 @@ namespace AuthenticationServer.Controllers
                             }
 
                             LogUpsQuoteServiceCalculation(shipmentResponse, service);
+                            RecordGrid1MultiShadowComparison(shipment, service);
                         }
 
                         plantServices.Add(shopRate);
@@ -711,6 +712,47 @@ namespace AuthenticationServer.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Trace.TraceWarning("RecordGrid1SingleShadowComparison failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Shadow-mode only (docs/adr/0003-deepen-calculated-rate-via-shadow-mode.md): computes
+        /// what CalculatedRate.Apply would have produced for this GRID1 multi-plant service and
+        /// logs it next to what the existing, still-live path actually produced. GRID1
+        /// multi-plant never applies markup today (the assignment is commented out), so
+        /// service.CustomerRate is still the raw carrier rate here - both the existing value and
+        /// CalculatedRate.Apply's carrierRate input use that same value. Never changes service
+        /// state, and a failure here must never break the live quote flow.
+        /// </summary>
+        private void RecordGrid1MultiShadowComparison(Shipment shipment, UPSService service)
+        {
+            try
+            {
+                bool isCwtEligible = service.CWT.ToUpper() == "TRUE";
+
+                RatingContext context = new RatingContext
+                {
+                    PlantCode = service.PlantCode,
+                    ServiceName = service.ServiceName,
+                    PackageCount = shipment.number_of_packages,
+                    IsCwtEligible = isCwtEligible
+                };
+
+                CalculatedRate newCalculatedRate = CalculatedRate.Apply((decimal)service.CustomerRate, new RateCalculationsChargeSchedule(), context);
+
+                CalculatedRateShadowLog.Record(new CalculatedRateShadowComparison
+                {
+                    QuoteId = shipment.QuoteId,
+                    CallSite = "GRID1Multi",
+                    PlantCode = service.PlantCode,
+                    ServiceName = service.ServiceName,
+                    ExistingCalculatedRate = (decimal)service.CustomerRate,
+                    NewCalculatedRate = newCalculatedRate.Amount
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceWarning("RecordGrid1MultiShadowComparison failed: " + ex.Message);
             }
         }
 
