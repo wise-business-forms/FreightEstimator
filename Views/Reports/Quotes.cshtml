@@ -1,0 +1,260 @@
+@model List<AuthenticationServer.Models.RateRequestRecord>
+
+@{
+    ViewBag.Title = "Past Plantrol Quotes";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    int page = ViewBag.Page;
+    int totalPages = ViewBag.TotalPages;
+    int totalCount = ViewBag.TotalCount;
+    int pageSize = ViewBag.PageSize;
+}
+
+<style>
+    .quotes-table th {
+        background-color: #9ec5fe;
+        white-space: nowrap;
+    }
+    .detail-row td {
+        background-color: #f8f9fa;
+        padding: 8px 16px;
+    }
+    .services-table th {
+        background-color: #d1e7dd;
+    }
+    .toggle-btn {
+        width: 28px;
+        cursor: pointer;
+    }
+</style>
+
+<div class="container-fluid" style="margin-top: 20px;">
+    <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 10px;">
+        <h2 style="margin: 0;">Past Quotes</h2>
+        <span class="text-muted">@totalCount total records &mdash; showing page @page of @totalPages</span>
+        <a href="@Url.Action("Index", "Reports")" class="btn btn-sm btn-outline-secondary" style="margin-left: auto;">&#8592; Reports</a>
+    </div>
+    <hr style="margin-top: 6px;" />
+
+    <div class="row" style="margin-bottom: 16px;">
+        <div class="col-md-6">
+            <form method="get" action="@Url.Action("Quotes", "Reports")" class="form-inline">
+                <div class="input-group" style="width: 100%;">
+                    <input type="text" 
+                           name="search" 
+                           class="form-control" 
+                           placeholder="Search by quote number..." 
+                           value="@ViewBag.SearchTerm"
+                           style="flex: 1;" />
+                    <div class="input-group-append">
+                        <button type="submit" class="btn btn-primary">Search</button>
+                        @if (!string.IsNullOrEmpty(ViewBag.SearchTerm))
+                        {
+                            <a href="@Url.Action("Quotes", "Reports")" class="btn btn-secondary">Clear</a>
+                        }
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    @if (totalPages > 1)
+    {
+        <nav>
+            <ul class="pagination">
+                @if (page > 1)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = page - 1, pageSize = pageSize })">&laquo; Prev</a>
+                    </li>
+                }
+                @for (int i = Math.Max(1, page - 4); i <= Math.Min(totalPages, page + 4); i++)
+                {
+                    <li class="page-item @(i == page ? "active" : "")">
+                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = i, pageSize = pageSize })">@i</a>
+                    </li>
+                }
+                @if (page < totalPages)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = page + 1, pageSize = pageSize })">Next &raquo;</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+    <table class="table table-bordered table-hover table-sm quotes-table">
+        <thead>
+            <tr>
+                <th class="toggle-btn"></th>
+                <th>#</th>
+                <th>Date</th>
+                <th>User</th>
+                <th>Address</th>
+                <th>City</th>
+                <th>State</th>
+                <th>Zip</th>
+                <th>Country</th>
+                <th>Services</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var record in Model)
+            {
+                if (record.ParsedServices.Count == 0) { continue; }
+                <tr class="quote-row" data-id="@record.RequestId" style="cursor: pointer;">
+                    <td class="text-center toggle-btn"><span class="toggle-icon">&#x25BA;</span></td>
+                    <td>@record.RequestId</td>
+                    <td style="white-space: nowrap;">@(record.RequestDate.HasValue ? record.RequestDate.Value.ToString("MM/dd/yyyy HH:mm") : "")</td>
+                    <td>@record.UserName</td>
+                    <td>@record.Address</td>
+                    <td>@record.City</td>
+                    <td>@record.State</td>
+                    <td>@record.Zip</td>
+                    <td>@record.Country</td>
+                    <td>@record.ParsedServices.Count</td>
+                </tr>
+                <tr class="detail-row" id="detail-@record.RequestId" style="display: none;">
+                    <td colspan="10">
+                        <div class="row" style="margin: 0;">
+                            <div class="col-md-4" style="border-right: 1px solid #dee2e6; padding: 8px 12px;">
+                                <strong>Request</strong>
+                                @if (!string.IsNullOrEmpty(record.ParsedRequest.ParseError))
+                                {
+                                    <div class="text-danger" style="font-size:0.85em;">Parse error: @record.ParsedRequest.ParseError</div>
+                                }
+                                else
+                                {
+                                    <table class="table table-sm table-borderless" style="margin: 4px 0 0 0; font-size: 0.9em;">
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-muted" style="white-space:nowrap; width:1%; padding: 2px 8px 2px 0;">Ship From</td>
+                                                <td style="padding: 2px 0;">@record.ParsedRequest.ShipFromName &mdash; @record.ParsedRequest.ShipFromCity, @record.ParsedRequest.ShipFromState</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted" style="white-space:nowrap; padding: 2px 8px 2px 0;">Ship To</td>
+                                                <td style="padding: 2px 0;">@record.ParsedRequest.ShipToCity, @record.ParsedRequest.ShipToState @record.ParsedRequest.ShipToZip (@record.ParsedRequest.ShipToCountry)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted" style="white-space:nowrap; padding: 2px 8px 2px 0;">Pieces</td>
+                                                <td style="padding: 2px 0;">@record.ParsedRequest.NumOfPieces</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted" style="white-space:nowrap; padding: 2px 8px 2px 0;">Weights (lbs)</td>
+                                                <td style="padding: 2px 0;">@string.Join(", ", record.ParsedRequest.PackageWeights)</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    if (!string.IsNullOrEmpty(record.ParsedRequest.ShipFromPlantId))
+                                    {
+                                        var _firstWeight = record.ParsedRequest.PackageWeights.FirstOrDefault();
+                                        var _lastWeight = record.ParsedRequest.PackageWeights.Count > 1
+                                            ? record.ParsedRequest.PackageWeights.Last()
+                                            : null;
+                                        if (_lastWeight == _firstWeight) { _lastWeight = null; }
+                                        int _packages;
+                                        int.TryParse(record.ParsedRequest.NumOfPieces, out _packages);
+                                        <a href="@Url.Action("Index", "Plant", new {
+                                                loc        = record.ParsedRequest.ShipFromPlantId,
+                                                address    = record.Address,
+                                                city       = record.City,
+                                                state      = record.State,
+                                                zip        = record.Zip,
+                                                packages   = _packages,
+                                                weight     = _firstWeight,
+                                                lastWeight = _lastWeight,
+                                                includeLtl = (record.ParsedServices.Count > 1)
+                                            })"
+                                           class="btn btn-sm btn-outline-primary" style="margin-top: 8px;" target="_blank">
+                                            &#x21BA; Re-run from @record.ParsedRequest.ShipFromPlantId
+                                        </a>
+                                    }
+                                }
+                            </div>
+                            <div class="col-md-8" style="padding: 8px 12px;">
+                                <strong>Response</strong>
+                                @if (!string.IsNullOrEmpty(record.ParseError))
+                                {
+                                    <div class="text-danger" style="font-size:0.85em;">Parse error: @record.ParseError</div>
+                                }
+                                else if (record.ParsedServices.Count > 0)
+                                {
+                                    <table class="table table-sm table-bordered services-table" style="margin: 4px 0 0 0;">
+                                        <thead>
+                                            <tr>
+                                                <th>Service</th>
+                                                <th>Code</th>
+                                                <th>Published Rate</th>
+                                                <th>Negotiated Rate</th>
+                                                <th>Transit Days</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var svc in record.ParsedServices)
+                                            {
+                                                <tr>
+                                                    <td>@svc.ServiceName</td>
+                                                    <td>@svc.ServiceCode</td>
+                                                    <td>@(string.IsNullOrEmpty(svc.PublishedRate) ? "-" : "$" + svc.PublishedRate)</td>
+                                                    <td>@(string.IsNullOrEmpty(svc.NegotiatedRate) ? "-" : "$" + svc.NegotiatedRate)</td>
+                                                    <td>@svc.TransitDays</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                                else
+                                {
+                                    <div class="text-muted" style="margin-top: 4px;">No rate data available for this record.</div>
+                                }
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (totalPages > 1)
+    {
+        <nav>
+            <ul class="pagination">
+                @if (page > 1)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = page - 1, pageSize = pageSize, search = ViewBag.SearchTerm })">&laquo; Prev</a>
+                    </li>
+                }
+                @for (int i = Math.Max(1, page - 4); i <= Math.Min(totalPages, page + 4); i++)
+                {
+                    <li class="page-item @(i == page ? "active" : "")">
+                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = i, pageSize = pageSize, search = ViewBag.SearchTerm })">@i</a>
+                    </li>
+                }
+                @if (page < totalPages)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = page + 1, pageSize = pageSize, search = ViewBag.SearchTerm })">Next &raquo;</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+</div>
+
+@section scripts {
+    <script>
+        $(document).ready(function () {
+            $('.quote-row').on('click', function () {
+                var id = $(this).data('id');
+                var detailRow = $('#detail-' + id);
+                var icon = $(this).find('.toggle-icon');
+                if (detailRow.is(':visible')) {
+                    detailRow.hide();
+                    icon.html('&#x25BA;');
+                } else {
+                    detailRow.show();
+                    icon.html('&#x25BC;');
+                }
+            });
+        });
+    </script>
+}
