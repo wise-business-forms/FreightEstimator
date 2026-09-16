@@ -10,8 +10,27 @@ namespace AuthenticationServer.Models.Services
     /// </summary>
     public class RateCalculationsChargeSchedule : IChargeSchedule
     {
+        /// <summary>
+        /// Routing sentinel for RatingContext.ServiceName: LTL has no per-service markup
+        /// breakdown (unlike UPS), just one plant-level rate read from the "TI" carrier's Ground
+        /// column, matching GetLessThanTruckloadRates_TI's own dPerPackageChargeLTL/
+        /// dPerShipmentChargeLTL/dUpchargeLTL lookups. Not a real UPS service name.
+        /// </summary>
+        public const string LtlServiceName = "LTL";
+
         public PlantServiceCharges GetCharges(string plantCode, string serviceName, bool isCwtEligible)
         {
+            if (serviceName == LtlServiceName)
+            {
+                RateCalculations ltlRateCalculations = new RateCalculations(0, RateCalculations.Carriers.TI);
+                return new PlantServiceCharges
+                {
+                    MarkupPercent = LookUp(ltlRateCalculations.UpchargeGround, plantCode),
+                    PerPackageCharge = LookUp(ltlRateCalculations.PerPackageCharge, plantCode),
+                    PerShipmentCharge = LookUp(ltlRateCalculations.PerShipmentCharge, plantCode)
+                };
+            }
+
             RateCalculations rateCalculations = new RateCalculations(0, isCwtEligible ? RateCalculations.Carriers.UPSCWT : RateCalculations.Carriers.UPS);
 
             decimal perPackageCharge = LookUp(isCwtEligible ? rateCalculations.PerPackageChargeCWT : rateCalculations.PerPackageCharge, plantCode);

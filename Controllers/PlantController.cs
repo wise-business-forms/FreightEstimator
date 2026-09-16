@@ -756,6 +756,44 @@ namespace AuthenticationServer.Controllers
             }
         }
 
+        /// <summary>
+        /// Shadow-mode only (docs/adr/0003-deepen-calculated-rate-via-shadow-mode.md): computes
+        /// what CalculatedRate.Apply would have produced for this LTL service and logs it next
+        /// to what GetLessThanTruckloadRates_TI's existing, still-live formula actually produced.
+        /// LTL has no CWT concept, so IsCwtEligible is always false. Never changes service state,
+        /// and a failure here must never break the live quote flow. Last of the four call sites
+        /// in docs/issues/0001-ups-markup-divergence.md.
+        /// </summary>
+        private void RecordLtlShadowComparison(Shipment shipment, UPSService service, double existingCalculatedRate)
+        {
+            try
+            {
+                RatingContext context = new RatingContext
+                {
+                    PlantCode = service.PlantCode,
+                    ServiceName = RateCalculationsChargeSchedule.LtlServiceName,
+                    PackageCount = shipment.number_of_packages,
+                    IsCwtEligible = false
+                };
+
+                CalculatedRate newCalculatedRate = CalculatedRate.Apply((decimal)service.CustomerRate, new RateCalculationsChargeSchedule(), context);
+
+                CalculatedRateShadowLog.Record(new CalculatedRateShadowComparison
+                {
+                    QuoteId = shipment.QuoteId,
+                    CallSite = "LTL",
+                    PlantCode = service.PlantCode,
+                    ServiceName = service.ServiceName,
+                    ExistingCalculatedRate = (decimal)existingCalculatedRate,
+                    NewCalculatedRate = newCalculatedRate.Amount
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceWarning("RecordLtlShadowComparison failed: " + ex.Message);
+            }
+        }
+
         private void ValidateStateForCWT(Shipment shipment)
         {
             var CWTAirMinPkgs = Configuration.MinCWTPackagesAir;
@@ -1521,6 +1559,7 @@ namespace AuthenticationServer.Controllers
                             perShipmentCharge: plantShipmentCharge,
                             markupFraction: plantSurcharge,
                             calculatedRate: totalCharges);
+                        RecordLtlShadowComparison(shipment, service, existingCalculatedRate: totalCharges);
                     }
 
                     response.UPSServices = ltlServices.ToArray();

@@ -40,7 +40,7 @@ namespace AuthenticationServer.Models.Services
         private List<PlantCharges> plantCharges = new List<PlantCharges>();
         #endregion
 
-        public enum Carriers { UPS, UPSCWT, GF }
+        public enum Carriers { UPS, UPSCWT, GF, TI }
 
         public Dictionary<string, string> PerPackageCharge { get { return _PerPackageCharge; } }
         public Dictionary<string, string> PerShipmentCharge { get { return _PerShipmentCharge; } }
