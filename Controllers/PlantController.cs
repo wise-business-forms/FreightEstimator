@@ -284,7 +284,16 @@ namespace AuthenticationServer.Controllers
                             }
 
                             LogUpsQuoteServiceCalculation(shipmentResponse, service);
-                            RecordGrid1MultiShadowComparison(shipment, service);
+                            ShadowComparisonRecorder.Record(
+                                callSite: "GRID1Multi",
+                                quoteId: shipment.QuoteId,
+                                plantCode: service.PlantCode,
+                                chargeScheduleServiceName: service.ServiceName,
+                                displayServiceName: service.ServiceName,
+                                packageCount: shipment.number_of_packages,
+                                carrierRate: (decimal)service.CustomerRate,
+                                isCwtEligible: service.CWT.ToUpper() == "TRUE",
+                                existingCalculatedRate: (decimal)service.CustomerRate); // no markup is applied on this path today (the assignment is commented out), so the existing value is the raw carrier rate.
                         }
 
                         plantServices.Add(shopRate);
@@ -441,7 +450,16 @@ namespace AuthenticationServer.Controllers
                 shipment.shopGroundFreightResponse.UPSServices[0].Plant_ShipmentCharge = r.UpchargeGround[shipment.PlantId];
 
                 LogUpsQuoteServiceCalculation(shipment, shipment.shopGroundFreightResponse.UPSServices[0]);
-                RecordGrid2ShadowComparison(shipment, groundFreightCarrierRate, shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate);
+                ShadowComparisonRecorder.Record(
+                    callSite: "GRID2",
+                    quoteId: shipment.QuoteId,
+                    plantCode: shipment.PlantId,
+                    chargeScheduleServiceName: "UPSGroundFreight",
+                    displayServiceName: "UPSGroundFreight",
+                    packageCount: shipment.number_of_packages,
+                    carrierRate: (decimal)groundFreightCarrierRate,
+                    isCwtEligible: false, // CalculateUPSRate's own CWT branch is dead code, so GRID2 always behaves as non-CWT today.
+                    existingCalculatedRate: (decimal)shipment.shopGroundFreightResponse.UPSServices[0].CustomerRate);
                 #region
                 // rateResponse.Service/Carrier/Rate are only populated by GRID 1 (skipped when
                 // number_of_packages > 50), so they can still be null here; Enumerable.Append
@@ -589,7 +607,16 @@ namespace AuthenticationServer.Controllers
                 Double.Parse(uPSService.Plant_ShipmentCharge) +
                 (Double.Parse(uPSService.Plant_PerPackageCharge) * shipment.number_of_packages);
 
-            RecordGrid1SingleShadowComparison(shipment, uPSService, carrierRate, isCwtEligible, uPSService.CustomerRate);
+            ShadowComparisonRecorder.Record(
+                callSite: "GRID1Single",
+                quoteId: shipment.QuoteId,
+                plantCode: shipment.PlantId,
+                chargeScheduleServiceName: uPSService.ServiceName,
+                displayServiceName: uPSService.ServiceName,
+                packageCount: shipment.number_of_packages,
+                carrierRate: (decimal)carrierRate,
+                isCwtEligible: isCwtEligible,
+                existingCalculatedRate: (decimal)uPSService.CustomerRate);
 
             return uPSService;
         }
@@ -628,169 +655,6 @@ namespace AuthenticationServer.Controllers
             catch (Exception ex)
             {
                 System.Diagnostics.Trace.TraceWarning("LogLogisticsPartnerQuoteServiceCalculation failed: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Shadow-mode only (docs/adr/0003-deepen-calculated-rate-via-shadow-mode.md): computes
-        /// what CalculatedRate.Apply would have produced for this GRID2 ground freight quote and
-        /// logs it next to what RateCalculations.CalculateUPSRate (the existing, still-live
-        /// formula) actually produced. Never changes shipment/service state, and a failure here
-        /// must never break the live quote flow.
-        ///
-        /// IsCwtEligible is passed as false: CalculateUPSRate's own CWT branch is dead code
-        /// (bool cwt is never reassigned), so GRID2 always behaves as non-CWT today. Passing
-        /// false here reads the same Plant Charges GRID2 already reads, keeping the shadow
-        /// comparison isolated to the formula difference this ticket is proving, not conflated
-        /// with the separate, out-of-scope CWT eligibility bug.
-        /// </summary>
-        private void RecordGrid2ShadowComparison(Shipment shipment, double carrierRate, double existingCalculatedRate)
-        {
-            try
-            {
-                RatingContext context = new RatingContext
-                {
-                    PlantCode = shipment.PlantId,
-                    ServiceName = "UPSGroundFreight",
-                    PackageCount = shipment.number_of_packages,
-                    IsCwtEligible = false
-                };
-
-                CalculatedRate newCalculatedRate = CalculatedRate.Apply((decimal)carrierRate, new RateCalculationsChargeSchedule(), context);
-
-                CalculatedRateShadowLog.Record(new CalculatedRateShadowComparison
-                {
-                    QuoteId = shipment.QuoteId,
-                    CallSite = "GRID2",
-                    PlantCode = shipment.PlantId,
-                    ServiceName = "UPSGroundFreight",
-                    ExistingCalculatedRate = (decimal)existingCalculatedRate,
-                    NewCalculatedRate = newCalculatedRate.Amount
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Trace.TraceWarning("RecordGrid2ShadowComparison failed: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Shadow-mode only (docs/adr/0003-deepen-calculated-rate-via-shadow-mode.md): computes
-        /// what CalculatedRate.Apply would have produced for this GRID1 single-plant service and
-        /// logs it next to what ApplyPlantCharges (the existing, still-live formula) actually
-        /// produced. Never changes uPSService state beyond what ApplyPlantCharges already set,
-        /// and a failure here must never break the live quote flow.
-        ///
-        /// isCwtEligible is passed through exactly as ApplyPlantCharges determined it - this
-        /// ticket does not recompute or correct CWT eligibility (that's the separate,
-        /// out-of-scope bug in HundredWeightEligable).
-        /// </summary>
-        private void RecordGrid1SingleShadowComparison(Shipment shipment, UPSService uPSService, double carrierRate, bool isCwtEligible, double existingCalculatedRate)
-        {
-            try
-            {
-                RatingContext context = new RatingContext
-                {
-                    PlantCode = shipment.PlantId,
-                    ServiceName = uPSService.ServiceName,
-                    PackageCount = shipment.number_of_packages,
-                    IsCwtEligible = isCwtEligible
-                };
-
-                CalculatedRate newCalculatedRate = CalculatedRate.Apply((decimal)carrierRate, new RateCalculationsChargeSchedule(), context);
-
-                CalculatedRateShadowLog.Record(new CalculatedRateShadowComparison
-                {
-                    QuoteId = shipment.QuoteId,
-                    CallSite = "GRID1Single",
-                    PlantCode = shipment.PlantId,
-                    ServiceName = uPSService.ServiceName,
-                    ExistingCalculatedRate = (decimal)existingCalculatedRate,
-                    NewCalculatedRate = newCalculatedRate.Amount
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Trace.TraceWarning("RecordGrid1SingleShadowComparison failed: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Shadow-mode only (docs/adr/0003-deepen-calculated-rate-via-shadow-mode.md): computes
-        /// what CalculatedRate.Apply would have produced for this GRID1 multi-plant service and
-        /// logs it next to what the existing, still-live path actually produced. GRID1
-        /// multi-plant never applies markup today (the assignment is commented out), so
-        /// service.CustomerRate is still the raw carrier rate here - both the existing value and
-        /// CalculatedRate.Apply's carrierRate input use that same value. Never changes service
-        /// state, and a failure here must never break the live quote flow.
-        /// </summary>
-        private void RecordGrid1MultiShadowComparison(Shipment shipment, UPSService service)
-        {
-            try
-            {
-                bool isCwtEligible = service.CWT.ToUpper() == "TRUE";
-
-                RatingContext context = new RatingContext
-                {
-                    PlantCode = service.PlantCode,
-                    ServiceName = service.ServiceName,
-                    PackageCount = shipment.number_of_packages,
-                    IsCwtEligible = isCwtEligible
-                };
-
-                CalculatedRate newCalculatedRate = CalculatedRate.Apply((decimal)service.CustomerRate, new RateCalculationsChargeSchedule(), context);
-
-                CalculatedRateShadowLog.Record(new CalculatedRateShadowComparison
-                {
-                    QuoteId = shipment.QuoteId,
-                    CallSite = "GRID1Multi",
-                    PlantCode = service.PlantCode,
-                    ServiceName = service.ServiceName,
-                    ExistingCalculatedRate = (decimal)service.CustomerRate,
-                    NewCalculatedRate = newCalculatedRate.Amount
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Trace.TraceWarning("RecordGrid1MultiShadowComparison failed: " + ex.Message);
-            }
-        }
-
-        /// <summary>
-        /// Shadow-mode only (docs/adr/0003-deepen-calculated-rate-via-shadow-mode.md): computes
-        /// what CalculatedRate.Apply would have produced for this LTL service and logs it next
-        /// to what GetLessThanTruckloadRates_TI's existing, still-live formula actually produced.
-        /// LTL has no CWT concept, so IsCwtEligible is always false. Never changes service state,
-        /// and a failure here must never break the live quote flow. Last of the four call sites
-        /// in docs/issues/0001-ups-markup-divergence.md.
-        /// </summary>
-        private void RecordLtlShadowComparison(Shipment shipment, UPSService service, double existingCalculatedRate)
-        {
-            try
-            {
-                RatingContext context = new RatingContext
-                {
-                    PlantCode = service.PlantCode,
-                    ServiceName = RateCalculationsChargeSchedule.LtlServiceName,
-                    PackageCount = shipment.number_of_packages,
-                    IsCwtEligible = false
-                };
-
-                CalculatedRate newCalculatedRate = CalculatedRate.Apply((decimal)service.CustomerRate, new RateCalculationsChargeSchedule(), context);
-
-                CalculatedRateShadowLog.Record(new CalculatedRateShadowComparison
-                {
-                    QuoteId = shipment.QuoteId,
-                    CallSite = "LTL",
-                    PlantCode = service.PlantCode,
-                    ServiceName = service.ServiceName,
-                    ExistingCalculatedRate = (decimal)existingCalculatedRate,
-                    NewCalculatedRate = newCalculatedRate.Amount
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Trace.TraceWarning("RecordLtlShadowComparison failed: " + ex.Message);
             }
         }
 
@@ -1559,7 +1423,16 @@ namespace AuthenticationServer.Controllers
                             perShipmentCharge: plantShipmentCharge,
                             markupFraction: plantSurcharge,
                             calculatedRate: totalCharges);
-                        RecordLtlShadowComparison(shipment, service, existingCalculatedRate: totalCharges);
+                        ShadowComparisonRecorder.Record(
+                            callSite: "LTL",
+                            quoteId: shipment.QuoteId,
+                            plantCode: service.PlantCode,
+                            chargeScheduleServiceName: RateCalculationsChargeSchedule.LtlServiceName,
+                            displayServiceName: service.ServiceName,
+                            packageCount: shipment.number_of_packages,
+                            carrierRate: (decimal)service.CustomerRate,
+                            isCwtEligible: false, // LTL has no CWT concept.
+                            existingCalculatedRate: (decimal)totalCharges);
                     }
 
                     response.UPSServices = ltlServices.ToArray();

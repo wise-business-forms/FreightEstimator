@@ -255,6 +255,7 @@
     <Compile Include="Models\Services\PlantServiceCharges.cs" />
     <Compile Include="Models\Services\RateCalculationsChargeSchedule.cs" />
     <Compile Include="Models\Services\RatingContext.cs" />
+    <Compile Include="Models\Services\ShadowComparisonRecorder.cs" />
     <Compile Include="Controllers\HtmlHelpers.cs" />
     <Compile Include="Models\RateRequestRecord.cs" />
     <Compile Include="Models\Services\Log.cs" />
