@@ -519,7 +519,7 @@ namespace AuthenticationServer.Models.Services
         /// </summary>
         /// <param name="shipment"></param>
         /// <returns></returns>
-        private string RateRequest(Shipment shipment, Plant plant, RequestOption requestOption, RateClassification rateClassification)
+        internal string RateRequest(Shipment shipment, Plant plant, RequestOption requestOption, RateClassification rateClassification)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("{\"RateRequest\":");
@@ -558,6 +558,14 @@ namespace AuthenticationServer.Models.Services
             sb.Append("\"StateProvinceCode\": \"" + shipment.State_selection + "\",");
             sb.Append("\"PostalCode\": \"" + shipment.Zip + "\",");
             sb.Append("\"CountryCode\": \"" + shipment.Country_selection + "\"");
+            // Address validation (above) already told us when UPS's own address database
+            // classifies this delivery as residential; passing that through here is what
+            // makes UPS quote the residential surcharge instead of only billing it later,
+            // unannounced, at invoice time. See docs/issues/0002-residential-surcharge-not-quoted.md.
+            if (string.Equals(shipment.Address_Classification, "Residential", StringComparison.OrdinalIgnoreCase))
+            {
+                sb.Append(",\"ResidentialAddressIndicator\": \"\"");
+            }
             sb.Append("}"); // Address
             sb.Append("},"); // ShipTo
 
@@ -636,7 +644,8 @@ namespace AuthenticationServer.Models.Services
             {
                 sb.Append("\"Commodity\":");
                 // Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
-                sb.Append("{\"FreightClass\": \"85\"");
+                // Sep 26, 2025 - Switching from FreightClass 85 to 65 per feedback.
+                sb.Append("{\"FreightClass\": \"65\"");
                 //sb.Append("{\"FreightClass\": \"" + shipment.freight_class_selected + "\"");
                 sb.Append("},");
             }
@@ -681,7 +690,8 @@ namespace AuthenticationServer.Models.Services
             {
                 //sb.Append(",\"Commodity\": {\"FreightClass\": \"" + freightClass + "\"}");
                 // Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
-                sb.Append(",\"Commodity\": {\"FreightClass\": \"85\"}");
+                // Sep 26, 2025 - Switching from FreightClass 85 to 65 per feedback.
+                sb.Append(",\"Commodity\": {\"FreightClass\": \"65\"}");
             }
 
             sb.Append("}"); // PackagingType
