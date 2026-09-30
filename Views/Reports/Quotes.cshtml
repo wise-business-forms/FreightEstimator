@@ -7,6 +7,10 @@
     int totalPages = ViewBag.TotalPages;
     int totalCount = ViewBag.TotalCount;
     int pageSize = ViewBag.PageSize;
+    string selectedPlant = ViewBag.SelectedPlant;
+    string searchTerm = ViewBag.SearchTerm;
+    var plants = (List<AuthenticationServer.Models.Plant>)ViewBag.Plants;
+    bool noSelection = string.IsNullOrEmpty(selectedPlant) && string.IsNullOrWhiteSpace(searchTerm);
 }
 
 <style>
@@ -30,14 +34,17 @@
 <div class="container-fluid" style="margin-top: 20px;">
     <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 10px;">
         <h2 style="margin: 0;">Past Quotes</h2>
-        <span class="text-muted">@totalCount total records &mdash; showing page @page of @totalPages</span>
+        @if (!noSelection)
+        {
+            <span class="text-muted">@totalCount total records &mdash; showing page @page of @totalPages</span>
+        }
         <a href="@Url.Action("Index", "Reports")" class="btn btn-sm btn-outline-secondary" style="margin-left: auto;">&#8592; Reports</a>
     </div>
     <hr style="margin-top: 6px;" />
 
     <div class="row" style="margin-bottom: 16px;">
         <div class="col-md-6">
-            <form method="get" action="@Url.Action("Quotes", "Reports")" class="form-inline">
+            <form method="get" action="@Url.Action("Quotes", "Reports")" class="form-inline quotes-form">
                 <div class="input-group" style="width: 100%;">
                     <input type="text" 
                            name="search" 
@@ -45,41 +52,64 @@
                            placeholder="Search by quote number..." 
                            value="@ViewBag.SearchTerm"
                            style="flex: 1;" />
+                    <input type="hidden" name="plant" value="@selectedPlant" />
                     <div class="input-group-append">
                         <button type="submit" class="btn btn-primary">Search</button>
                         @if (!string.IsNullOrEmpty(ViewBag.SearchTerm))
                         {
-                            <a href="@Url.Action("Quotes", "Reports")" class="btn btn-secondary">Clear</a>
+                            <a href="@Url.Action("Quotes", "Reports", new { plant = selectedPlant })" class="btn btn-secondary">Clear</a>
                         }
                     </div>
                 </div>
             </form>
         </div>
     </div>
-    @if (totalPages > 1)
+    <div style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px;">
+        <form method="get" action="@Url.Action("Quotes", "Reports")" class="form-inline quotes-form">
+            <input type="hidden" name="search" value="@searchTerm" />
+            <label for="plant-filter" style="margin-right: 8px;">Plant</label>
+            <select id="plant-filter" name="plant" class="form-control">
+                <option value="" @(string.IsNullOrEmpty(selectedPlant) ? "selected" : "")></option>
+                <option value="@AuthenticationServer.Controllers.ReportsController.AllPlants" @(selectedPlant == AuthenticationServer.Controllers.ReportsController.AllPlants ? "selected" : "")>All plants</option>
+                @foreach (var p in plants)
+                {
+                    <option value="@p.Id" @(string.Equals(p.Id, selectedPlant, StringComparison.OrdinalIgnoreCase) ? "selected" : "")>@p.Id &ndash; @p.Name</option>
+                }
+            </select>
+            <span id="quotes-loading" class="text-muted" style="display: none; margin-left: 12px;">
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Loading quotes&hellip;
+            </span>
+        </form>
+        @if (totalPages > 1)
+        {
+            <nav>
+                <ul class="pagination" style="margin: 0;">
+                    @if (page > 1)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = page - 1, pageSize = pageSize, search = searchTerm, plant = selectedPlant })">&laquo; Prev</a>
+                        </li>
+                    }
+                    @for (int i = Math.Max(1, page - 4); i <= Math.Min(totalPages, page + 4); i++)
+                    {
+                        <li class="page-item @(i == page ? "active" : "")">
+                            <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = i, pageSize = pageSize, search = searchTerm, plant = selectedPlant })">@i</a>
+                        </li>
+                    }
+                    @if (page < totalPages)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = page + 1, pageSize = pageSize, search = searchTerm, plant = selectedPlant })">Next &raquo;</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    </div>
+    @if (noSelection)
     {
-        <nav>
-            <ul class="pagination">
-                @if (page > 1)
-                {
-                    <li class="page-item">
-                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = page - 1, pageSize = pageSize })">&laquo; Prev</a>
-                    </li>
-                }
-                @for (int i = Math.Max(1, page - 4); i <= Math.Min(totalPages, page + 4); i++)
-                {
-                    <li class="page-item @(i == page ? "active" : "")">
-                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = i, pageSize = pageSize })">@i</a>
-                    </li>
-                }
-                @if (page < totalPages)
-                {
-                    <li class="page-item">
-                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = page + 1, pageSize = pageSize })">Next &raquo;</a>
-                    </li>
-                }
-            </ul>
-        </nav>
+        <p class="text-muted">Select a plant to view quotes.</p>
     }
     <table class="table table-bordered table-hover table-sm quotes-table">
         <thead>
@@ -220,19 +250,19 @@
                 @if (page > 1)
                 {
                     <li class="page-item">
-                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = page - 1, pageSize = pageSize, search = ViewBag.SearchTerm })">&laquo; Prev</a>
+                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = page - 1, pageSize = pageSize, search = searchTerm, plant = selectedPlant })">&laquo; Prev</a>
                     </li>
                 }
                 @for (int i = Math.Max(1, page - 4); i <= Math.Min(totalPages, page + 4); i++)
                 {
                     <li class="page-item @(i == page ? "active" : "")">
-                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = i, pageSize = pageSize, search = ViewBag.SearchTerm })">@i</a>
+                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = i, pageSize = pageSize, search = searchTerm, plant = selectedPlant })">@i</a>
                     </li>
                 }
                 @if (page < totalPages)
                 {
                     <li class="page-item">
-                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = page + 1, pageSize = pageSize, search = ViewBag.SearchTerm })">Next &raquo;</a>
+                        <a class="page-link" href="@Url.Action("Quotes", "Reports", new { page = page + 1, pageSize = pageSize, search = searchTerm, plant = selectedPlant })">Next &raquo;</a>
                     </li>
                 }
             </ul>
@@ -242,7 +272,25 @@
 
 @section scripts {
     <script>
+        function showQuotesLoading() {
+            $('#quotes-loading').show();
+            $('.quotes-table, .pagination').css({ opacity: 0.5, pointerEvents: 'none' });
+        }
+
+        // Undo the loading state when the browser restores this page from its back/forward cache.
+        $(window).on('pageshow', function () {
+            $('#quotes-loading').hide();
+            $('.quotes-table, .pagination').css({ opacity: '', pointerEvents: '' });
+        });
+
         $(document).ready(function () {
+            $('#plant-filter').on('change', function () {
+                showQuotesLoading();
+                this.form.submit();
+            });
+            $('.quotes-form').on('submit', showQuotesLoading);
+            $('.pagination .page-link').on('click', showQuotesLoading);
+
             $('.quote-row').on('click', function () {
                 var id = $(this).data('id');
                 var detailRow = $('#detail-' + id);
