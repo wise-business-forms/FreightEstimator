@@ -1,4 +1,5 @@
 ﻿using AuthenticationServer.Models;
+using AuthenticationServer.Models.Reports;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -236,9 +237,79 @@ namespace AuthenticationServer.Controllers
                         records.Add(record);
                     }
                 }
+
+                ViewBag.CompareIds = MatchableRequestIds(conn, records.Select(r => r.RequestId));
             }
 
             return View(records);
+        }
+
+        /// <summary>
+        /// Rows that get a Compare button. Past Quotes must keep working even if Database/004 hasn't
+        /// been deployed yet, so any failure here just means no Compare buttons.
+        /// </summary>
+        private static HashSet<int> MatchableRequestIds(SqlConnection conn, IEnumerable<int> requestIds)
+        {
+            try
+            {
+                RateChangeData.CatchUp(conn);
+                return RateChangeData.MatchableRequestIds(conn, requestIds);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceWarning("Compare lookup failed: " + ex.Message);
+                return new HashSet<int>();
+            }
+        }
+
+        // GET: Reports/Compare/5
+        public ActionResult Compare(int id)
+        {
+            using (var conn = new SqlConnection(Configuration.UpsRateSqlConnection))
+            {
+                conn.Open();
+                RateChangeData.CatchUp(conn);
+                var group = RateChangeData.LoadCompare(conn, id);
+                if (group == null) return HttpNotFound("Quote " + id + " can't be matched to other Quotes.");
+
+                ViewBag.RequestId = id;
+                ViewBag.Plant = Plant.Plants().FirstOrDefault(p => string.Equals(p.Id, group.Key.PlantCode, StringComparison.OrdinalIgnoreCase));
+                return View(group);
+            }
+        }
+
+        public const int RateChangesDefaultDays = 90;
+
+        // GET: Reports/RateChanges
+        public ActionResult RateChanges(string plant = null, DateTime? from = null, DateTime? to = null, bool changesOnly = true)
+        {
+            var plants = Plant.Plants();
+            var toDate = (to ?? DateTime.Today).Date;
+            var fromDate = (from ?? toDate.AddDays(-RateChangesDefaultDays)).Date;
+
+            ViewBag.Plants = plants.OrderBy(p => p.Id, StringComparer.OrdinalIgnoreCase).ToList();
+            ViewBag.SelectedPlant = plant;
+            ViewBag.From = fromDate;
+            ViewBag.To = toDate;
+            ViewBag.ChangesOnly = changesOnly;
+
+            var groups = new List<MatchGroup>();
+            var selectedPlant = plants.FirstOrDefault(p => string.Equals(p.Id, plant, StringComparison.OrdinalIgnoreCase));
+            if (selectedPlant != null)
+            {
+                using (var conn = new SqlConnection(Configuration.UpsRateSqlConnection))
+                {
+                    conn.Open();
+                    RateChangeData.CatchUp(conn);
+                    groups = RateChangeData.LoadRateChanges(conn, selectedPlant.Id, fromDate, toDate.AddDays(1))
+                        // At least two Quotes of some service, so every listed group has a row to show.
+                        .Where(g => g.Services.Any(s => s.Entries.Count >= 2) && (!changesOnly || g.HasRateChanges))
+                        .OrderByDescending(g => g.Quotes.Last().RequestDate)
+                        .ToList();
+                }
+            }
+
+            return View(groups);
         }
 
         private static List<ParsedRateService> ParseResponseJson(string json, RateRequestRecord record)
@@ -262,7 +333,7 @@ namespace AuthenticationServer.Controllers
                     result.Add(new ParsedRateService
                     {
                         ServiceCode = serviceCode,
-                        ServiceName = MapServiceCode(serviceCode),
+                        ServiceName = UpsServiceNames.For(serviceCode),
                         PublishedRate = shipment.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "",
                         NegotiatedRate = shipment.SelectToken("NegotiatedRateCharges.TotalCharge.MonetaryValue")?.ToString() ?? "",
                         TransitDays = shipment.SelectToken("GuaranteedDelivery.BusinessDaysInTransit")?.ToString() ?? "-"
@@ -318,26 +389,6 @@ namespace AuthenticationServer.Controllers
             }
 
             return info;
-        }
-
-        private static string MapServiceCode(string code)
-        {
-            switch (code)
-            {
-                case "01": return "UPS Next Day Air";
-                case "02": return "UPS 2nd Day Air";
-                case "03": return "UPS Ground";
-                case "07": return "UPS Worldwide Express";
-                case "08": return "UPS Worldwide Expedited";
-                case "11": return "UPS Standard";
-                case "12": return "UPS 3 Day Select";
-                case "13": return "Next Day Air Saver";
-                case "14": return "Next Day Air Early AM";
-                case "54": return "Express Plus";
-                case "59": return "2nd Day Air AM";
-                case "65": return "UPS Saver";
-                default: return string.Format("Service {0}", code);
-            }
         }
     }
 }

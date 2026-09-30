@@ -49,3 +49,13 @@ The difference between a Quote's Calculated Rate and the eventual Invoice/Actual
 
 **Margin Report**:
 An existing, separate report (`ReportsController.MarginReport`) showing freight profit — Invoice Freight Billed minus Actual Cost — per invoice. Distinct in purpose from Quote History / Rate Variance reporting: Margin Report is about profitability after the fact, not about whether the app's estimates were accurate.
+
+**Match Group**:
+UPS Quotes that sent UPS the same inputs, and so should get the same Carrier Rate unless UPS or its agreement with us changed. Quotes are in the same group when they share the plant, ship-to zip, package count, package weights (each rounded up to a whole pound, since that's how UPS bills, then sorted), and whether `ResidentialAddressIndicator` was sent. Rates are compared per service within a group. Keyed on what was *sent* to UPS, not on Address Classification, so a residential address quoted before `docs/issues/0002` groups with commercial Quotes.
+_Avoid_: Similar quotes, duplicate quotes. Membership is an exact match on the criteria above, not a similarity score.
+
+**Rate Change**:
+A difference of at least 1 cent in a Carrier Rate or Calculated Rate between one Quote and the previous Quote in the same Match Group for the same service. Each Rate Change gets one or more attribution labels: **UPS price change** (Published changed), **UPS negotiated change** (Negotiated changed, Published didn't), **Our charges changed** (Plant Charges component changed), **Our calculation changed** (every input the same, Calculated Rate different, e.g. an ADR 0003 cutover), or **Unattributable** (no Calculated Rate could be matched). Specified in issue #11.
+_Avoid_: Rate Variance. That compares a Quote with its Invoice; a Rate Change compares a Quote with an earlier Quote.
+
+Known gap: `Requests_Rate` doesn't carry the Quote ID, so a UPS Quote's Calculated Rate is attached by approximate match (same plant, service and Carrier Rate, logged within 30 seconds after the request) and left blank when the match is ambiguous. Calculated Rates only exist from when `QuoteServiceCalculation` went live.

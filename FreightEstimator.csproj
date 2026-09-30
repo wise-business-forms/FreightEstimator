@@ -258,6 +258,8 @@
     <Compile Include="Models\Services\ShadowComparisonRecorder.cs" />
     <Compile Include="Controllers\HtmlHelpers.cs" />
     <Compile Include="Models\RateRequestRecord.cs" />
+    <Compile Include="Models\Reports\RateChanges.cs" />
+    <Compile Include="Models\Reports\RateChangeData.cs" />
     <Compile Include="Models\Services\Log.cs" />
     <Compile Include="Models\Services\RateCalculations.cs" />
     <Compile Include="Models\Services\RateRequest.cs" />

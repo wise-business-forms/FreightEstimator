@@ -11,6 +11,7 @@
     string searchTerm = ViewBag.SearchTerm;
     var plants = (List<AuthenticationServer.Models.Plant>)ViewBag.Plants;
     bool noSelection = string.IsNullOrEmpty(selectedPlant) && string.IsNullOrWhiteSpace(searchTerm);
+    var compareIds = ViewBag.CompareIds as HashSet<int> ?? new HashSet<int>();
 }
 
 <style>
@@ -124,6 +125,7 @@
                 <th>Zip</th>
                 <th>Country</th>
                 <th>Services</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -141,9 +143,15 @@
                     <td>@record.Zip</td>
                     <td>@record.Country</td>
                     <td>@record.ParsedServices.Count</td>
+                    <td>
+                        @if (compareIds.Contains(record.RequestId))
+                        {
+                            <a href="@Url.Action("Compare", "Reports", new { id = record.RequestId })" class="btn btn-sm btn-outline-primary compare-link">Compare</a>
+                        }
+                    </td>
                 </tr>
                 <tr class="detail-row" id="detail-@record.RequestId" style="display: none;">
-                    <td colspan="10">
+                    <td colspan="11">
                         <div class="row" style="margin: 0;">
                             <div class="col-md-4" style="border-right: 1px solid #dee2e6; padding: 8px 12px;">
                                 <strong>Request</strong>
@@ -290,6 +298,9 @@
             });
             $('.quotes-form').on('submit', showQuotesLoading);
             $('.pagination .page-link').on('click', showQuotesLoading);
+
+            // Compare opens its own page; don't also toggle the row's detail.
+            $('.compare-link').on('click', function (e) { e.stopPropagation(); });
 
             $('.quote-row').on('click', function () {
                 var id = $(this).data('id');
