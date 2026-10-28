@@ -1,0 +1,10 @@
+{
+  "UPSGround": {
+    "calculatedRate": 143.672,
+    "cwt": "No",
+    "chargeSchedule": null,
+    "markupPercent": null,
+    "perPackageCharge": null,
+    "perShipmentCharge": "5.0000"
+  }
+}

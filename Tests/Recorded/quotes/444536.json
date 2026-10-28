@@ -1,0 +1,441 @@
+{
+ "requestId": 444536,
+ "plant": "BUT",
+ "kind": "groundfreight",
+ "packages": 6,
+ "packageWeight": 28.0,
+ "lastPackageWeight": 23.0,
+ "shipToState": "MD",
+ "shipToZip": "21224",
+ "response": {
+  "RateResponse": {
+   "Response": {
+    "ResponseStatus": {
+     "Code": "1",
+     "Description": "Success"
+    },
+    "Alert": [
+     {
+      "Code": "110971",
+      "Description": "Your invoice may vary from the displayed reference rates"
+     }
+    ],
+    "TransactionReference": {
+     "CustomerContext": "CustomerContext"
+    }
+   },
+   "RatedShipment": {
+    "Service": {
+     "Code": "03",
+     "Description": ""
+    },
+    "RatedShipmentAlert": [
+     {
+      "Code": "110971",
+      "Description": "Your invoice may vary from the displayed reference rates"
+     }
+    ],
+    "BillingWeight": {
+     "UnitOfMeasurement": {
+      "Code": "LBS",
+      "Description": "Pounds"
+     },
+     "Weight": "163.0"
+    },
+    "TransportationCharges": {
+     "CurrencyCode": "USD",
+     "MonetaryValue": "120.64"
+    },
+    "BaseServiceCharge": {
+     "CurrencyCode": "USD",
+     "MonetaryValue": "99.56"
+    },
+    "FRSShipmentData": {
+     "TransportationCharges": {
+      "GrossCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "663.73"
+      },
+      "DiscountAmount": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "564.17"
+      },
+      "DiscountPercentage": "85.0",
+      "NetCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "99.56"
+      }
+     }
+    },
+    "ServiceOptionsCharges": {
+     "CurrencyCode": "USD",
+     "MonetaryValue": "0.00"
+    },
+    "TotalCharges": {
+     "CurrencyCode": "USD",
+     "MonetaryValue": "120.64"
+    },
+    "NegotiatedRateCharges": {
+     "BaseServiceCharge": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "99.56"
+     },
+     "TotalCharge": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "120.64"
+     }
+    },
+    "RatedPackage": [
+     {
+      "TransportationCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "20.72"
+      },
+      "BaseServiceCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "17.10"
+      },
+      "ServiceOptionsCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "0.00"
+      },
+      "ItemizedCharges": [
+       {
+        "Code": "375",
+        "CurrencyCode": "USD",
+        "MonetaryValue": "3.62"
+       }
+      ],
+      "TotalCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "20.72"
+      },
+      "NegotiatedCharges": {
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "17.10"
+       },
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "20.72"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "TotalCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "20.72"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "3.62"
+        }
+       ]
+      },
+      "Weight": "28.0",
+      "BillingWeight": {
+       "UnitOfMeasurement": {
+        "Code": "LBS",
+        "Description": "Pounds"
+       },
+       "Weight": "28.0"
+      }
+     },
+     {
+      "TransportationCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "20.72"
+      },
+      "BaseServiceCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "17.10"
+      },
+      "ServiceOptionsCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "0.00"
+      },
+      "ItemizedCharges": [
+       {
+        "Code": "375",
+        "CurrencyCode": "USD",
+        "MonetaryValue": "3.62"
+       }
+      ],
+      "TotalCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "20.72"
+      },
+      "NegotiatedCharges": {
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "17.10"
+       },
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "20.72"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "TotalCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "20.72"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "3.62"
+        }
+       ]
+      },
+      "Weight": "28.0",
+      "BillingWeight": {
+       "UnitOfMeasurement": {
+        "Code": "LBS",
+        "Description": "Pounds"
+       },
+       "Weight": "28.0"
+      }
+     },
+     {
+      "TransportationCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "20.72"
+      },
+      "BaseServiceCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "17.10"
+      },
+      "ServiceOptionsCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "0.00"
+      },
+      "ItemizedCharges": [
+       {
+        "Code": "375",
+        "CurrencyCode": "USD",
+        "MonetaryValue": "3.62"
+       }
+      ],
+      "TotalCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "20.72"
+      },
+      "NegotiatedCharges": {
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "17.10"
+       },
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "20.72"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "TotalCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "20.72"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "3.62"
+        }
+       ]
+      },
+      "Weight": "28.0",
+      "BillingWeight": {
+       "UnitOfMeasurement": {
+        "Code": "LBS",
+        "Description": "Pounds"
+       },
+       "Weight": "28.0"
+      }
+     },
+     {
+      "TransportationCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "20.72"
+      },
+      "BaseServiceCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "17.10"
+      },
+      "ServiceOptionsCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "0.00"
+      },
+      "ItemizedCharges": [
+       {
+        "Code": "375",
+        "CurrencyCode": "USD",
+        "MonetaryValue": "3.62"
+       }
+      ],
+      "TotalCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "20.72"
+      },
+      "NegotiatedCharges": {
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "17.10"
+       },
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "20.72"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "TotalCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "20.72"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "3.62"
+        }
+       ]
+      },
+      "Weight": "28.0",
+      "BillingWeight": {
+       "UnitOfMeasurement": {
+        "Code": "LBS",
+        "Description": "Pounds"
+       },
+       "Weight": "28.0"
+      }
+     },
+     {
+      "TransportationCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "20.72"
+      },
+      "BaseServiceCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "17.10"
+      },
+      "ServiceOptionsCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "0.00"
+      },
+      "ItemizedCharges": [
+       {
+        "Code": "375",
+        "CurrencyCode": "USD",
+        "MonetaryValue": "3.62"
+       }
+      ],
+      "TotalCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "20.72"
+      },
+      "NegotiatedCharges": {
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "17.10"
+       },
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "20.72"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "TotalCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "20.72"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "3.62"
+        }
+       ]
+      },
+      "Weight": "28.0",
+      "BillingWeight": {
+       "UnitOfMeasurement": {
+        "Code": "LBS",
+        "Description": "Pounds"
+       },
+       "Weight": "28.0"
+      }
+     },
+     {
+      "TransportationCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "17.04"
+      },
+      "BaseServiceCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "14.06"
+      },
+      "ServiceOptionsCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "0.00"
+      },
+      "ItemizedCharges": [
+       {
+        "Code": "375",
+        "CurrencyCode": "USD",
+        "MonetaryValue": "2.98"
+       }
+      ],
+      "TotalCharges": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "17.04"
+      },
+      "NegotiatedCharges": {
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "14.06"
+       },
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "17.04"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "TotalCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "17.04"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "2.98"
+        }
+       ]
+      },
+      "Weight": "23.0",
+      "BillingWeight": {
+       "UnitOfMeasurement": {
+        "Code": "LBS",
+        "Description": "Pounds"
+       },
+       "Weight": "23.0"
+      }
+     }
+    ]
+   }
+  }
+ }
+}

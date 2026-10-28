@@ -55,7 +55,7 @@ namespace FreightEstimator.Tests.Fakes
         public IDisposable Install()
         {
             ICarrierHttp previous = CarrierHttp.Current;
-            CarrierHttp.Current = this;
+            SetCurrent(this);
             return new Restore(previous);
         }
 
@@ -63,7 +63,15 @@ namespace FreightEstimator.Tests.Fakes
         {
             private readonly ICarrierHttp _previous;
             public Restore(ICarrierHttp previous) { _previous = previous; }
-            public void Dispose() { CarrierHttp.Current = _previous; }
+            public void Dispose() { SetCurrent(_previous); }
+        }
+
+        // CarrierHttp.Current has an internal setter, visible to the net8 Tests assembly only. Going through
+        // reflection lets the net48 QuoteTests project share this fake without another InternalsVisibleTo
+        // (#15 allows no production code changes).
+        private static void SetCurrent(ICarrierHttp value)
+        {
+            typeof(CarrierHttp).GetProperty(nameof(CarrierHttp.Current)).GetSetMethod(nonPublic: true).Invoke(null, new object[] { value });
         }
     }
 }
