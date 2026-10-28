@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Per-environment connection strings carry credentials
+ConnectionStrings.Sandbox.config
+ConnectionStrings.Production.config

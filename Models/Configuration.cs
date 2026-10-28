@@ -34,9 +34,15 @@ namespace AuthenticationServer.Models
         static string _UPSShipFromZip = "30004";
 
 
-        static string _DatawarehouseSqlConnection = "Server=AZUREDB01\\AZUREDB01;Initial Catalog=Datawarehouse;uid=sa;pwd=95Montana!!!;";
-        static string _UpsRateSqlConnection = "Server=AZUREDB01\\AZUREDB01;Initial Catalog=UpsRate;uid=sa;pwd=95Montana!!!;";
-        static string _WiseLinkSqlConnection = "Data Source=AZUREDB01\\AZUREDB01;Initial Catalog=WBFDOTCOM;uid=sa;pwd=95Montana!!!;";
+        // Data connection strings come from the <connectionStrings> section of Web.config, which pulls them
+        // from ConnectionStrings.*.config files kept out of the repo (see ConnectionStrings.Sandbox.config.example).
+        static string ConnectionString(string name)
+        {
+            var setting = System.Configuration.ConfigurationManager.ConnectionStrings[name];
+            if (setting == null || string.IsNullOrWhiteSpace(setting.ConnectionString))
+                throw new InvalidOperationException("Connection string '" + name + "' is not configured. See ConnectionStrings.Sandbox.config.example.");
+            return setting.ConnectionString;
+        }
 
         static Dictionary<string, string> _UPSRateCode = new Dictionary<string, string>()
         {
@@ -169,7 +175,7 @@ namespace AuthenticationServer.Models
 
         public static string DatawarehouseSqlConnection
         {
-            get { return _DatawarehouseSqlConnection; }
+            get { return ConnectionString("Datawarehouse"); }
         }
 
         public static string UPSAccessKey
@@ -210,11 +216,11 @@ namespace AuthenticationServer.Models
         }
         public static string UpsRateSqlConnection
         {
-            get { return _UpsRateSqlConnection; }
+            get { return ConnectionString("UpsRate"); }
         }
         public static string WiseLinkSqlConnection
         {
-            get { return _WiseLinkSqlConnection; }
+            get { return ConnectionString("WiseLink"); }
         }
         public static string UPSShipFromName
         {

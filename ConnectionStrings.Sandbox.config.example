@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!--
+  Copy to ConnectionStrings.Sandbox.config and fill in. That copy is gitignored; never commit credentials.
+  Web.config points at ConnectionStrings.Sandbox.config by default (Debug and local runs);
+  the Release publish transform points it at ConnectionStrings.Production.config.
+  The UpsRate database MUST be named UpsRate: some stored procedures write to [UpsRate].[dbo].[...].
+-->
+<connectionStrings>
+  <add name="UpsRate" connectionString="Server=SANDBOX_SERVER;Initial Catalog=UpsRate;uid=USER;pwd=PASSWORD;" providerName="System.Data.SqlClient"/>
+  <add name="Datawarehouse" connectionString="Server=SANDBOX_SERVER;Initial Catalog=Datawarehouse;uid=USER;pwd=PASSWORD;" providerName="System.Data.SqlClient"/>
+  <add name="WiseLink" connectionString="Server=SANDBOX_SERVER;Initial Catalog=WBFDOTCOM;uid=USER;pwd=PASSWORD;" providerName="System.Data.SqlClient"/>
+</connectionStrings>

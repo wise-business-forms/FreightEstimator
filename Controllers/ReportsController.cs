@@ -27,8 +27,7 @@ namespace AuthenticationServer.Controllers
 
             try
             {
-                //SqlConnection connection = new SqlConnection("Server=ALPERP;Initial Catalog=PSLWise;uid=SQLAdmin;pwd=S#cur1ty1sTh#B#st!;");
-                SqlConnection connection = new SqlConnection("Server=AZUREDB01\\AZUREDB01;Initial Catalog=DataWarehouse;uid=sa;pwd=95Montana!!!;");
+                SqlConnection connection = new SqlConnection(Configuration.DatawarehouseSqlConnection);
                 SqlCommand cmd = connection.CreateCommand();
                 StringBuilder stringBuilder = new StringBuilder("SELECT at2.SVIA_S, at2.AGNDT_S, '30', at2.BILLTO, at2.MALPHA_S , at2.INVNO, at2.FRGHT, sum(NetDue) AS NetDue ");
                 stringBuilder.Append("FROM Freight_Margin_VIEW AS fm ");
@@ -75,7 +74,6 @@ namespace AuthenticationServer.Controllers
 
             //try
             //{
-            //    SqlConnection connection = new SqlConnection("Server=AZUREDB01\\AZUREDB01;Initial Catalog=DataWarehouse;uid=sa;pwd=95Montana!!!;");
             //    SqlCommand cmd = connection.CreateCommand();
             //    StringBuilder stringBuilder = new StringBuilder("SELECT CustomerRef, NetDue FROM Freight_Margin");
             //    cmd.CommandText = stringBuilder.ToString();
