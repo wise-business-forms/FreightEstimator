@@ -32,6 +32,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Recorded\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="NUnit.Framework" />
   </ItemGroup>
 

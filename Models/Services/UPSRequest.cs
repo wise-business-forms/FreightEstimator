@@ -191,59 +191,33 @@ namespace AuthenticationServer.Models.Services
 
                 try
                 {
-                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-                    request.Method = "POST";
-                    request.ContentType = "application/json";
-                    request.Headers.Add("Authorization", "Bearer " + GetToken());
-                   
-
-
-                    // Write data to request stream
-                    using (var streamWriter = new StreamWriter(request.GetRequestStream()))
+                    CarrierHttpRequest request = new CarrierHttpRequest
                     {
-                        streamWriter.Write(rateRequest);
-                    }
+                        Url = url,
+                        ContentType = "application/json",
+                        Body = rateRequest
+                    };
+                    request.Headers["Authorization"] = "Bearer " + GetToken();
 
                     // Get the response
-                    using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                    CarrierHttpResponse response = CarrierHttp.Current.Post(request);
+                    if (response.StatusCode == HttpStatusCode.OK || response.IsError)
                     {
-                        if (response.StatusCode == HttpStatusCode.OK)
-                        {
-                            using (var streamReader = new StreamReader(response.GetResponseStream()))
-                            {
-                                _response = streamReader.ReadToEnd();  
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Error: {response.StatusCode} - {response.StatusDescription}");
-                        }
+                        // On an error status the body is the carrier's error message; keep it as the response too.
+                        _response = response.Body;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Error: {response.StatusCode} - {response.StatusDescription}");
                     }
 
                     //Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, _response, "UPS", "");
                 }
                 catch (WebException ex)
                 {
-                    // Handle the WebException
-                    if (ex.Response != null)
-                    {
-                        using (HttpWebResponse errorResponse = (HttpWebResponse)ex.Response)
-                        {
-                            using (var streamReader = new StreamReader(errorResponse.GetResponseStream()))
-                            {
-                                // Read and capture the error response body (e.g., XML message)
-                                var errorContent = streamReader.ReadToEnd();
-
-                                // Optionally, set _response to the error message
-                                _response = errorContent;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        _response = ex.Message.ToString();
-                        Log.LogRequest_Rate("", _shipment.Address, _shipment.City ?? string.Empty, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, ex.Message, "");
-                    }                    
+                    // No reply at all (timeout, connection failure): an error status comes back as a response above.
+                    _response = ex.Message.ToString();
+                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City ?? string.Empty, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, ex.Message, "");
                 }
                 catch (Exception ex)
                 {
@@ -460,24 +434,26 @@ namespace AuthenticationServer.Models.Services
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
 
             string req = "grant_type=client_credentials";
-            byte[] data = Encoding.ASCII.GetBytes(req);
             var accessID = Configuration.UPSClientId + ":" + Configuration.UPSClientSecret;
             var base64 = Convert.ToBase64String(Encoding.Default.GetBytes(accessID));
             string sResponse = "";
             string sToken = "";
             string url = Configuration.UPSGenerateTokenURL;
 
-            WebRequest oRequest = WebRequest.Create(url);
-            oRequest.Method = "POST";
-            oRequest.ContentType = "application/x-www-form-urlencoded";
-            oRequest.Headers.Add("Authorization", "Basic " + base64);
-            oRequest.Headers.Add("x-merchant-id", Configuration.ShipFromShipperNumber);
+            CarrierHttpRequest oRequest = new CarrierHttpRequest
+            {
+                Url = url,
+                ContentType = "application/x-www-form-urlencoded",
+                Body = req
+            };
+            oRequest.Headers["Authorization"] = "Basic " + base64;
+            oRequest.Headers["x-merchant-id"] = Configuration.ShipFromShipperNumber;
 
             try
             {
-                oRequest.GetRequestStream().Write(data, 0, data.Length);
-                HttpWebResponse oResponse = (HttpWebResponse)oRequest.GetResponse();
-                sResponse = new StreamReader(oResponse.GetResponseStream()).ReadToEnd();
+                CarrierHttpResponse oResponse = CarrierHttp.Current.Post(oRequest);
+                oResponse.EnsureSuccessStatus();
+                sResponse = oResponse.Body;
                 using (JsonDocument doc = JsonDocument.Parse(sResponse))
                 {
                     JsonElement root = doc.RootElement;

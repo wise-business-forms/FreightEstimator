@@ -830,8 +830,7 @@ namespace AuthenticationServer.Controllers
 
                 foreach (string plantCode in plantCodes)
                 {
-                    WebRequest request = WebRequest.Create(url + "rate/quote?loginToken=" + token);
-                    request.Method = "POST";
+                    CarrierHttpRequest request = new CarrierHttpRequest { Url = url + "rate/quote?loginToken=" + token };
 
                     #region -- Load Plant Ship From Address --
                     string shipFromCity = "";
@@ -906,17 +905,8 @@ namespace AuthenticationServer.Controllers
                     
                     fullPostData += postData;
 
-                    byte[] byteArray = Encoding.UTF8.GetBytes(postData.ToString());
-                    // Set the ContentType property of the WebRequest.
                     request.ContentType = "text/xml";
-                    // Set the ContentLength property of the WebRequest.
-                    request.ContentLength = byteArray.Length;
-                    // Get the request stream.
-                    Stream dataStream = request.GetRequestStream();
-                    // Write the data to the request stream.
-                    dataStream.Write(byteArray, 0, byteArray.Length);
-                    // Close the Stream object.
-                    dataStream.Close();
+                    request.Body = postData.ToString();
 
                     shipment.requestMessage = postData.ToString();
 
@@ -925,22 +915,12 @@ namespace AuthenticationServer.Controllers
                     results.Append("<table class=\"results-table\"><tr><td>").Append("<br/>" + url + "rate/quote?loginToken=" + token).Append("</td>");
                     results.Append("<td id=\"xmlRequest\">").Append(postData.ToString()).Append("</td></tr></table>");
                     // Get the response.
-                    WebResponse WebResponse = request.GetResponse();
-                    // Display the status.
-                    //Console.WriteLine(((HttpWebResponse)WebResponse).StatusDescription);
-                    // Get the stream containing content returned by the server.
-                    dataStream = WebResponse.GetResponseStream();
-                    // Open the stream using a StreamReader for easy access.
-                    StreamReader reader = new StreamReader(dataStream);
-                    // Read the content.
-                    string responseFromServer = reader.ReadToEnd();
+                    CarrierHttpResponse carrierResponse = CarrierHttp.Current.Post(request);
+                    carrierResponse.EnsureSuccessStatus();
+                    string responseFromServer = carrierResponse.Body;
                     // Display the content.
                     results.Append(responseFromServer);
                     results.Append("\n\n\n");
-                    // Clean up the streams.
-                    reader.Close();
-                    dataStream.Close();
-                    WebResponse.Close();
 
                     combinedResponses += responseFromServer;
 
@@ -1312,16 +1292,12 @@ namespace AuthenticationServer.Controllers
 
                     fullPostData += postData;
 
-                    WebRequest webRequest = WebRequest.Create(url);
-                    webRequest.ContentType = "application/x-www-form-urlencoded";
-                    webRequest.Method = "POST";
-
-                    byte[] byteArray = Encoding.UTF8.GetBytes(postData.ToString());
-                    webRequest.ContentLength = byteArray.Length;
-
-                    Stream dataStream = webRequest.GetRequestStream();
-                    dataStream.Write(byteArray, 0, byteArray.Length);
-                    dataStream.Close();
+                    CarrierHttpRequest carrierRequest = new CarrierHttpRequest
+                    {
+                        Url = url,
+                        ContentType = "application/x-www-form-urlencoded",
+                        Body = postData.ToString()
+                    };
 
                     shipment.requestMessage = postData.ToString();
 
@@ -1330,22 +1306,19 @@ namespace AuthenticationServer.Controllers
                     results.Append("<br/>" + url);
                     results.Append("\n\n\n");
                     // Get the response.
-                    WebResponse WebResponse = webRequest.GetResponse();
-                    // Display the status.
-                    //Console.WriteLine(((HttpWebResponse)WebResponse).StatusDescription);
-                    // Get the stream containing content returned by the server.
-                    dataStream = WebResponse.GetResponseStream();
-                    // Open the stream using a StreamReader for easy access.
-                    StreamReader reader = new StreamReader(dataStream);
-                    // Read the content.
-                    string responseFromServer = reader.ReadToEnd();
+                    CarrierHttpResponse carrierResponse = CarrierHttp.Current.Post(carrierRequest);
+                    if (carrierResponse.IsError)
+                    {
+                        // An error status used to throw to the WebException handler below, which logs it and returns the empty response.
+                        Console.WriteLine($"Error: {carrierResponse.StatusCode}");
+                        Console.WriteLine("Response Body: ");
+                        Console.WriteLine(carrierResponse.Body);
+                        return response;
+                    }
+                    string responseFromServer = carrierResponse.Body;
                     // Display the content.
                     results.Append(responseFromServer);
                     results.Append("\n\n\n");
-                    // Clean up the streams.
-                    reader.Close();
-                    dataStream.Close();
-                    WebResponse.Close();
 
                     combinedResponses += responseFromServer;
                     xmlResponse = responseFromServer;
@@ -1526,75 +1499,57 @@ namespace AuthenticationServer.Controllers
 
                 try
                 {
-                    // Create HttpWebRequest
-                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(Configuration.UPSAddressValidationURL);
-                    request.Method = "POST";
-                    request.ContentType = "application/json";
-                    request.Headers.Add("Authorization", "Bearer " + uPSRequest.GetToken());
-
-                    // Write data to request stream
-                    using (var streamWriter = new StreamWriter(request.GetRequestStream()))
+                    CarrierHttpRequest request = new CarrierHttpRequest
                     {
-                        streamWriter.Write(addressValidationRequest);
-                    }
+                        Url = Configuration.UPSAddressValidationURL,
+                        ContentType = "application/json",
+                        Body = addressValidationRequest
+                    };
+                    request.Headers["Authorization"] = "Bearer " + uPSRequest.GetToken();
 
                     // Get the response
-                    using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                    CarrierHttpResponse response = CarrierHttp.Current.Post(request);
+                    if (response.StatusCode == HttpStatusCode.OK)
                     {
-                        if (response.StatusCode == HttpStatusCode.OK)
+                        string result = response.Body;
+                        UPSResponse uPSResponse = new UPSResponse();
+                        AddressKeyFormat addressKeyFormat = new AddressKeyFormat();
+
+                        dynamic data = JObject.Parse(result);
+
+                        // Check for each key's existence and assign values accordingly
+                        var candidateToken = data.SelectToken("XAVResponse.Candidate.AddressKeyFormat");
+                        if (candidateToken != null)
                         {
-                            using (var streamReader = new StreamReader(response.GetResponseStream()))
-                            {
-                                string result = streamReader.ReadToEnd();
-                                UPSResponse uPSResponse = new UPSResponse();
-                                AddressKeyFormat addressKeyFormat = new AddressKeyFormat();
-
-                                dynamic data = JObject.Parse(result);
-
-                                // Check for each key's existence and assign values accordingly
-                                var candidateToken = data.SelectToken("XAVResponse.Candidate.AddressKeyFormat");
-                                if (candidateToken != null)
-                                {
-                                    addressKeyFormat.AddressLine = candidateToken.SelectToken("AddressLine")?.ToString() ?? "No Address Line";
-                                    addressKeyFormat.PoliticalDivision2 = candidateToken.SelectToken("PoliticalDivision2")?.ToString() ?? "No City";
-                                    addressKeyFormat.PoliticalDivision1 = candidateToken.SelectToken("PoliticalDivision1")?.ToString() ?? "No State";
-                                    addressKeyFormat.PostcodePrimaryLow = candidateToken.SelectToken("PostcodePrimaryLow")?.ToString() ?? "No Primary Zip Code";
-                                    addressKeyFormat.PostcodeExtendedLow = candidateToken.SelectToken("PostcodeExtendedLow")?.ToString() ?? "No Extended Zip Code";
-                                    addressKeyFormat.Region = candidateToken.SelectToken("Region")?.ToString() ?? "No Region";
-                                    addressKeyFormat.CountryCode = candidateToken.SelectToken("CountryCode")?.ToString() ?? "No Country Code";
-                                }
-                                else
-                                {
-                                    Console.WriteLine("Candidate or AddressKeyFormat not found in the response.");
-                                }
-
-                                return addressKeyFormat;
-                            }
+                            addressKeyFormat.AddressLine = candidateToken.SelectToken("AddressLine")?.ToString() ?? "No Address Line";
+                            addressKeyFormat.PoliticalDivision2 = candidateToken.SelectToken("PoliticalDivision2")?.ToString() ?? "No City";
+                            addressKeyFormat.PoliticalDivision1 = candidateToken.SelectToken("PoliticalDivision1")?.ToString() ?? "No State";
+                            addressKeyFormat.PostcodePrimaryLow = candidateToken.SelectToken("PostcodePrimaryLow")?.ToString() ?? "No Primary Zip Code";
+                            addressKeyFormat.PostcodeExtendedLow = candidateToken.SelectToken("PostcodeExtendedLow")?.ToString() ?? "No Extended Zip Code";
+                            addressKeyFormat.Region = candidateToken.SelectToken("Region")?.ToString() ?? "No Region";
+                            addressKeyFormat.CountryCode = candidateToken.SelectToken("CountryCode")?.ToString() ?? "No Country Code";
                         }
                         else
                         {
-                            Console.WriteLine($"Error: {response.StatusCode} - {response.StatusDescription}");
+                            Console.WriteLine("Candidate or AddressKeyFormat not found in the response.");
                         }
+
+                        return addressKeyFormat;
+                    }
+                    else if (response.IsError)
+                    {
+                        Console.WriteLine("Error response JSON:");
+                        Console.WriteLine(response.Body);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Error: {response.StatusCode} - {response.StatusDescription}");
                     }
                 }
                 catch (WebException ex)
                 {
-                    if (ex.Response != null)
-                    {
-                        using (var errorResponse = (HttpWebResponse)ex.Response)
-                        {
-                            using (var reader = new StreamReader(errorResponse.GetResponseStream()))
-                            {
-                                string error = reader.ReadToEnd();
-                                Console.WriteLine("Error response JSON:");
-                                Console.WriteLine(error);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("WebException: " + ex.Message);
-                    }
+                    // No reply at all (timeout, connection failure): an error status comes back as a response above.
+                    Console.WriteLine("WebException: " + ex.Message);
                 }
                 catch (Exception ex)
                 {

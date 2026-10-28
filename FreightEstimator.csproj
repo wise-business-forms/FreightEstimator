@@ -251,6 +251,7 @@
     <Compile Include="Models\Services\CalculatedRate.cs" />
     <Compile Include="Models\Services\CalculatedRateShadowComparison.cs" />
     <Compile Include="Models\Services\CalculatedRateShadowLog.cs" />
+    <Compile Include="Models\Services\CarrierHttp.cs" />
     <Compile Include="Models\Services\IChargeSchedule.cs" />
     <Compile Include="Models\Services\PlantServiceCharges.cs" />
     <Compile Include="Models\Services\RateCalculationsChargeSchedule.cs" />
