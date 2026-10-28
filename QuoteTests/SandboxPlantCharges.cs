@@ -33,6 +33,8 @@ namespace FreightEstimator.QuoteTests
             new Row { CarrierId = "UPS",    PerPackage = 2.00m, PerShipment = 5.00m, NextDayAir = 3m, SecondDayAir = 4m, Ground = 5m, ThreeDaySelect = 6m, NextDayAirSaver = 7m, NextDayAirEarlyAM = 8m, SecondDayAirAM = 9m, Saver = 10m },
             new Row { CarrierId = "UPSCWT", PerPackage = 1.00m, PerShipment = 3.00m, NextDayAir = 10m, SecondDayAir = 11m, Ground = 12m, ThreeDaySelect = 13m, NextDayAirSaver = 14m, NextDayAirEarlyAM = 15m, SecondDayAirAM = 16m, Saver = 17m },
             new Row { CarrierId = "GF",     PerPackage = 2.00m, PerShipment = 5.00m, NextDayAir = 0m, SecondDayAir = 0m, Ground = 5m, ThreeDaySelect = 0m, NextDayAirSaver = 0m, NextDayAirEarlyAM = 0m, SecondDayAirAM = 0m, Saver = 0m },
+            // Logistics Partner (LTL): the plant's markup % is the Ground column.
+            new Row { CarrierId = "TI",     PerPackage = 3.00m, PerShipment = 6.00m, NextDayAir = 0m, SecondDayAir = 0m, Ground = 7.5m, ThreeDaySelect = 0m, NextDayAirSaver = 0m, NextDayAirEarlyAM = 0m, SecondDayAirAM = 0m, Saver = 0m },
         };
 
         public SandboxPlantCharges(string plant, params Row[] rows)
