@@ -5,14 +5,13 @@ namespace FreightEstimator.QuoteTests
 {
     /// <summary>
     /// These tests write Plant Charges and quote logs. They must only ever do that to a SANDBOX copy of
-    /// UpsRate, so every fixture asks this guard first and the run aborts if the configured connection
-    /// could be production. See docs/issues (#23): Debug builds default to ConnectionStrings.Sandbox.config.
+    /// UpsRate, so every fixture asks this guard first and the run aborts unless the configured connection
+    /// is positively a sandbox: the server name must contain "sandbox" (or be named in QUOTETESTS_SANDBOX_SERVER)
+    /// and the database must be UpsRate. A deny-list of production names would pass any alias or IP address
+    /// nobody thought to list. See docs/issues (#23): Debug builds default to ConnectionStrings.Sandbox.config.
     /// </summary>
     public static class SandboxGuard
     {
-        // The production SQL instance the app hardcoded before #23.
-        private const string ProductionServer = @"AZUREDB01\AZUREDB01";
-
         public static void Require()
         {
             ConnectionStringSettings setting = ConfigurationManager.ConnectionStrings["UpsRate"];
@@ -21,18 +20,15 @@ namespace FreightEstimator.QuoteTests
 
             var builder = new SqlConnectionStringBuilder(setting.ConnectionString);
 
-            if (string.Equals(builder.DataSource, ProductionServer, StringComparison.OrdinalIgnoreCase))
-                Assert.Fail("Refusing to run: UpsRate points at the production server (" + ProductionServer + ").");
-
-            if (builder.DataSource.StartsWith("SANDBOX_SERVER", StringComparison.OrdinalIgnoreCase) || builder.DataSource == "USER")
-                Assert.Fail("ConnectionStrings.Sandbox.config still holds the template placeholders.");
+            string allowed = Environment.GetEnvironmentVariable("QUOTETESTS_SANDBOX_SERVER");
+            bool isSandbox = builder.DataSource.IndexOf("sandbox", StringComparison.OrdinalIgnoreCase) >= 0
+                          || (!string.IsNullOrEmpty(allowed) && string.Equals(builder.DataSource, allowed, StringComparison.OrdinalIgnoreCase));
+            if (!isSandbox || builder.DataSource.StartsWith("SANDBOX_SERVER", StringComparison.OrdinalIgnoreCase))
+                Assert.Fail("Refusing to run: UpsRate server '" + builder.DataSource + "' is not recognisably SANDBOX. "
+                    + "Name it so (it must contain 'sandbox'), or set QUOTETESTS_SANDBOX_SERVER to its exact name, and make sure ConnectionStrings.Sandbox.config is not a template.");
 
             if (!string.Equals(builder.InitialCatalog, "UpsRate", StringComparison.OrdinalIgnoreCase))
                 Assert.Fail("Refusing to run: expected database UpsRate, found " + builder.InitialCatalog + ".");
-
-            string productionFile = Path.Combine(AppContext.BaseDirectory, "ConnectionStrings.Production.config");
-            if (File.Exists(productionFile) && File.ReadAllText(productionFile).Contains(builder.DataSource))
-                Assert.Fail("Refusing to run: UpsRate points at the same server as ConnectionStrings.Production.config.");
         }
     }
 }

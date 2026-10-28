@@ -67,7 +67,7 @@ namespace FreightEstimator.Tests.Fakes
         }
 
         // CarrierHttp.Current has an internal setter, visible to the net8 Tests assembly only. Going through
-        // reflection lets the net48 QuoteTests project share this fake without another InternalsVisibleTo
+        // reflection lets the net472 QuoteTests project share this fake without another InternalsVisibleTo
         // (#15 allows no production code changes).
         private static void SetCurrent(ICarrierHttp value)
         {

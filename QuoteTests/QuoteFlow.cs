@@ -15,7 +15,7 @@ namespace FreightEstimator.QuoteTests
     /// </summary>
     public static class QuoteFlow
     {
-        public static JObject Run(QuoteCase c, bool multiplePlants = false)
+        public static JObject Run(QuoteCase c, bool multiplePlants = false, SandboxPlantCharges.Row[] schedule = null)
         {
             // GRID 1 asks UPS "Shop" whenever there are 50 packages or fewer; GRID 2 (Ground Freight)
             // additionally asks "Rate". Cases that are not about GRID 1 answer Shop with an unrelated
@@ -47,7 +47,7 @@ namespace FreightEstimator.QuoteTests
                 include_ground_rate_selection = c.Kind == "groundfreight" ? "Yes" : "No",
                 include_ltl_rate_selection = c.Kind == "ltl" ? "Yes" : "No",
                 AcctNum = "0",
-                pick_up_date = DateTime.Today.AddDays(1)
+                pick_up_date = new DateTime(2026, 11, 3)   // fixed, so a run never depends on the day it happens on
             };
 
             // The LTL total is shown as a currency string; fix the culture so it reads the same on every machine.
@@ -56,7 +56,7 @@ namespace FreightEstimator.QuoteTests
             ActionResult result;
             try
             {
-                using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+                using (new SandboxPlantCharges(c.Plant, schedule ?? SandboxPlantCharges.KnownSchedule()))
                 using (fake.Install())
                 {
                     result = new PlantController().ShipmentConfirmation(shipment);

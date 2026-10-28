@@ -7,14 +7,15 @@ namespace FreightEstimator.QuoteTests
     /// <summary>
     /// Puts known Plant Charges into SANDBOX PlantCarrierCharges2017 for one plant and puts the plant's
     /// original rows back afterwards, so no test depends on whatever values SANDBOX happens to hold.
-    /// Dispose restores. Refuses to run against anything but SANDBOX (SandboxGuard).
+    /// Seeding and restoring each run in one transaction: a failure part-way leaves the plant's rows as they
+    /// were. Dispose restores. Refuses to run against anything but SANDBOX (SandboxGuard).
     /// </summary>
     public sealed class SandboxPlantCharges : IDisposable
     {
         private const string Columns = "CarrierPlantChargesId, CarrierId, PlantCode, PerPackageCharge, PerShipmentCharge, NextDayAir, SecondDayAir, Ground, ThreeDaySelect, NextDayAirSaver, NextDayAirEarlyAM, SecondDayAirAM, Saver, Active";
 
         private readonly string _plant;
-        private readonly DataTable _original;
+        private readonly DataTable _original = new DataTable();
 
         /// <summary>One carrier's charges for a plant. Markups are percentages.</summary>
         public class Row
@@ -43,43 +44,47 @@ namespace FreightEstimator.QuoteTests
             _plant = plant;
 
             using (var conn = Open())
+            using (SqlTransaction tx = conn.BeginTransaction())
             {
-                _original = new DataTable();
-                using (var cmd = new SqlCommand("SELECT " + Columns + " FROM dbo.PlantCarrierCharges2017 WHERE PlantCode = @p", conn))
+                using (var cmd = new SqlCommand("SELECT " + Columns + " FROM dbo.PlantCarrierCharges2017 WHERE PlantCode = @p", conn, tx))
                 {
                     cmd.Parameters.AddWithValue("@p", plant);
                     new SqlDataAdapter(cmd).Fill(_original);
                 }
 
-                Exec(conn, "DELETE FROM dbo.PlantCarrierCharges2017 WHERE PlantCode = @p", ("@p", plant));
+                Exec(conn, tx, "DELETE FROM dbo.PlantCarrierCharges2017 WHERE PlantCode = @p", ("@p", plant));
 
-                int nextId = Convert.ToInt32(Scalar(conn, "SELECT ISNULL(MAX(CarrierPlantChargesId), 0) + 1 FROM dbo.PlantCarrierCharges2017"));
+                int nextId = Convert.ToInt32(Scalar(conn, tx, "SELECT ISNULL(MAX(CarrierPlantChargesId), 0) + 1 FROM dbo.PlantCarrierCharges2017"));
                 foreach (Row r in rows)
                 {
-                    Exec(conn,
+                    Exec(conn, tx,
                         "INSERT dbo.PlantCarrierCharges2017 (" + Columns + ") VALUES (@id, @c, @p, @pp, @ps, @nda, @sda, @g, @ts, @ndas, @ndam, @sdam, @s, 'Y')",
                         ("@id", nextId++), ("@c", r.CarrierId), ("@p", plant), ("@pp", r.PerPackage), ("@ps", r.PerShipment),
                         ("@nda", r.NextDayAir), ("@sda", r.SecondDayAir), ("@g", r.Ground), ("@ts", r.ThreeDaySelect),
                         ("@ndas", r.NextDayAirSaver), ("@ndam", r.NextDayAirEarlyAM), ("@sdam", r.SecondDayAirAM), ("@s", r.Saver));
                 }
+
+                tx.Commit();   // an exception above rolls everything back when tx is disposed: the original rows stay put
             }
         }
 
         public void Dispose()
         {
             using (var conn = Open())
+            using (SqlTransaction tx = conn.BeginTransaction())
             {
-                Exec(conn, "DELETE FROM dbo.PlantCarrierCharges2017 WHERE PlantCode = @p", ("@p", _plant));
+                Exec(conn, tx, "DELETE FROM dbo.PlantCarrierCharges2017 WHERE PlantCode = @p", ("@p", _plant));
                 foreach (DataRow row in _original.Rows)
                 {
                     var values = row.ItemArray;
                     using (var cmd = new SqlCommand("INSERT dbo.PlantCarrierCharges2017 (" + Columns + ") VALUES (" +
-                        string.Join(", ", Enumerable.Range(0, values.Length).Select(i => "@v" + i)) + ")", conn))
+                        string.Join(", ", Enumerable.Range(0, values.Length).Select(i => "@v" + i)) + ")", conn, tx))
                     {
                         for (int i = 0; i < values.Length; i++) cmd.Parameters.AddWithValue("@v" + i, values[i]);
                         cmd.ExecuteNonQuery();
                     }
                 }
+                tx.Commit();
             }
         }
 
@@ -90,18 +95,18 @@ namespace FreightEstimator.QuoteTests
             return conn;
         }
 
-        private static void Exec(SqlConnection conn, string sql, params (string Name, object Value)[] parameters)
+        private static void Exec(SqlConnection conn, SqlTransaction tx, string sql, params (string Name, object Value)[] parameters)
         {
-            using (var cmd = new SqlCommand(sql, conn))
+            using (var cmd = new SqlCommand(sql, conn, tx))
             {
                 foreach (var (name, value) in parameters) cmd.Parameters.AddWithValue(name, value);
                 cmd.ExecuteNonQuery();
             }
         }
 
-        private static object Scalar(SqlConnection conn, string sql)
+        private static object Scalar(SqlConnection conn, SqlTransaction tx, string sql)
         {
-            using (var cmd = new SqlCommand(sql, conn)) return cmd.ExecuteScalar();
+            using (var cmd = new SqlCommand(sql, conn, tx)) return cmd.ExecuteScalar();
         }
     }
 }
