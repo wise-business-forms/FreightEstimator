@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
 
 namespace AuthenticationServer.Models
 {
@@ -165,14 +163,6 @@ namespace AuthenticationServer.Models
             "UPSTodayExpressSaver"
         };
 
-        private static List<SelectListItem> _delivery_signature_required_selection = new List<SelectListItem>()
-        {
-            new SelectListItem() { Text = "None", Value = "None" },
-            new SelectListItem() { Text = "Delivery Confirmation", Value = "Delivery Confirmation" },
-            new SelectListItem() { Text = "Del Conf / Signature Req'd", Value = "Delivery Confirmation / Signature Required" },
-            new SelectListItem() { Text = "Del Conf / Adult Sig Req'd", Value = "Delivery Confirmation / Adult Signature Required" }
-        };
-
         public static string DatawarehouseSqlConnection
         {
             get { return ConnectionString("Datawarehouse"); }
@@ -257,10 +247,6 @@ namespace AuthenticationServer.Models
         public static Dictionary<string, string> PlantLocations
         {
             get { return __plantLocations; }
-        }
-        public static List<SelectListItem> DeliverySignatureRequiredSelection
-        {
-            get { return _delivery_signature_required_selection; }
         }
         public static string[] PlantCodesMultiRate
         {

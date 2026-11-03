@@ -55,7 +55,7 @@ namespace AuthenticationServer.Controllers
             
 
             var plantName = Configuration.PlantLocations[loc.ToUpper()];            
-            var model = new Models.Shipment { };
+            var model = new Models.ShipmentView { };
 
             // Setup default values for the shipment
             model.Plant = new Plant(loc.ToUpper());
@@ -65,7 +65,7 @@ namespace AuthenticationServer.Controllers
             model.Country_selection = "United States";
             //model.pick_up_date = System.DateTime.Now.ToShortDateString();
 
-            model.delivery_signature_required = Configuration.DeliverySignatureRequiredSelection;
+            model.delivery_signature_required = ShipmentViewLists.DeliverySignatureRequired;
             model.multiple_location_rate = new List<SelectListItem> { new SelectListItem { Text = "No", Value = "No" }, new SelectListItem { Text = "Yes", Value = "Yes" } };
             model.include_ground_rate = new List<SelectListItem> { new SelectListItem { Text = "Yes", Value = "Yes" }, new SelectListItem { Text = "No", Value = "No" } };
             model.include_ltl_rate = new List<SelectListItem> { new SelectListItem { Text = "No", Value = "No" }, new SelectListItem { Text = "Yes", Value = "Yes" } };
@@ -128,7 +128,7 @@ namespace AuthenticationServer.Controllers
         }
 
         [HttpPost]
-        public ActionResult SubmitShipment(Shipment shipment)
+        public ActionResult SubmitShipment(ShipmentView shipment)
         {
             if (ModelState.IsValid)
             {

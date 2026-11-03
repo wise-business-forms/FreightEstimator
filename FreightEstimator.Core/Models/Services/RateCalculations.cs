@@ -1,13 +1,9 @@
 ﻿using AuthenticationServer.Models.Carrier.UPS;
-using Microsoft.Ajax.Utilities;
-using SDK.Model;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Web;
-using System.Web.Razor.Generator;
 
 namespace AuthenticationServer.Models.Services
 {
@@ -227,7 +223,7 @@ namespace AuthenticationServer.Models.Services
 
             RateCalculations rateCalculations = new RateCalculations();
 
-            if (accountNumber.IsNullOrWhiteSpace())
+            if (string.IsNullOrWhiteSpace(accountNumber))
             {
                 _accountNumber = 0;
             }

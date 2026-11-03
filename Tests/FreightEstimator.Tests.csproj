@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- Both targets (ADR 0005, port stage 1): the estimation core is built for each. -->
+    <TargetFrameworks>net8.0;net472</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
     <RootNamespace>FreightEstimator.Tests</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -28,6 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FreightEstimator.Core\FreightEstimator.Core.csproj" />
     <ProjectReference Include="..\FreightEstimator.csproj" />
   </ItemGroup>
 

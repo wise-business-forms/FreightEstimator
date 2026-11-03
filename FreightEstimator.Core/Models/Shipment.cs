@@ -2,9 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Web;
-using System.Web.Http.Routing.Constraints;
-using System.Web.Mvc;
 
 namespace AuthenticationServer.Models
 {
@@ -18,10 +15,8 @@ namespace AuthenticationServer.Models
         public string Address { get; set; }
         public string City { get; set; }
         public string State_selection { get; set; }
-        public List<SelectListItem> state {  get; set; }
         public string Zip { get; set; }
         public string Country_selection { get; set; }
-        public List<SelectListItem> country { get; set; }
         public int number_of_packages { get; set; }
         public float package_weight { get; set; }
         public float last_package_weight { get; set; }
@@ -33,16 +28,11 @@ namespace AuthenticationServer.Models
         /// </summary>
         public List<float> PackageWeights { get; set; }
         public string delivery_signature_required_selection { get; set; }
-        public List<SelectListItem> delivery_signature_required { get; set; }
         public string multiple_location_rate_selection { get; set; }
-        public List<SelectListItem> multiple_location_rate { get; set; }
         public string include_ground_rate_selection { get; set; }
-        public List<SelectListItem> include_ground_rate { get; set; }
         public string include_ltl_rate_selection { get; set; }
-        public List<SelectListItem> include_ltl_rate { get; set; }
 
         // LTL information
-        public List<SelectListItem> freight_class {  get; set; }
         public string default_freight_class { get; set; }
         public int freight_class_selected { get; set; }
         public DateTime pick_up_date { get; set; }

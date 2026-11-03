@@ -244,47 +244,12 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
-    <Compile Include="Models\Api\QuoteApiModels.cs" />
-    <Compile Include="Models\Api\QuoteRequestValidator.cs" />
-    <Compile Include="Models\Configuration.cs" />
-    <Compile Include="Models\Data\Request.cs" />
-    <Compile Include="Models\Invoice.cs" />
-    <Compile Include="Models\LTLService.cs" />
-    <Compile Include="Models\Plant.cs" />
-    <Compile Include="Models\PlantCharges.cs" />
-    <Compile Include="Models\QuoteServiceCalculation.cs" />
-    <Compile Include="Models\Services\CalculatedRate.cs" />
-    <Compile Include="Models\Services\CalculatedRateShadowComparison.cs" />
-    <Compile Include="Models\Services\CalculatedRateShadowLog.cs" />
-    <Compile Include="Models\Services\CarrierHttp.cs" />
-    <Compile Include="Models\Services\ConsumerStore.cs" />
-    <Compile Include="Models\Services\PlantDirectory.cs" />
-    <Compile Include="Models\Services\QuoteLog.cs" />
-    <Compile Include="Models\Services\ServiceCatalog.cs" />
-    <Compile Include="Models\Services\IChargeSchedule.cs" />
-    <Compile Include="Models\Services\PlantServiceCharges.cs" />
-    <Compile Include="Models\Services\RateCalculationsChargeSchedule.cs" />
-    <Compile Include="Models\Services\RatingContext.cs" />
-    <Compile Include="Models\Services\ShadowComparisonRecorder.cs" />
     <Compile Include="Controllers\HtmlHelpers.cs" />
     <Compile Include="Models\RateRequestRecord.cs" />
     <Compile Include="Models\Reports\RateChanges.cs" />
     <Compile Include="Models\Reports\RateChangeData.cs" />
-    <Compile Include="Models\Services\Log.cs" />
-    <Compile Include="Models\Services\RateCalculations.cs" />
-    <Compile Include="Models\Services\RateRequest.cs" />
-    <Compile Include="Models\Services\RateResponse.cs" />
-    <Compile Include="Models\Services\Test.cs" />
-    <Compile Include="Models\Services\UPSRequest.cs" />
-    <Compile Include="Models\Services\LogisticsPartnerEstimationService.cs" />
-    <Compile Include="Models\Services\UpsEstimationService.cs" />
-    <Compile Include="Models\Services\XAVResponse.cs" />
     <Compile Include="Models\Geography.cs" />
-    <Compile Include="Models\TICharge.cs" />
-    <Compile Include="Models\UPSService.cs" />
-    <Compile Include="Models\ShopRateResponse.cs" />
-    <Compile Include="Models\Shipment.cs" />
-    <Compile Include="Models\UPSResponse.cs" />
+    <Compile Include="Models\ShipmentView.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -428,6 +393,12 @@
     <LangVersion>7.3</LangVersion>
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="FreightEstimator.Core\FreightEstimator.Core.csproj">
+      <Project>{BA9C2A71-15D2-4B9A-A850-B423137BDB1B}</Project>
+      <Name>FreightEstimator.Core</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != ''" />
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" Condition="false" />
