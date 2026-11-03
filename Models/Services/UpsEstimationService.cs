@@ -45,6 +45,12 @@ namespace AuthenticationServer.Models.Services
         public bool IncludeParcel { get; set; }
         /// <summary>UPS Ground Freight (GRID 2).</summary>
         public bool IncludeGroundFreight { get; set; }
+
+        /// <summary>
+        /// The parcel services <see cref="UpsEstimationService.EstimateParcel"/> should price and log, by name. Null means every
+        /// service UPS returns that carries Plant Charges. The Quote API names them so a Quote only records rates its Consumer asked for.
+        /// </summary>
+        public ICollection<string> ParcelServiceNames { get; set; }
     }
 
     /// <summary>A UPS service's Carrier Rate as UPS returned it, before any Plant Charges.</summary>
@@ -96,6 +102,28 @@ namespace AuthenticationServer.Models.Services
 
         /// <summary>The Calculated Rate from the unified module, with the Carrier Rate and Plant Charges that built it. Null unless Ok.</summary>
         public CalculatedRate CalculatedRate { get; set; }
+
+        /// <summary>UPS's Address Classification of the destination (CONTEXT.md), when its address check answered.</summary>
+        public string AddressClassification { get; set; }
+    }
+
+    /// <summary>One UPS parcel service's Calculated Rate from the unified module, with the Carrier Rate and Plant Charges that built it.</summary>
+    public class UpsParcelServiceEstimate
+    {
+        public string ServiceName { get; set; }
+        public CalculatedRate CalculatedRate { get; set; }
+    }
+
+    /// <summary>The outcome of asking UPS for parcel rates (GRID 1, single plant) on behalf of the Quote API.</summary>
+    public class UpsParcelEstimate
+    {
+        public CarrierStatus Status { get; set; }
+
+        /// <summary>Why the carrier is not Ok, in the carrier's words where it gave any. Null when Ok.</summary>
+        public string Message { get; set; }
+
+        /// <summary>The services UPS rated that carry Plant Charges, in UPS's order. Empty unless Ok.</summary>
+        public IReadOnlyList<UpsParcelServiceEstimate> Services { get; set; } = new UpsParcelServiceEstimate[0];
 
         /// <summary>UPS's Address Classification of the destination (CONTEXT.md), when its address check answered.</summary>
         public string AddressClassification { get; set; }
@@ -228,6 +256,93 @@ namespace AuthenticationServer.Models.Services
 
             return new UpsGroundFreightEstimate { Status = CarrierStatus.Ok, CalculatedRate = calculated, AddressClassification = shipment.Address_Classification };
         }
+
+        /// <summary>
+        /// UPS parcel services (GRID 1, single plant) for the Quote API: each service's Calculated Rate comes from the
+        /// unified module (ADR 0003), unrounded here and rounded once at the edge (ADR 0004). The Carrier Rate is the
+        /// negotiated rate when the shipment is CWT-eligible and the published rate otherwise, as the Plant page chooses
+        /// it; the module applies Plant Charges to both alike (#14). The residential surcharge needs no handling here:
+        /// the UPS request already asks UPS to quote it when UPS classifies the address as residential
+        /// (docs/issues/0002), so it is inside the Carrier Rate. The Plant page keeps its legacy formula in
+        /// <see cref="Quote"/> until its own cutover.
+        /// </summary>
+        public UpsParcelEstimate EstimateParcel(UpsQuoteRequest request)
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+
+            Shipment shipment = WorkingShipment(request);
+            if (shipment.number_of_packages > MaxShopPackages)
+            {
+                return new UpsParcelEstimate { Status = CarrierStatus.Error, Message = "UPS parcel rates are limited to " + MaxShopPackages + " packages." };
+            }
+
+            var options = new UpsCallOptions { TimeoutMs = request.TimeoutMs, ThrowWhenCarrierDoesNotAnswer = true };
+            UPSService[] services;
+            try
+            {
+                services = new UPSRequest(shipment, new Plant(shipment.PlantId), UPSRequest.RequestOption.Shop, UPSRequest.RateClassification.Negotiated, options).UPSServices;
+            }
+            catch (CarrierUnavailableException)
+            {
+                return FailedParcel(CarrierStatus.Unavailable, "UPS did not answer in time.", shipment);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceWarning("UPS parcel reply could not be used: " + ex.Message);
+                return FailedParcel(CarrierStatus.Error, "UPS returned a reply that could not be used.", shipment);
+            }
+
+            if (services == null || services.Length == 0)
+            {
+                bool haveUpsReason = !string.IsNullOrWhiteSpace(shipment.ErrorMessage) && shipment.ErrorMessage != "Address not validated";
+                return FailedParcel(CarrierStatus.Error, haveUpsReason ? shipment.ErrorMessage : "UPS returned no rates.", shipment);
+            }
+
+            var estimates = new List<UpsParcelServiceEstimate>();
+            int usable = 0;
+            foreach (UPSService service in services)
+            {
+                UPSService.ServiceCode serviceCode = ChargedParcelServices.FirstOrDefault(s => s.ToString() == service.ServiceName);
+                if (service.ServiceName != serviceCode.ToString()) continue;
+
+                bool isCwtEligible = string.Equals(service.CWT, "Yes", StringComparison.OrdinalIgnoreCase);
+                string rateText = isCwtEligible ? service.RatedShipment_NegotiatedRateCharges_TotalCharge : service.RatedShipment_PublishedRateCharges_MonetaryValue;
+                if (!decimal.TryParse(rateText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out decimal carrierRate) || carrierRate <= 0) continue;
+
+                usable++;
+                // UPS answered for this service, but the Consumer did not ask for it: nothing to price or log.
+                if (request.ParcelServiceNames != null && !request.ParcelServiceNames.Contains(service.ServiceName)) continue;
+
+                CalculatedRate calculated = CalculatedRate.Apply(carrierRate, new RateCalculationsChargeSchedule(), new RatingContext
+                {
+                    PlantCode = shipment.PlantId,
+                    ServiceName = service.ServiceName,
+                    PackageCount = shipment.number_of_packages,
+                    IsCwtEligible = isCwtEligible
+                });
+                estimates.Add(new UpsParcelServiceEstimate { ServiceName = service.ServiceName, CalculatedRate = calculated });
+
+                try
+                {
+                    Log.LogQuoteServiceCalculation(QuoteServiceCalculation.FromCalculatedRate(
+                        shipment.QuoteId, ServiceCatalog.Ups, shipment.PlantId, shipment.user_name, service.ServiceName, calculated));
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Trace.TraceWarning("Logging the parcel Calculated Rate failed: " + ex.Message);
+                }
+            }
+
+            if (usable == 0)
+            {
+                return FailedParcel(CarrierStatus.Error, "UPS returned no usable rate.", shipment);
+            }
+
+            return new UpsParcelEstimate { Status = CarrierStatus.Ok, Services = estimates, AddressClassification = shipment.Address_Classification };
+        }
+
+        private static UpsParcelEstimate FailedParcel(CarrierStatus status, string message, Shipment shipment) =>
+            new UpsParcelEstimate { Status = status, Message = message, AddressClassification = shipment.Address_Classification };
 
         private static UpsGroundFreightEstimate Failed(CarrierStatus status, string message, Shipment shipment) =>
             new UpsGroundFreightEstimate { Status = status, Message = message, AddressClassification = shipment.Address_Classification };

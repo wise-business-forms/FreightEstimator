@@ -14,7 +14,7 @@ namespace AuthenticationServer.Controllers.Api
     /// Requests a Quote: authenticates the Consumer, validates the request, generates a Quote ID, logs the Quote,
     /// and quotes each requested service that is available (CONTEXT.md: Service Availability). A service whose
     /// Calculated Rate path has not been cut over to the unified module is reported as not available, and no
-    /// carrier is called for it. UPS Ground Freight (GRID2) is the first path to be available (#19).
+    /// carrier is called for it. UPS Ground Freight (GRID2, #19) and UPS parcel (GRID1 single plant, #20) are implemented.
     /// A carrier that does not answer, or answers with an error, does not fail the Quote: it is a 200 with that
     /// carrier's status set and everything else as it was.
     /// </summary>
@@ -73,20 +73,23 @@ namespace AuthenticationServer.Controllers.Api
                 }).ToList()
             };
 
-            QuoteGroundFreight(response, request, consumer, quoteId, plantCode);
+            QuoteUps(response, request, consumer, quoteId, plantCode);
             return Ok(response);
         }
 
         /// <summary>
-        /// Quotes UPS Ground Freight if it was asked for and is available, and puts the result, the carrier's status
-        /// and any warning into the response. Does nothing, and calls no carrier, otherwise.
+        /// Quotes the UPS services that were asked for and are available (parcel, GRID 1; and Ground Freight, GRID 2),
+        /// and puts the results, UPS's status and any warning into the response. Does nothing, and calls no carrier,
+        /// when none is. UPS is one carrier in the response however many of its calls were made: its status is the
+        /// worst of them.
         /// </summary>
-        private static void QuoteGroundFreight(QuoteResponse response, QuoteRequest request, Consumer consumer, Guid quoteId, string plantCode)
+        private static void QuoteUps(QuoteResponse response, QuoteRequest request, Consumer consumer, Guid quoteId, string plantCode)
         {
+            List<QuotedService> parcel = response.Services.Where(s => s.Carrier == ServiceCatalog.Ups && s.Service != RateCalculationsChargeSchedule.GroundFreightServiceName && s.Availability == "available").ToList();
             QuotedService groundFreight = response.Services.FirstOrDefault(s => s.Service == RateCalculationsChargeSchedule.GroundFreightServiceName && s.Availability == "available");
-            if (groundFreight == null) return;
+            if (parcel.Count == 0 && groundFreight == null) return;
 
-            UpsGroundFreightEstimate estimate = new UpsEstimationService().EstimateGroundFreight(new UpsQuoteRequest
+            UpsQuoteRequest upsRequest = new UpsQuoteRequest
             {
                 PlantCode = plantCode,
                 QuoteId = quoteId,
@@ -101,33 +104,61 @@ namespace AuthenticationServer.Controllers.Api
                 Country = string.IsNullOrWhiteSpace(request.Destination.Country) ? "US" : request.Destination.Country,
                 PackageWeights = request.Packages.Select(p => (float)p.Weight.Value).ToList(),
                 TimeoutMs = UpsTimeoutMs
-            });
+            };
+            var upsService = new UpsEstimationService();
+            var statuses = new List<CarrierStatus>();
+            var messages = new List<string>();
+            string classification = null;
 
+            if (parcel.Count > 0)
+            {
+                upsRequest.ParcelServiceNames = parcel.Select(s => s.Service).ToList();
+                UpsParcelEstimate estimate = upsService.EstimateParcel(upsRequest);
+                statuses.Add(estimate.Status);
+                if (estimate.Message != null) messages.Add(estimate.Message);
+                classification = classification ?? estimate.AddressClassification;
+                foreach (UpsParcelServiceEstimate quoted in estimate.Services)
+                {
+                    QuotedService service = parcel.FirstOrDefault(s => s.Service == quoted.ServiceName);
+                    if (service != null) Fill(service, quoted.CalculatedRate);
+                }
+            }
+
+            if (groundFreight != null)
+            {
+                UpsGroundFreightEstimate estimate = upsService.EstimateGroundFreight(upsRequest);
+                statuses.Add(estimate.Status);
+                if (estimate.Message != null) messages.Add(estimate.Message);
+                classification = classification ?? estimate.AddressClassification;
+                if (estimate.Status == CarrierStatus.Ok) Fill(groundFreight, estimate.CalculatedRate);
+            }
+
+            CarrierStatus worst = statuses.Contains(CarrierStatus.Unavailable) ? CarrierStatus.Unavailable
+                : statuses.Contains(CarrierStatus.Error) ? CarrierStatus.Error : CarrierStatus.Ok;
             response.Carriers.Add(new CarrierResult
             {
                 Carrier = ServiceCatalog.Ups,
-                Status = estimate.Status == CarrierStatus.Ok ? "ok" : estimate.Status == CarrierStatus.Unavailable ? "unavailable" : "error",
-                Message = estimate.Message
+                Status = worst == CarrierStatus.Ok ? "ok" : worst == CarrierStatus.Unavailable ? "unavailable" : "error",
+                Message = messages.Count == 0 ? null : string.Join(" ", messages.Distinct())
             });
-            response.AddressClassification = estimate.AddressClassification;
+            response.AddressClassification = classification;
 
-            if (string.Equals(estimate.AddressClassification, "Unknown", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(classification, "Unknown", StringComparison.OrdinalIgnoreCase))
             {
                 response.Warnings.Add(new ApiWarning { Code = "addressClassificationUnknown", Message = UnknownClassificationWarning });
             }
+        }
 
-            if (estimate.Status == CarrierStatus.Ok)
+        private static void Fill(QuotedService service, CalculatedRate rate)
+        {
+            service.CalculatedRate = rate.RoundedAmount;
+            service.CarrierRate = rate.CarrierRate;
+            service.PlantCharges = new PlantChargesApplied
             {
-                CalculatedRate rate = estimate.CalculatedRate;
-                groundFreight.CalculatedRate = rate.RoundedAmount;
-                groundFreight.CarrierRate = rate.CarrierRate;
-                groundFreight.PlantCharges = new PlantChargesApplied
-                {
-                    MarkupPercent = rate.MarkupPercent,
-                    PerPackageCharge = rate.PerPackageCharge,
-                    PerShipmentCharge = rate.PerShipmentCharge
-                };
-            }
+                MarkupPercent = rate.MarkupPercent,
+                PerPackageCharge = rate.PerPackageCharge,
+                PerShipmentCharge = rate.PerShipmentCharge
+            };
         }
 
         /// <summary>The services asked for, in catalog order and without repeats, or the whole catalog if none were named.</summary>

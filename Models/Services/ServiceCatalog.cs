@@ -47,8 +47,8 @@ namespace AuthenticationServer.Models.Services
         public static CatalogService Find(string name) =>
             All.FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
 
-        /// <summary>The services the API has a Calculated Rate path for. UPS Ground Freight (GRID2) is the first.</summary>
-        private static readonly string[] Implemented = { RateCalculationsChargeSchedule.GroundFreightServiceName };
+        /// <summary>The services the API has a Calculated Rate path for: UPS Ground Freight (GRID2) and the UPS parcel services (GRID1 single plant).</summary>
+        private static readonly string[] Implemented = All.Where(s => s.Carrier == Ups).Select(s => s.Name).ToArray();
 
         private const string SwitchSetting = "QuoteApi.AvailableServices";
 

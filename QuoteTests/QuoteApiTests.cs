@@ -464,7 +464,232 @@ namespace FreightEstimator.QuoteTests
             }
         }
 
+        // ---- UPS parcel (GRID1 single plant) available through the API (#20) -----------------------------------
+
+        public static IEnumerable<TestCaseData> ParcelCases() =>
+            QuoteCase.All("parcel").Select(c => new TestCaseData(c).SetName("parcel " + c.CaseId + " " + c.Plant + " " + c.Packages + " pkgs"));
+
+        private static readonly string[] ParcelServices =
+            { "UPSGround", "UPS3DaySelect", "UPS2ndDayAir", "SecondDayAirAM", "NextDayAirSaver", "UPSNextDayAir", "NextDayAirEarlyAM" };
+
+        /// <summary>
+        /// Every recorded parcel case, CWT and non-CWT services alike: the Calculated Rate is the Carrier Rate (negotiated
+        /// when CWT, published otherwise) plus markup, per-package and per-shipment charges from the UPS row, or the UPSCWT
+        /// row when CWT, as set by KnownSchedule. Markup applies to non-CWT too (#14), unlike the Plant page today.
+        /// </summary>
+        [TestCaseSource(nameof(ParcelCases))]
+        public void ParcelServicesAreAvailableAndReturnTheRoundedCalculatedRateWithTheirBreakdown(QuoteCase c)
+        {
+            UpsParcelReplies(c);
+            JObject body = GroundFreightRequest(c);
+            body["services"] = new JArray(ParcelServices);
+
+            using (ServiceCatalog.Use(ParcelServices))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                JObject quote = JObject.Parse(Body(Post(body, _consumer.ApiKey)));
+
+                JObject expectedOnPage = JObject.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Recorded", "quotes", "expected", c.CaseId + ".json")));
+                JToken recorded = JObject.Parse(c.ResponseText)["RateResponse"]["RatedShipment"];
+                int quoted = 0;
+                foreach (JToken service in quote["services"])
+                {
+                    string name = (string)service["service"];
+                    Assert.That((string)service["availability"], Is.EqualTo("available"), name);
+                    JToken onPage = expectedOnPage[name];
+                    if (onPage == null)
+                    {
+                        Assert.That(service["calculatedRate"], Is.Null, name + " was not in UPS's answer");
+                        continue;
+                    }
+                    quoted++;
+
+                    bool cwt = (string)onPage["cwt"] == "Yes";
+                    SandboxPlantCharges.Row row = SandboxPlantCharges.KnownSchedule().Single(r => r.CarrierId == (cwt ? "UPSCWT" : "UPS"));
+                    decimal markup = MarkupFor(row, name);
+                    JToken rated = recorded.Single(r => ServiceNameOf((string)r["Service"]["Code"]) == name);
+                    decimal carrierRate = cwt
+                        ? (decimal)rated["NegotiatedRateCharges"]["TotalCharge"]["MonetaryValue"]
+                        : (decimal)rated["TotalCharges"]["MonetaryValue"];
+                    decimal expected = carrierRate + carrierRate * markup / 100m + row.PerPackage * c.Packages + row.PerShipment;
+
+                    Assert.That((decimal)service["calculatedRate"], Is.EqualTo(Math.Round(expected, 2, MidpointRounding.AwayFromZero)), name);
+                    Assert.That((decimal)service["carrierRate"], Is.EqualTo(carrierRate), name);
+                    Assert.That((decimal)service["plantCharges"]["markupPercent"], Is.EqualTo(markup), name);
+                    Assert.That((decimal)service["plantCharges"]["perPackageCharge"], Is.EqualTo(row.PerPackage), name);
+                    Assert.That((decimal)service["plantCharges"]["perShipmentCharge"], Is.EqualTo(row.PerShipment), name);
+                }
+
+                Assert.That(quoted, Is.GreaterThan(0));
+                Assert.That(quote["carriers"].Select(k => (string)k["carrier"] + ":" + (string)k["status"]), Is.EqualTo(new[] { "UPS:ok" }));
+            }
+        }
+
+        [Test]
+        public void TheRecordedParcelCasesIncludeBothCwtAndNonCwtServices()
+        {
+            // Guards the test above: it must exercise services that were CWT and services that were not.
+            string pinned = string.Concat(QuoteCase.All("parcel").Select(c =>
+                File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Recorded", "quotes", "expected", c.CaseId + ".json"))));
+            Assert.That(pinned, Does.Contain("\"cwt\": \"Yes\"").And.Contain("\"cwt\": \"No\""));
+        }
+
+        [Test]
+        public void ParcelRatesAreLoggedPerServicePerQuote()
+        {
+            QuoteCase c = QuoteCase.All("parcel").First();
+            UpsParcelReplies(c);
+            JObject body = GroundFreightRequest(c);
+            body["services"] = new JArray("UPSGround");
+
+            using (ServiceCatalog.Use("UPSGround"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                JObject quote = JObject.Parse(Body(Post(body, _consumer.ApiKey)));
+
+                var logged = _consumer.Calculations(Guid.Parse((string)quote["quoteId"])).Single();
+                Assert.That(logged.ServiceName, Is.EqualTo("UPSGround"));
+                Assert.That(logged.UserName, Is.EqualTo(_consumer.Name));
+                Assert.That(logged.CalculatedRate, Is.EqualTo((decimal)quote["services"][0]["calculatedRate"]));
+                Assert.That(logged.CarrierRate, Is.EqualTo((decimal)quote["services"][0]["carrierRate"]));
+            }
+        }
+
+        [Test]
+        public void ParcelServicesAreNotAvailableUntilSwitchedOn_AndUpsIsNotCalled()
+        {
+            QuoteCase c = QuoteCase.All("parcel").First();
+            UpsParcelReplies(c);
+            JObject body = GroundFreightRequest(c);
+            body["services"] = new JArray("UPSGround", "UPS2ndDayAir");
+
+            using (ServiceCatalog.Use("UPSGroundFreight"))
+            {
+                JObject quote = JObject.Parse(Body(Post(body, _consumer.ApiKey)));
+
+                Assert.That(quote["services"].Select(s => (string)s["availability"]), Is.All.EqualTo("notAvailable"));
+                Assert.That(quote["services"].Select(s => s["calculatedRate"]), Is.All.Null);
+                Assert.That(_carriers.Requests, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void OnlyTheParcelServicesSwitchedOnAreQuoted()
+        {
+            QuoteCase c = QuoteCase.All("parcel").First();
+            UpsParcelReplies(c);
+            JObject body = GroundFreightRequest(c);
+            body["services"] = new JArray("UPSGround", "UPS2ndDayAir");
+
+            using (ServiceCatalog.Use("UPSGround"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                JObject quote = JObject.Parse(Body(Post(body, _consumer.ApiKey)));
+
+                Assert.That(quote["services"].Select(s => (string)s["service"] + ":" + (string)s["availability"]),
+                    Is.EqualTo(new[] { "UPSGround:available", "UPS2ndDayAir:notAvailable" }));
+                Assert.That(quote["services"][0]["calculatedRate"], Is.Not.Null);
+                Assert.That(quote["services"][1]["calculatedRate"], Is.Null);
+            }
+        }
+
+        [Test]
+        public void AResidentialAddressIsRatedWithTheResidentialIndicator_SoTheSurchargeIsInTheCarrierRate()
+        {
+            QuoteCase c = QuoteCase.All("parcel").First();
+            _carriers.Replay("security", "ups-token-response.json").Replay("addressvalidation", "ups-address-validation-residential.json")
+                .RespondWith("rating/v2403/Shop", HttpStatusCode.OK, c.ResponseText);
+            JObject body = GroundFreightRequest(c);
+            body["services"] = new JArray("UPSGround");
+
+            using (ServiceCatalog.Use("UPSGround"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                JObject quote = JObject.Parse(Body(Post(body, _consumer.ApiKey)));
+
+                Assert.That((string)quote["addressClassification"], Is.EqualTo("Residential"));
+                string rateRequest = _carriers.Requests.Single(r => r.Url.Contains("rating/v2403/Shop")).Body;
+                Assert.That(JObject.Parse(rateRequest)["RateRequest"]["Shipment"]["ShipTo"]["Address"]["ResidentialAddressIndicator"], Is.Not.Null);
+            }
+        }
+
+        [Test]
+        public void AUpsTimeoutOnParcelIsA200WithTheCarrierUnavailable()
+        {
+            QuoteCase c = QuoteCase.All("parcel").First();
+            _carriers.Replay("security", "ups-token-response.json").Replay("addressvalidation", "ups-address-validation-commercial.json").TimeOut("rating/v2403/Shop");
+            JObject body = GroundFreightRequest(c);
+            body["services"] = new JArray("UPSGround");
+
+            using (ServiceCatalog.Use("UPSGround"))
+            {
+                HttpResponseMessage response = Post(body, _consumer.ApiKey);
+
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                JObject quote = JObject.Parse(Body(response));
+                Assert.That((string)quote["carriers"][0]["status"], Is.EqualTo("unavailable"));
+                Assert.That((string)quote["services"][0]["availability"], Is.EqualTo("available"));
+                Assert.That(quote["services"][0]["calculatedRate"], Is.Null);
+                Assert.That(_consumer.Quotes(), Has.Count.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void ParcelAndGroundFreightTogetherAreOneUpsCarrierWithTheWorstStatus()
+        {
+            QuoteCase c = QuoteCase.All("parcel").First();
+            _carriers.Replay("security", "ups-token-response.json").Replay("addressvalidation", "ups-address-validation-commercial.json")
+                .RespondWith("rating/v2403/Shop", HttpStatusCode.OK, c.ResponseText).TimeOut("rating/v2403/Rate");
+            JObject body = GroundFreightRequest(c);
+            body["services"] = new JArray("UPSGround", "UPSGroundFreight");
+
+            using (ServiceCatalog.Use("UPSGround", "UPSGroundFreight"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                JObject quote = JObject.Parse(Body(Post(body, _consumer.ApiKey)));
+
+                Assert.That(quote["carriers"].Select(k => (string)k["carrier"] + ":" + (string)k["status"]), Is.EqualTo(new[] { "UPS:unavailable" }));
+                Assert.That(quote["services"][0]["calculatedRate"], Is.Not.Null, "parcel was still quoted");
+                Assert.That(quote["services"][1]["calculatedRate"], Is.Null);
+            }
+        }
+
         // ---- helpers --------------------------------------------------------------------------------------------
+
+        private void UpsParcelReplies(QuoteCase c) =>
+            _carriers.Replay("security", "ups-token-response.json")
+                .Replay("addressvalidation", "ups-address-validation-commercial.json")
+                .RespondWith("rating/v2403/Shop", HttpStatusCode.OK, c.ResponseText);
+
+        private static decimal MarkupFor(SandboxPlantCharges.Row row, string service)
+        {
+            switch (service)
+            {
+                case "UPSGround": return row.Ground;
+                case "UPS3DaySelect": return row.ThreeDaySelect;
+                case "UPS2ndDayAir": return row.SecondDayAir;
+                case "SecondDayAirAM": return row.SecondDayAirAM;
+                case "NextDayAirSaver": return row.NextDayAirSaver;
+                case "UPSNextDayAir": return row.NextDayAir;
+                case "NextDayAirEarlyAM": return row.NextDayAirEarlyAM;
+                default: throw new ArgumentException(service);
+            }
+        }
+
+        private static string ServiceNameOf(string code)
+        {
+            switch (code)
+            {
+                case "03": return "UPSGround";
+                case "12": return "UPS3DaySelect";
+                case "02": return "UPS2ndDayAir";
+                case "59": return "SecondDayAirAM";
+                case "13": return "NextDayAirSaver";
+                case "01": return "UPSNextDayAir";
+                case "14": return "NextDayAirEarlyAM";
+                default: return code;
+            }
+        }
 
         private void UpsReplies(QuoteCase c) =>
             _carriers.Replay("security", "ups-token-response.json")
