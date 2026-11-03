@@ -1,3 +1,4 @@
+using AuthenticationServer.Models;
 using Newtonsoft.Json.Linq;
 
 namespace FreightEstimator.QuoteTests
@@ -35,12 +36,31 @@ namespace FreightEstimator.QuoteTests
         [TestCaseSource(nameof(LtlCases))]
         public void LogisticsPartnerLtlQuote_GRID3(QuoteCase c) => AssertPinned(c);
 
+        /// <summary>
+        /// The page's view, and the LTL quote that follows, read what the UPS calls learned about the address
+        /// off the page's shipment. They must still be there once UPS quoting lives in the estimation service (#16).
+        /// </summary>
+        [Test]
+        public void ThePageShipmentStillCarriesWhatUpsCorrectedAboutTheAddress()
+        {
+            QuoteCase c = QuoteCase.All("parcel").First();
+
+            Shipment page = QuoteFlow.RunPage(c);
+
+            // The recorded address validation answers "1 MAIN ST, PITTSBURGH PA 15201-1234, Commercial".
+            Assert.That(page.Address_Classification, Is.EqualTo("Commercial"));
+            Assert.That(page.Corrected_Address, Is.EqualTo("1 MAIN ST"));
+            Assert.That(page.Corrected_City, Is.EqualTo("PITTSBURGH"));
+            Assert.That(page.Corrected_State_selection, Is.EqualTo("PA"));
+            Assert.That(page.Zip, Does.EndWith("-1234"));
+            Assert.That(page.ErrorMessage, Is.EqualTo(""));
+        }
+
         private static void AssertPinned(QuoteCase c)
         {
             JObject actual = QuoteFlow.Run(c);
             Assert.That(actual.Count, Is.GreaterThan(0), "the flow returned no services");
 
-            string expectedFile = Path.Combine(TestContext.CurrentContext.TestDirectory, "Recorded", "quotes", "expected", c.CaseId + ".json");
             if (Record)
             {
                 string source = Path.GetFullPath(Path.Combine(TestContext.CurrentContext.TestDirectory, "..", "..", "..", "..", "Tests", "Recorded", "quotes", "expected", c.CaseId + ".json"));
@@ -49,6 +69,13 @@ namespace FreightEstimator.QuoteTests
                 Assert.Inconclusive("Recorded " + source);
             }
 
+            AssertMatchesExpected(c, actual);
+        }
+
+        /// <summary>Compares what a flow produced with the pinned file for the case. Shared with the estimation service tests (#16).</summary>
+        internal static void AssertMatchesExpected(QuoteCase c, JObject actual)
+        {
+            string expectedFile = Path.Combine(TestContext.CurrentContext.TestDirectory, "Recorded", "quotes", "expected", c.CaseId + ".json");
             Assert.That(File.Exists(expectedFile), "no expected file for " + c.CaseId + "; run with QUOTETESTS_RECORD=1");
             JObject expected = JObject.Parse(File.ReadAllText(expectedFile));
 

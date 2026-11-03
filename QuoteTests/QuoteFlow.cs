@@ -1,5 +1,6 @@
 using AuthenticationServer.Controllers;
 using AuthenticationServer.Models;
+using AuthenticationServer.Models.Services;
 using FreightEstimator.Tests.Fakes;
 using Newtonsoft.Json.Linq;
 using System.Globalization;
@@ -16,6 +17,13 @@ namespace FreightEstimator.QuoteTests
     public static class QuoteFlow
     {
         public static JObject Run(QuoteCase c, bool multiplePlants = false, SandboxPlantCharges.Row[] schedule = null)
+        {
+            Shipment model = RunPage(c, multiplePlants, schedule);
+            return c.Kind == "ltl" ? Ltl(model) : Ups(c, model);
+        }
+
+        /// <summary>The Shipment the Plant page hands to its view after the quote: the rates plus whatever UPS corrected about the address.</summary>
+        public static Shipment RunPage(QuoteCase c, bool multiplePlants = false, SandboxPlantCharges.Row[] schedule = null)
         {
             // GRID 1 asks UPS "Shop" whenever there are 50 packages or fewer; GRID 2 (Ground Freight)
             // additionally asks "Rate". Cases that are not about GRID 1 answer Shop with an unrelated
@@ -67,16 +75,71 @@ namespace FreightEstimator.QuoteTests
                 Thread.CurrentThread.CurrentCulture = previousCulture;
             }
 
-            var model = (Shipment)((ViewResult)result).Model;
-            return c.Kind == "ltl" ? Ltl(model) : Ups(c, model);
+            return (Shipment)((ViewResult)result).Model;
         }
+
+        /// <summary>
+        /// Runs the same recorded quote through the UPS estimation service directly (#16), with the same carrier
+        /// fake and SANDBOX charge schedule as <see cref="Run"/>, and returns it in the same shape. The request is
+        /// handed back so a test can check the service left it alone.
+        /// </summary>
+        public static JObject RunService(QuoteCase c, UpsQuoteRequest request = null, FakeCarrierHttp fake = null)
+        {
+            request = request ?? RequestFor(c);
+            fake = fake ?? FakeFor(c);
+
+            CultureInfo previousCulture = Thread.CurrentThread.CurrentCulture;
+            Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+            UpsQuoteResult result;
+            try
+            {
+                using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+                using (fake.Install())
+                {
+                    result = new UpsEstimationService().Quote(request);
+                }
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentCulture = previousCulture;
+            }
+
+            return Ups(c.Kind == "parcel" ? result.Parcel.UPSServices : result.GroundFreight.UPSServices);
+        }
+
+        public static UpsQuoteRequest RequestFor(QuoteCase c) => new UpsQuoteRequest
+        {
+            PlantCode = c.Plant,
+            Address = "1 Main St",
+            City = "Anytown",
+            State = c.ShipToState,
+            Zip = c.ShipToZip,
+            Country = "US",
+            NumberOfPackages = c.Packages,
+            PackageWeight = c.PackageWeight,
+            LastPackageWeight = c.LastPackageWeight,
+            AccountNumber = "0",
+            IncludeParcel = c.Kind == "parcel",
+            IncludeGroundFreight = c.Kind == "groundfreight",
+            QuoteId = Guid.NewGuid()
+        };
+
+        public static FakeCarrierHttp FakeFor(QuoteCase c) => new FakeCarrierHttp()
+            .Replay("security", "ups-token-response.json")
+            .Replay("addressvalidation", "ups-address-validation-commercial.json")
+            .RespondWith("rating/v2403/Shop", HttpStatusCode.OK, c.ResponseText)
+            .RespondWith("rating/v2403/Rate", HttpStatusCode.OK, c.ResponseText);
 
         private static JObject Ups(QuoteCase c, Shipment model)
         {
             UPSService[] services = c.Kind == "parcel"
                 ? model.shopCompareRates.SelectMany(r => r.UPSServices).ToArray()
                 : model.shopGroundFreightResponse.UPSServices;
+            return Ups(services);
+        }
 
+        private static JObject Ups(UPSService[] services)
+        {
             var quoted = new JObject();
             foreach (UPSService s in services.OrderBy(s => s.ServiceName, StringComparer.Ordinal))
             {
