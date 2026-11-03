@@ -13,6 +13,13 @@ namespace AuthenticationServer.Models.Services
         public decimal MarkupPercent { get; }
         public decimal Amount { get; }
 
+        /// <summary>
+        /// The Calculated Rate as it is shown or returned to a Consumer: half-up to the cent (half away from zero),
+        /// the rule signed off in #13 and recorded in docs/adr/0004. Rounding happens here, once, on the final
+        /// amount only; <see cref="Amount"/> and the components stay unrounded.
+        /// </summary>
+        public decimal RoundedAmount => System.Math.Round(Amount, 2, System.MidpointRounding.AwayFromZero);
+
         private CalculatedRate(decimal carrierRate, decimal perPackageCharge, decimal perShipmentCharge, decimal markupPercent, decimal amount)
         {
             CarrierRate = carrierRate;

@@ -25,6 +25,21 @@ namespace AuthenticationServer.Models.Services
         public string ContentType { get; set; }
         public string Body { get; set; }
         public Dictionary<string, string> Headers { get; } = new Dictionary<string, string>();
+
+        /// <summary>
+        /// How long to wait for the carrier, in milliseconds. 0 leaves the framework's default (100 seconds), which is
+        /// what the Plant page has always used; the Quote API sets a shorter one so a slow carrier cannot hang a Consumer.
+        /// </summary>
+        public int TimeoutMs { get; set; }
+    }
+
+    /// <summary>
+    /// The carrier did not answer at all: a timeout, or a connection that could not be made. Not the same as a carrier
+    /// that answered with an error, which comes back as a response.
+    /// </summary>
+    public class CarrierUnavailableException : System.Exception
+    {
+        public CarrierUnavailableException(string message, System.Exception inner) : base(message, inner) { }
     }
 
     public class CarrierHttpResponse
@@ -72,6 +87,11 @@ namespace AuthenticationServer.Models.Services
             HttpWebRequest webRequest = (HttpWebRequest)WebRequest.Create(request.Url);
             webRequest.Method = "POST";
             webRequest.ContentType = request.ContentType;
+            if (request.TimeoutMs > 0)
+            {
+                webRequest.Timeout = request.TimeoutMs;
+                webRequest.ReadWriteTimeout = request.TimeoutMs;
+            }
             foreach (KeyValuePair<string, string> header in request.Headers)
             {
                 webRequest.Headers.Add(header.Key, header.Value);

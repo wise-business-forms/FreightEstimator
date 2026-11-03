@@ -18,6 +18,9 @@ namespace AuthenticationServer.Models.Services
         /// </summary>
         public const string LtlServiceName = "LTL";
 
+        /// <summary>Routing name for UPS Ground Freight (GRID2), which has its own carrier in the charge data.</summary>
+        public const string GroundFreightServiceName = "UPSGroundFreight";
+
         public PlantServiceCharges GetCharges(string plantCode, string serviceName, bool isCwtEligible)
         {
             if (serviceName == LtlServiceName)
@@ -28,6 +31,19 @@ namespace AuthenticationServer.Models.Services
                     MarkupPercent = LookUp(ltlRateCalculations.UpchargeGround, plantCode),
                     PerPackageCharge = LookUp(ltlRateCalculations.PerPackageCharge, plantCode),
                     PerShipmentCharge = LookUp(ltlRateCalculations.PerShipmentCharge, plantCode)
+                };
+            }
+
+            if (serviceName == GroundFreightServiceName)
+            {
+                // Ground Freight (GRID2) is priced entirely from the "GF" carrier: markup, per-package and
+                // per-shipment charge, as the live GRID2 formula does. It used to take the flat charges from "UPS" (F5).
+                RateCalculations groundFreight = new RateCalculations(0, RateCalculations.Carriers.GF);
+                return new PlantServiceCharges
+                {
+                    MarkupPercent = LookUp(groundFreight.UpchargeGround, plantCode),
+                    PerPackageCharge = LookUp(groundFreight.PerPackageCharge, plantCode),
+                    PerShipmentCharge = LookUp(groundFreight.PerShipmentCharge, plantCode)
                 };
             }
 
@@ -65,8 +81,6 @@ namespace AuthenticationServer.Models.Services
                     return isCwtEligible ? rateCalculations.UpchargeNextDayAirEarlyAMCWT : rateCalculations.UpchargeNextDayAirEarlyAM;
                 case "SecondDayAirAM":
                     return isCwtEligible ? rateCalculations.UpchargeSecondDayAirAMCWT : rateCalculations.UpchargeSecondDayAirAM;
-                case "UPSGroundFreight":
-                    return new RateCalculations(0, RateCalculations.Carriers.GF).UpchargeGround;
                 default:
                     return new Dictionary<string, string>();
             }

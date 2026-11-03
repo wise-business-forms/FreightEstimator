@@ -68,6 +68,32 @@ namespace AuthenticationServer.Models
         }
 
         /// <summary>
+        /// Builds a calculation record from the unified Calculated Rate module (ADR 0003), as the Quote API logs it.
+        /// The Calculated Rate is the rounded amount a Consumer is given; the components are as the module applied them.
+        /// </summary>
+        public static QuoteServiceCalculation FromCalculatedRate(
+            Guid quoteId, string carrier, string plantCode, string userName, string serviceName, Services.CalculatedRate rate)
+        {
+            if (rate == null) return null;
+
+            return new QuoteServiceCalculation
+            {
+                QuoteId = quoteId,
+                Carrier = carrier,
+                PlantCode = plantCode,
+                UserName = userName,
+                ServiceCode = Enum.TryParse<UPSService.ServiceCode>(serviceName, out var code) ? ((int)code).ToString("00") : null,
+                ServiceName = serviceName,
+                CarrierRate = rate.CarrierRate,
+                IsNegotiatedRate = null,
+                PerPackageCharge = rate.PerPackageCharge,
+                PerShipmentCharge = rate.PerShipmentCharge,
+                MarkupPercent = rate.MarkupPercent,
+                CalculatedRate = rate.RoundedAmount
+            };
+        }
+
+        /// <summary>
         /// Builds a calculation record from the Logistics Partner (LTL/TransportInsight) markup
         /// math exactly as PlantController.GetLessThanTruckloadRates_TI already computes it.
         /// Returns null if the final rate can't be read, rather than persisting a bad row.

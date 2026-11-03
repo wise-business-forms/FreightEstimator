@@ -90,5 +90,38 @@ namespace FreightEstimator.Tests
             // 100 + 100*0.05 + 1*1 + 2 = 108, not the ALP plant's numbers
             Assert.That(result.Amount, Is.EqualTo(108m));
         }
+
+        // The rounding rule signed off in #13 (docs/adr/0004): half-up to the cent, half away from zero, applied
+        // once, to the final Calculated Rate only. Components stay unrounded.
+        [TestCase("10.005", "10.01")]
+        [TestCase("10.004", "10.00")]
+        [TestCase("10.015", "10.02")]
+        [TestCase("-10.005", "-10.01")]
+        public void RoundsTheFinalAmountHalfAwayFromZeroToTheCent(string carrierRate, string expected)
+        {
+            IChargeSchedule chargeSchedule = new InMemoryChargeSchedule();
+            RatingContext context = new RatingContext { PlantCode = "ALP", ServiceName = "UPSGroundFreight", PackageCount = 1, IsCwtEligible = false };
+
+            CalculatedRate result = CalculatedRate.Apply(decimal.Parse(carrierRate), chargeSchedule, context);
+
+            Assert.That(result.RoundedAmount, Is.EqualTo(decimal.Parse(expected)));
+        }
+
+        [Test]
+        public void RoundingLeavesTheUnroundedAmountAndTheComponentsAlone()
+        {
+            IChargeSchedule chargeSchedule = new InMemoryChargeSchedule()
+                .With("ALP", "UPSGroundFreight", isCwtEligible: false, markupPercent: 3.333m, perPackageCharge: 1.115m, perShipmentCharge: 0.0049m);
+            RatingContext context = new RatingContext { PlantCode = "ALP", ServiceName = "UPSGroundFreight", PackageCount = 2, IsCwtEligible = false };
+
+            CalculatedRate result = CalculatedRate.Apply(100m, chargeSchedule, context);
+
+            // 100 + 100*0.03333 + 1.115*2 + 0.0049 = 105.5679
+            Assert.That(result.Amount, Is.EqualTo(105.5679m));
+            Assert.That(result.RoundedAmount, Is.EqualTo(105.57m));
+            Assert.That(result.MarkupPercent, Is.EqualTo(3.333m));
+            Assert.That(result.PerPackageCharge, Is.EqualTo(1.115m));
+            Assert.That(result.PerShipmentCharge, Is.EqualTo(0.0049m));
+        }
     }
 }

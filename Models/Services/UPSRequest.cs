@@ -15,6 +15,19 @@ using System.Text.Json.Nodes;
 
 namespace AuthenticationServer.Models.Services
 {
+    /// <summary>How a UPS call treats a carrier that cannot be reached.</summary>
+    public class UpsCallOptions
+    {
+        /// <summary>Milliseconds to wait for UPS on each call. 0 is the framework default.</summary>
+        public int TimeoutMs { get; set; }
+
+        /// <summary>
+        /// Throw <see cref="CarrierUnavailableException"/> when UPS does not answer at all, instead of carrying on
+        /// with the failure text as if it were UPS's reply (which is what the Plant page has always done).
+        /// </summary>
+        public bool ThrowWhenCarrierDoesNotAnswer { get; set; }
+    }
+
     public class UPSRequest { 
 
         private string _response = String.Empty;
@@ -28,6 +41,8 @@ namespace AuthenticationServer.Models.Services
         public enum RateClassification { Published, Negotiated }
         int _counter = 0;
 
+        private readonly UpsCallOptions _options;
+
         public UPSRequest() { }
         /// <summary>
         /// Builds the response object from the UPS API.  This should be used to build the shipment and other objects needed.
@@ -36,7 +51,12 @@ namespace AuthenticationServer.Models.Services
         /// <param name="plant"></param>
         /// <param name="requestOption"></param>
         public UPSRequest(Shipment shipment, Plant plant, RequestOption requestOption, RateClassification rateClassification)
+            : this(shipment, plant, requestOption, rateClassification, null) { }
+
+        /// <param name="options">How to treat a carrier that does not answer. Null is the Plant page's behaviour, unchanged.</param>
+        public UPSRequest(Shipment shipment, Plant plant, RequestOption requestOption, RateClassification rateClassification, UpsCallOptions options)
         {
+            _options = options;
             _shipment = shipment;
 
             // For rating without address.
@@ -195,7 +215,8 @@ namespace AuthenticationServer.Models.Services
                     {
                         Url = url,
                         ContentType = "application/json",
-                        Body = rateRequest
+                        Body = rateRequest,
+                        TimeoutMs = _options?.TimeoutMs ?? 0
                     };
                     request.Headers["Authorization"] = "Bearer " + GetToken();
 
@@ -218,6 +239,10 @@ namespace AuthenticationServer.Models.Services
                     // No reply at all (timeout, connection failure): an error status comes back as a response above.
                     _response = ex.Message.ToString();
                     Log.LogRequest_Rate("", _shipment.Address, _shipment.City ?? string.Empty, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, ex.Message, "");
+                    if (_options != null && _options.ThrowWhenCarrierDoesNotAnswer)
+                    {
+                        throw new CarrierUnavailableException("UPS did not answer: " + ex.Message, ex);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -444,7 +469,8 @@ namespace AuthenticationServer.Models.Services
             {
                 Url = url,
                 ContentType = "application/x-www-form-urlencoded",
-                Body = req
+                Body = req,
+                TimeoutMs = _options?.TimeoutMs ?? 0
             };
             oRequest.Headers["Authorization"] = "Basic " + base64;
             oRequest.Headers["x-merchant-id"] = Configuration.ShipFromShipperNumber;
@@ -459,6 +485,10 @@ namespace AuthenticationServer.Models.Services
                     JsonElement root = doc.RootElement;
                     sToken = root.GetProperty("access_token").GetString();
                 }
+            }
+            catch (WebException ex) when (_options != null && _options.ThrowWhenCarrierDoesNotAnswer && ex.Status != WebExceptionStatus.ProtocolError)
+            {
+                throw new CarrierUnavailableException("UPS did not answer: " + ex.Message, ex);
             }
             catch (Exception ex)
             {
@@ -590,8 +620,17 @@ namespace AuthenticationServer.Models.Services
 
             // Add the packages...
 
+            // The caller listed every package's weight (the Quote API): send exactly those.
+            if (shipment.PackageWeights != null && shipment.PackageWeights.Count > 0)
+            {
+                for (int p = 0; p < shipment.PackageWeights.Count; p++)
+                {
+                    sb.Append(Package(shipment.PackageWeights[p], requestOption, shipment.freight_class_selected.ToString()));
+                    if (p < shipment.PackageWeights.Count - 1) sb.Append(", ");
+                }
+            }
             // if there is a last package....
-            if (shipment.last_package_weight > 0)
+            else if (shipment.last_package_weight > 0)
             {
                 for (int p = 1; p <= shipment.number_of_packages - 1; p++)
                 {

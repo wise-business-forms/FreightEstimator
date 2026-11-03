@@ -32,6 +32,15 @@ namespace AuthenticationServer.Models.Services
         public float PackageWeight { get; set; }
         public float LastPackageWeight { get; set; }
 
+        /// <summary>
+        /// Every package's weight, when the caller has them one by one (the Quote API). When set it replaces
+        /// NumberOfPackages, PackageWeight and LastPackageWeight, and UPS is quoted for exactly these packages.
+        /// </summary>
+        public List<float> PackageWeights { get; set; }
+
+        /// <summary>Milliseconds UPS gets to answer each call. 0 leaves the framework's default, which is what the Plant page uses.</summary>
+        public int TimeoutMs { get; set; }
+
         /// <summary>UPS parcel services (GRID 1, single plant).</summary>
         public bool IncludeParcel { get; set; }
         /// <summary>UPS Ground Freight (GRID 2).</summary>
@@ -64,6 +73,32 @@ namespace AuthenticationServer.Models.Services
         public string[] AlertMessages { get; set; }
         public int NumberOfPackages { get; set; }
         public float PackageWeight { get; set; }
+    }
+
+    /// <summary>Whether a carrier could be asked, per carrier, as the Quote API reports it.</summary>
+    public enum CarrierStatus
+    {
+        /// <summary>The carrier answered with rates.</summary>
+        Ok,
+        /// <summary>The carrier did not answer at all (a timeout, or no connection).</summary>
+        Unavailable,
+        /// <summary>The carrier answered, but with an error or with something that could not be used.</summary>
+        Error
+    }
+
+    /// <summary>The outcome of asking UPS for Ground Freight on behalf of the Quote API.</summary>
+    public class UpsGroundFreightEstimate
+    {
+        public CarrierStatus Status { get; set; }
+
+        /// <summary>Why the carrier is not Ok, in the carrier's words where it gave any. Null when Ok.</summary>
+        public string Message { get; set; }
+
+        /// <summary>The Calculated Rate from the unified module, with the Carrier Rate and Plant Charges that built it. Null unless Ok.</summary>
+        public CalculatedRate CalculatedRate { get; set; }
+
+        /// <summary>UPS's Address Classification of the destination (CONTEXT.md), when its address check answered.</summary>
+        public string AddressClassification { get; set; }
     }
 
     public class UpsQuoteResult
@@ -128,6 +163,75 @@ namespace AuthenticationServer.Models.Services
             return result;
         }
 
+        /// <summary>
+        /// Ground Freight (GRID 2) for the Quote API: the Calculated Rate comes from the unified module (ADR 0003),
+        /// rounded once to the cent (ADR 0004), and is logged per service per Quote as the Plant page's are. The
+        /// Plant page does not use this; it keeps the legacy formula in <see cref="Quote"/> until its own cutover.
+        /// A carrier that does not answer, or answers badly, is reported in the estimate rather than thrown.
+        /// </summary>
+        public UpsGroundFreightEstimate EstimateGroundFreight(UpsQuoteRequest request)
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+
+            Shipment shipment = WorkingShipment(request);
+            var options = new UpsCallOptions { TimeoutMs = request.TimeoutMs, ThrowWhenCarrierDoesNotAnswer = true };
+
+            UPSService[] services;
+            try
+            {
+                UPSRequest ups = new UPSRequest(shipment, new Plant { Id = shipment.PlantId }, UPSRequest.RequestOption.Rate, UPSRequest.RateClassification.Negotiated, options);
+                services = ups.UPSServices;
+            }
+            catch (CarrierUnavailableException)
+            {
+                // The reason stays in the log; a Consumer is not shown exception text, which can name our hosts.
+                return Failed(CarrierStatus.Unavailable, "UPS did not answer in time.", shipment);
+            }
+            catch (Exception ex)
+            {
+                // UPS answered with something the legacy request path cannot read (not the JSON it documents, or a
+                // shape it does not expect): the carrier is in error, and that must not fail the Quote.
+                System.Diagnostics.Trace.TraceWarning("UPS Ground Freight reply could not be used: " + ex.Message);
+                return Failed(CarrierStatus.Error, "UPS returned a reply that could not be used.", shipment);
+            }
+
+            if (services == null || services.Length == 0)
+            {
+                // "Address not validated" is not an error from UPS: it lets the request through, so it is not the reason there are no rates.
+                bool haveUpsReason = !string.IsNullOrWhiteSpace(shipment.ErrorMessage) && shipment.ErrorMessage != "Address not validated";
+                return Failed(CarrierStatus.Error, haveUpsReason ? shipment.ErrorMessage : "UPS returned no rates.", shipment);
+            }
+
+            if (services[0].CustomerRate <= 0)
+            {
+                return Failed(CarrierStatus.Error, "UPS returned no usable rate.", shipment);
+            }
+
+            decimal carrierRate = (decimal)services[0].CustomerRate;
+            CalculatedRate calculated = CalculatedRate.Apply(carrierRate, new RateCalculationsChargeSchedule(), new RatingContext
+            {
+                PlantCode = shipment.PlantId,
+                ServiceName = RateCalculationsChargeSchedule.GroundFreightServiceName,
+                PackageCount = shipment.number_of_packages,
+                IsCwtEligible = false // Ground Freight has no CWT pricing: the live GRID2 formula never applies it.
+            });
+
+            try
+            {
+                Log.LogQuoteServiceCalculation(QuoteServiceCalculation.FromCalculatedRate(
+                    shipment.QuoteId, ServiceCatalog.Ups, shipment.PlantId, shipment.user_name, RateCalculationsChargeSchedule.GroundFreightServiceName, calculated));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceWarning("Logging the Ground Freight Calculated Rate failed: " + ex.Message);
+            }
+
+            return new UpsGroundFreightEstimate { Status = CarrierStatus.Ok, CalculatedRate = calculated, AddressClassification = shipment.Address_Classification };
+        }
+
+        private static UpsGroundFreightEstimate Failed(CarrierStatus status, string message, Shipment shipment) =>
+            new UpsGroundFreightEstimate { Status = status, Message = message, AddressClassification = shipment.Address_Classification };
+
         /// <summary>Billing weight as the Plant page has always computed it.</summary>
         public static float BillingWeight(int numberOfPackages, float packageWeight, float lastPackageWeight)
         {
@@ -177,6 +281,7 @@ namespace AuthenticationServer.Models.Services
 
         private static Shipment WorkingShipment(UpsQuoteRequest request)
         {
+            bool listed = request.PackageWeights != null && request.PackageWeights.Count > 0;
             return new Shipment
             {
                 PlantId = request.PlantCode,
@@ -188,10 +293,11 @@ namespace AuthenticationServer.Models.Services
                 State_selection = request.State,
                 Zip = request.Zip,
                 Country_selection = request.Country,
-                number_of_packages = request.NumberOfPackages,
-                package_weight = request.PackageWeight,
-                last_package_weight = request.LastPackageWeight,
-                billing_weight = BillingWeight(request.NumberOfPackages, request.PackageWeight, request.LastPackageWeight)
+                number_of_packages = listed ? request.PackageWeights.Count : request.NumberOfPackages,
+                package_weight = listed ? request.PackageWeights[0] : request.PackageWeight,
+                last_package_weight = listed ? 0 : request.LastPackageWeight,
+                billing_weight = listed ? request.PackageWeights.Sum() : BillingWeight(request.NumberOfPackages, request.PackageWeight, request.LastPackageWeight),
+                PackageWeights = listed ? new List<float>(request.PackageWeights) : null
             };
         }
 

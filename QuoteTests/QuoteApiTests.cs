@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Web.Http;
+using AuthenticationServer.Models.Services;
 using FreightEstimator.Tests.Fakes;
 using Newtonsoft.Json.Linq;
 
@@ -202,7 +203,288 @@ namespace FreightEstimator.QuoteTests
             }
         }
 
+        // ---- Ground Freight (GRID2) available through the API (#19) --------------------------------------------
+
+        public static IEnumerable<TestCaseData> GroundFreightCases() =>
+            QuoteCase.All("groundfreight").Select(c => new TestCaseData(c).SetName("groundfreight " + c.CaseId + " " + c.Plant + " " + c.Packages + " pkgs"));
+
+        [TestCaseSource(nameof(GroundFreightCases))]
+        public void GroundFreightIsAvailableAndReturnsTheRoundedCalculatedRateWithItsBreakdown(QuoteCase c)
+        {
+            UpsReplies(c);
+            JObject body = GroundFreightRequest(c);
+
+            using (ServiceCatalog.Use("UPSGroundFreight"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                JObject quote = JObject.Parse(Body(Post(body, _consumer.ApiKey)));
+
+                JToken service = quote["services"].Single();
+                Assert.That((string)service["service"], Is.EqualTo("UPSGroundFreight"));
+                Assert.That((string)service["availability"], Is.EqualTo("available"));
+
+                // The Plant page shows the same Calculated Rate for this shipment (pinned in #15), unrounded;
+                // the API returns it rounded half-up to the cent (#13).
+                decimal onThePlantPage = (decimal)JObject.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Recorded", "quotes", "expected", c.CaseId + ".json")))
+                    .Properties().Single().Value["calculatedRate"];
+                Assert.That((decimal)service["calculatedRate"], Is.EqualTo(Math.Round(onThePlantPage, 2, MidpointRounding.AwayFromZero)));
+
+                // The breakdown: the Carrier Rate before our charges, and the Plant Charges applied, unrounded.
+                // SANDBOX's GF row for the plant is 5% markup, 2.00 per package, 5.00 per shipment (KnownSchedule).
+                Assert.That((decimal)service["carrierRate"], Is.GreaterThan(0m));
+                Assert.That((decimal)service["plantCharges"]["markupPercent"], Is.EqualTo(5m));
+                Assert.That((decimal)service["plantCharges"]["perPackageCharge"], Is.EqualTo(2m));
+                Assert.That((decimal)service["plantCharges"]["perShipmentCharge"], Is.EqualTo(5m));
+
+                Assert.That(quote["carriers"].Select(k => (string)k["carrier"] + ":" + (string)k["status"]), Is.EqualTo(new[] { "UPS:ok" }));
+                Assert.That((string)quote["addressClassification"], Is.EqualTo("Commercial"));
+                Assert.That(quote["warnings"], Is.Empty);
+            }
+        }
+
+        [Test]
+        public void TheCalculatedRateIsLoggedPerServicePerQuoteAsForPlantPageQuotes()
+        {
+            QuoteCase c = QuoteCase.All("groundfreight").First();
+            UpsReplies(c);
+
+            using (ServiceCatalog.Use("UPSGroundFreight"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                JObject quote = JObject.Parse(Body(Post(GroundFreightRequest(c), _consumer.ApiKey)));
+
+                var logged = _consumer.Calculations(Guid.Parse((string)quote["quoteId"])).Single();
+                Assert.That(logged.Carrier, Is.EqualTo("UPS"));
+                Assert.That(logged.ServiceName, Is.EqualTo("UPSGroundFreight"));
+                Assert.That(logged.PlantCode, Is.EqualTo(c.Plant));
+                Assert.That(logged.UserName, Is.EqualTo(_consumer.Name), "the Consumer replaces the Plant page's 'TBD' requester");
+                Assert.That(logged.CalculatedRate, Is.EqualTo((decimal)quote["services"][0]["calculatedRate"]));
+                Assert.That(logged.CarrierRate, Is.EqualTo((decimal)quote["services"][0]["carrierRate"]));
+                Assert.That(logged.MarkupPercent, Is.EqualTo(5m));
+                Assert.That(logged.PerPackageCharge, Is.EqualTo(2m));
+                Assert.That(logged.PerShipmentCharge, Is.EqualTo(5m));
+            }
+        }
+
+        [Test]
+        public void GroundFreightIsNotAvailableUntilItIsSwitchedOn_AndUpsIsNotCalled()
+        {
+            QuoteCase c = QuoteCase.All("groundfreight").First();
+            UpsReplies(c);
+
+            JObject quote = JObject.Parse(Body(Post(GroundFreightRequest(c), _consumer.ApiKey)));
+
+            Assert.That((string)quote["services"][0]["availability"], Is.EqualTo("notAvailable"));
+            Assert.That(quote["services"][0]["calculatedRate"], Is.Null);
+            Assert.That(_carriers.Requests, Is.Empty);
+        }
+
+        [Test]
+        public void UpsIsNotCalledWhenNoUpsServiceWasAskedFor()
+        {
+            QuoteCase c = QuoteCase.All("groundfreight").First();
+            UpsReplies(c);
+            JObject body = GroundFreightRequest(c);
+            body["services"] = new JArray("LTL");
+
+            using (ServiceCatalog.Use("UPSGroundFreight"))
+            {
+                JObject quote = JObject.Parse(Body(Post(body, _consumer.ApiKey)));
+
+                Assert.That(quote["services"].Select(s => (string)s["service"]), Is.EqualTo(new[] { "LTL" }));
+                Assert.That(quote["carriers"], Is.Empty);
+                Assert.That(_carriers.Requests, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void AUpsTimeoutIsA200WithTheCarrierUnavailable_AndTheQuoteStillLogged()
+        {
+            QuoteCase c = QuoteCase.All("groundfreight").First();
+            _carriers.Replay("security", "ups-token-response.json").Replay("addressvalidation", "ups-address-validation-commercial.json").TimeOut("rating/v2403/Rate");
+
+            using (ServiceCatalog.Use("UPSGroundFreight"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                HttpResponseMessage response = Post(GroundFreightRequest(c), _consumer.ApiKey);
+
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                JObject quote = JObject.Parse(Body(response));
+                Assert.That(quote["carriers"].Select(k => (string)k["carrier"] + ":" + (string)k["status"]), Is.EqualTo(new[] { "UPS:unavailable" }));
+                Assert.That(quote["services"][0]["calculatedRate"], Is.Null, "no number when the carrier did not answer");
+                Assert.That(_consumer.Quotes().Select(q => q.QuoteId.ToString()), Is.EqualTo(new[] { (string)quote["quoteId"] }));
+                Assert.That(_consumer.Calculations(Guid.Parse((string)quote["quoteId"])), Is.Empty);
+            }
+        }
+
+        [Test]
+        public void AUpsTimeoutOnTheAddressCheckIsAlsoUnavailable()
+        {
+            QuoteCase c = QuoteCase.All("groundfreight").First();
+            _carriers.Replay("security", "ups-token-response.json").TimeOut("addressvalidation");
+
+            using (ServiceCatalog.Use("UPSGroundFreight"))
+            {
+                JObject quote = JObject.Parse(Body(Post(GroundFreightRequest(c), _consumer.ApiKey)));
+
+                Assert.That((string)quote["carriers"][0]["status"], Is.EqualTo("unavailable"));
+            }
+        }
+
+        [Test]
+        public void AUpsErrorReplyIsA200WithTheCarrierInError()
+        {
+            QuoteCase c = QuoteCase.All("groundfreight").First();
+            _carriers.Replay("security", "ups-token-response.json").Replay("addressvalidation", "ups-address-validation-commercial.json")
+                .RespondWith("rating/v2403/Rate", HttpStatusCode.BadRequest,
+                    "{\"response\":{\"errors\":[{\"code\":\"111210\",\"message\":\"The requested service is unavailable between the selected locations.\"}]}}");
+
+            using (ServiceCatalog.Use("UPSGroundFreight"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                HttpResponseMessage response = Post(GroundFreightRequest(c), _consumer.ApiKey);
+
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                JObject quote = JObject.Parse(Body(response));
+                Assert.That((string)quote["carriers"][0]["status"], Is.EqualTo("error"));
+                Assert.That((string)quote["carriers"][0]["message"], Does.Contain("unavailable between the selected locations"));
+                Assert.That(quote["services"][0]["calculatedRate"], Is.Null);
+                Assert.That(_consumer.Quotes(), Has.Count.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void AUpsReplyThatCannotBeUsedIsA200WithTheCarrierInError_NotA500()
+        {
+            QuoteCase c = QuoteCase.All("groundfreight").First();
+            _carriers.Replay("security", "ups-token-response.json").Replay("addressvalidation", "ups-address-validation-commercial.json")
+                .RespondWith("rating/v2403/Rate", HttpStatusCode.OK, "{}");
+
+            using (ServiceCatalog.Use("UPSGroundFreight"))
+            {
+                HttpResponseMessage response = Post(GroundFreightRequest(c), _consumer.ApiKey);
+
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                JObject quote = JObject.Parse(Body(response));
+                Assert.That((string)quote["carriers"][0]["status"], Is.EqualTo("error"));
+                Assert.That(quote["services"][0]["calculatedRate"], Is.Null);
+                Assert.That(_consumer.Quotes(), Has.Count.EqualTo(1), "the Quote is still logged");
+            }
+        }
+
+        [Test]
+        public void ARateOfZeroIsNotQuotedAsIfItWereAPrice()
+        {
+            QuoteCase c = QuoteCase.All("groundfreight").First();
+            _carriers.Replay("security", "ups-token-response.json").Replay("addressvalidation", "ups-address-validation-commercial.json")
+                .RespondWith("rating/v2403/Rate", HttpStatusCode.OK,
+                    "{\"RateResponse\":{\"Response\":{\"ResponseStatus\":{\"Code\":\"1\"},\"Alert\":[{\"Code\":\"1\",\"Description\":\"x\"}]},\"RatedShipment\":{\"Service\":{\"Code\":\"03\"},\"TotalCharges\":{\"CurrencyCode\":\"USD\",\"MonetaryValue\":\"0.00\"}}}}");
+
+            using (ServiceCatalog.Use("UPSGroundFreight"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                JObject quote = JObject.Parse(Body(Post(GroundFreightRequest(c), _consumer.ApiKey)));
+
+                Assert.That((string)quote["carriers"][0]["status"], Is.EqualTo("error"));
+                Assert.That(quote["services"][0]["calculatedRate"], Is.Null, "the plant's flat charges must not turn a missing rate into a price");
+                Assert.That(_consumer.Calculations(Guid.Parse((string)quote["quoteId"])), Is.Empty);
+            }
+        }
+
+        [Test]
+        public void TheUnavailableMessageDoesNotCarryExceptionTextOrHostNames()
+        {
+            QuoteCase c = QuoteCase.All("groundfreight").First();
+            _carriers.Replay("security", "ups-token-response.json").Replay("addressvalidation", "ups-address-validation-commercial.json").TimeOut("rating/v2403/Rate");
+
+            using (ServiceCatalog.Use("UPSGroundFreight"))
+            {
+                JObject quote = JObject.Parse(Body(Post(GroundFreightRequest(c), _consumer.ApiKey)));
+
+                Assert.That((string)quote["carriers"][0]["message"], Is.EqualTo("UPS did not answer in time."));
+            }
+        }
+
+        [Test]
+        public void AnUnknownAddressClassificationAddsAWarning()
+        {
+            QuoteCase c = QuoteCase.All("groundfreight").First();
+            _carriers.Replay("security", "ups-token-response.json").Replay("addressvalidation", "ups-address-validation-unknown.json")
+                .RespondWith("rating/v2403/Rate", HttpStatusCode.OK, c.ResponseText);
+
+            using (ServiceCatalog.Use("UPSGroundFreight"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                JObject quote = JObject.Parse(Body(Post(GroundFreightRequest(c), _consumer.ApiKey)));
+
+                Assert.That((string)quote["addressClassification"], Is.EqualTo("Unknown"));
+                Assert.That(quote["warnings"].Select(w => (string)w["code"]), Is.EqualTo(new[] { "addressClassificationUnknown" }));
+                Assert.That((string)quote["warnings"][0]["message"], Does.Contain("residential"));
+                Assert.That(quote["services"][0]["calculatedRate"], Is.Not.Null, "a warning does not withhold the rate");
+            }
+        }
+
+        [Test]
+        public void AUpsFailureLeavesTheOtherRequestedServicesAsTheyWere()
+        {
+            QuoteCase c = QuoteCase.All("groundfreight").First();
+            _carriers.Replay("security", "ups-token-response.json").Replay("addressvalidation", "ups-address-validation-commercial.json").TimeOut("rating/v2403/Rate");
+            JObject body = GroundFreightRequest(c);
+            body["services"] = new JArray("UPSGroundFreight", "LTL");
+
+            using (ServiceCatalog.Use("UPSGroundFreight"))
+            {
+                HttpResponseMessage response = Post(body, _consumer.ApiKey);
+
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                JObject quote = JObject.Parse(Body(response));
+                Assert.That(quote["services"].Select(s => (string)s["service"] + ":" + (string)s["availability"]),
+                    Is.EqualTo(new[] { "UPSGroundFreight:available", "LTL:notAvailable" }));
+            }
+        }
+
+        [Test]
+        public void EachPackageWeightInTheRequestReachesUps()
+        {
+            QuoteCase c = QuoteCase.All("groundfreight").First();
+            UpsReplies(c);
+            JObject body = GroundFreightRequest(c);
+            body["packages"] = new JArray(new JObject { ["weight"] = 31 }, new JObject { ["weight"] = 17 }, new JObject { ["weight"] = 9 });
+
+            using (ServiceCatalog.Use("UPSGroundFreight"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                Post(body, _consumer.ApiKey);
+
+                // Three different weights cannot be told to UPS as "n packages and a last one"; each goes through as given.
+                string rateRequest = _carriers.Requests.Single(r => r.Url.Contains("rating/v2403/Rate")).Body;
+                var weights = JObject.Parse(rateRequest)["RateRequest"]["Shipment"]["Package"].Select(p => (string)p["PackageWeight"]["Weight"]).ToArray();
+                Assert.That(weights, Is.EqualTo(new[] { "31", "17", "9" }));
+                Assert.That((string)JObject.Parse(rateRequest)["RateRequest"]["Shipment"]["NumOfPieces"], Is.EqualTo("3"));
+            }
+        }
+
         // ---- helpers --------------------------------------------------------------------------------------------
+
+        private void UpsReplies(QuoteCase c) =>
+            _carriers.Replay("security", "ups-token-response.json")
+                .Replay("addressvalidation", "ups-address-validation-commercial.json")
+                .RespondWith("rating/v2403/Rate", HttpStatusCode.OK, c.ResponseText);
+
+        /// <summary>A Quote request for what a recorded Ground Freight case shipped, packages listed one by one.</summary>
+        private static JObject GroundFreightRequest(QuoteCase c)
+        {
+            var packages = new JArray();
+            for (int i = 0; i < c.Packages - 1; i++) packages.Add(new JObject { ["weight"] = c.PackageWeight });
+            packages.Add(new JObject { ["weight"] = c.LastPackageWeight > 0 ? c.LastPackageWeight : c.PackageWeight });
+
+            JObject body = ValidRequest();
+            body["plantCode"] = c.Plant;
+            body["destination"] = new JObject { ["address"] = "1 Main St", ["city"] = "Anytown", ["state"] = c.ShipToState, ["postalCode"] = c.ShipToZip, ["country"] = "US" };
+            body["packages"] = packages;
+            body["services"] = new JArray("UPSGroundFreight");
+            return body;
+        }
 
         private static JObject ValidRequest() => JObject.Parse(@"{
             'plantCode': 'ALP',

@@ -52,6 +52,34 @@ namespace FreightEstimator.QuoteTests
             return rows;
         }
 
+        /// <summary>The per-service Calculated Rate rows logged for a Quote (dbo.QuoteServiceCalculation).</summary>
+        public List<CalculationRow> Calculations(Guid quoteId)
+        {
+            var rows = new List<CalculationRow>();
+            using (var conn = Open())
+            using (var cmd = new SqlCommand("SELECT Carrier, PlantCode, UserName, ServiceName, CarrierRate, PerPackageCharge, PerShipmentCharge, MarkupPercent, CalculatedRate FROM dbo.QuoteServiceCalculation WHERE QuoteId = @q ORDER BY ServiceName", conn))
+            {
+                cmd.Parameters.AddWithValue("@q", quoteId);
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                        rows.Add(new CalculationRow
+                        {
+                            Carrier = r.GetString(0),
+                            PlantCode = r.IsDBNull(1) ? null : r.GetString(1),
+                            UserName = r.IsDBNull(2) ? null : r.GetString(2),
+                            ServiceName = r.GetString(3),
+                            CarrierRate = r.IsDBNull(4) ? (decimal?)null : r.GetDecimal(4),
+                            PerPackageCharge = r.IsDBNull(5) ? (decimal?)null : r.GetDecimal(5),
+                            PerShipmentCharge = r.IsDBNull(6) ? (decimal?)null : r.GetDecimal(6),
+                            MarkupPercent = r.IsDBNull(7) ? (decimal?)null : r.GetDecimal(7),
+                            CalculatedRate = r.GetDecimal(8)
+                        });
+                }
+            }
+            return rows;
+        }
+
         public class QuoteRow
         {
             public Guid QuoteId;
@@ -59,10 +87,17 @@ namespace FreightEstimator.QuoteTests
             public string ReferenceNumber, PlantCode, RequestJson;
         }
 
+        public class CalculationRow
+        {
+            public string Carrier, PlantCode, UserName, ServiceName;
+            public decimal? CarrierRate, PerPackageCharge, PerShipmentCharge, MarkupPercent;
+            public decimal CalculatedRate;
+        }
+
         public void Dispose()
         {
             using (var conn = Open())
-            using (var cmd = new SqlCommand("DELETE FROM dbo.Quote WHERE ConsumerId = @c; DELETE FROM dbo.Consumer WHERE ConsumerId = @c", conn))
+            using (var cmd = new SqlCommand("DELETE c FROM dbo.QuoteServiceCalculation c JOIN dbo.Quote q ON q.QuoteId = c.QuoteId WHERE q.ConsumerId = @c; DELETE FROM dbo.Quote WHERE ConsumerId = @c; DELETE FROM dbo.Consumer WHERE ConsumerId = @c", conn))
             {
                 cmd.Parameters.AddWithValue("@c", ConsumerId);
                 cmd.ExecuteNonQuery();

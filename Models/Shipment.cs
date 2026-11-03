@@ -25,6 +25,13 @@ namespace AuthenticationServer.Models
         public int number_of_packages { get; set; }
         public float package_weight { get; set; }
         public float last_package_weight { get; set; }
+
+        /// <summary>
+        /// Every package's weight, when the caller has them one by one (the Quote API). When set, UPS is quoted for
+        /// exactly these packages and the count-plus-last-package fields above are not used to build the request.
+        /// The Plant page never sets it.
+        /// </summary>
+        public List<float> PackageWeights { get; set; }
         public string delivery_signature_required_selection { get; set; }
         public List<SelectListItem> delivery_signature_required { get; set; }
         public string multiple_location_rate_selection { get; set; }
