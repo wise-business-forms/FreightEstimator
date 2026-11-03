@@ -75,7 +75,7 @@ namespace AuthenticationServer.Models.Services
         /// <summary>UPS Ground Freight with its Calculated Rate. Null when not asked for.</summary>
         public ShopRateResponse GroundFreight { get; set; }
         /// <summary>What the UPS calls learned about the shipment. Null when no UPS call was made.</summary>
-        public UpsShipmentOutcome Shipment { get; set; }
+        public UpsShipmentOutcome Outcome { get; set; }
     }
 
     /// <summary>
@@ -124,7 +124,7 @@ namespace AuthenticationServer.Models.Services
             }
 
             // Only a UPS call can change the shipment, so there is nothing to report otherwise.
-            result.Shipment = askedUps ? Outcome(shipment) : null;
+            result.Outcome = askedUps ? Outcome(shipment) : null;
             return result;
         }
 

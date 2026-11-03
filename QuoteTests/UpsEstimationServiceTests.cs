@@ -61,11 +61,11 @@ namespace FreightEstimator.QuoteTests
             }
 
             // The recorded address validation answers "1 MAIN ST, PITTSBURGH PA 15201-1234, Commercial".
-            Assert.That(result.Shipment.AddressClassification, Is.EqualTo("Commercial"));
-            Assert.That(result.Shipment.CorrectedAddress, Is.EqualTo("1 MAIN ST"));
-            Assert.That(result.Shipment.CorrectedCity, Is.EqualTo("PITTSBURGH"));
-            Assert.That(result.Shipment.CorrectedState, Is.EqualTo("PA"));
-            Assert.That(result.Shipment.Zip, Does.EndWith("-1234"));
+            Assert.That(result.Outcome.AddressClassification, Is.EqualTo("Commercial"));
+            Assert.That(result.Outcome.CorrectedAddress, Is.EqualTo("1 MAIN ST"));
+            Assert.That(result.Outcome.CorrectedCity, Is.EqualTo("PITTSBURGH"));
+            Assert.That(result.Outcome.CorrectedState, Is.EqualTo("PA"));
+            Assert.That(result.Outcome.Zip, Does.EndWith("-1234"));
             Assert.That(request.Address, Is.EqualTo("1 Main St"));
             Assert.That(request.Zip, Is.EqualTo(c.ShipToZip));
         }

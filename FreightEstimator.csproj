@@ -267,6 +267,7 @@
     <Compile Include="Models\Services\RateResponse.cs" />
     <Compile Include="Models\Services\Test.cs" />
     <Compile Include="Models\Services\UPSRequest.cs" />
+    <Compile Include="Models\Services\LogisticsPartnerEstimationService.cs" />
     <Compile Include="Models\Services\UpsEstimationService.cs" />
     <Compile Include="Models\Services\XAVResponse.cs" />
     <Compile Include="Models\Geography.cs" />

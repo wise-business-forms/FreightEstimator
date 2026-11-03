@@ -56,6 +56,23 @@ namespace FreightEstimator.QuoteTests
             Assert.That(page.ErrorMessage, Is.EqualTo(""));
         }
 
+        /// <summary>
+        /// The LTL path has always changed the page's shipment: it shows "USA" for the country, an account, and keeps
+        /// what was exchanged with the Logistics Partner. Still true once LTL quoting lives in its service (#17).
+        /// </summary>
+        [Test]
+        public void ThePageShipmentStillCarriesWhatTheLogisticsPartnerPathChanged()
+        {
+            QuoteCase c = QuoteCase.All("ltl").First();
+
+            Shipment page = QuoteFlow.RunPage(c);
+
+            Assert.That(page.Country_selection, Is.EqualTo("USA"));
+            Assert.That(page.AcctNum, Is.EqualTo("0"));
+            Assert.That(page.requestMessage, Does.Contain("<service-request"));
+            Assert.That(page.responseMessage, Is.EqualTo(c.ResponseText));
+        }
+
         private static void AssertPinned(QuoteCase c)
         {
             JObject actual = QuoteFlow.Run(c);

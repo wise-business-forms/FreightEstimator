@@ -158,19 +158,21 @@ namespace FreightEstimator.QuoteTests
 
         // LTL (Logistics Partner): CustomerRate is the carrier's own total and TotalCost is the Calculated
         // Rate the page shows. A carrier can appear more than once (direct and indirect), so key by name + order.
-        private static JObject Ltl(Shipment model)
+        private static JObject Ltl(Shipment model) => Ltl(model.shopLessThanTruckloadResponseTransportInsight.UPSServices);
+
+        private static JObject Ltl(UPSService[] quoted)
         {
-            UPSService[] services = model.shopLessThanTruckloadResponseTransportInsight.UPSServices
+            UPSService[] services = quoted
                 .OrderBy(s => s.ServiceName, StringComparer.Ordinal)
                 .ThenBy(s => s.CustomerRate)
                 .ToArray();
 
-            var quoted = new JObject();
+            var result = new JObject();
             var seen = new Dictionary<string, int>();
             foreach (UPSService s in services)
             {
                 seen[s.ServiceName] = seen.TryGetValue(s.ServiceName, out int n) ? n + 1 : 1;
-                quoted[s.ServiceName + " #" + seen[s.ServiceName]] = new JObject
+                result[s.ServiceName + " #" + seen[s.ServiceName]] = new JObject
                 {
                     ["carrierRate"] = Math.Round(s.CustomerRate, 4),
                     ["calculatedRate"] = s.TotalCost,
@@ -179,7 +181,51 @@ namespace FreightEstimator.QuoteTests
                     ["perShipmentCharge"] = s.Plant_ShipmentCharge
                 };
             }
-            return quoted;
+            return result;
         }
+
+        /// <summary>
+        /// Runs the same recorded LTL quote through the Logistics Partner estimation service directly (#17), with the
+        /// same carrier fake and SANDBOX charge schedule as <see cref="Run"/>, in the same shape.
+        /// </summary>
+        public static JObject RunLtlService(QuoteCase c, LogisticsPartnerQuoteRequest request = null, FakeCarrierHttp fake = null)
+        {
+            request = request ?? LtlRequestFor(c);
+            fake = fake ?? LtlFakeFor(c);
+
+            CultureInfo previousCulture = Thread.CurrentThread.CurrentCulture;
+            Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+            try
+            {
+                using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+                using (fake.Install())
+                {
+                    return Ltl(new LogisticsPartnerEstimationService().Quote(request).Rates.UPSServices);
+                }
+            }
+            finally
+            {
+                Thread.CurrentThread.CurrentCulture = previousCulture;
+            }
+        }
+
+        public static LogisticsPartnerQuoteRequest LtlRequestFor(QuoteCase c) => new LogisticsPartnerQuoteRequest
+        {
+            PlantCode = c.Plant,
+            QuoteId = Guid.NewGuid(),
+            AccountNumber = "0",
+            CorrectedCity = "PITTSBURGH",   // what UPS's address check corrects "Anytown" to in the recorded response
+            State = c.ShipToState,
+            Zip = c.ShipToZip,
+            Country = "US",
+            NumberOfPackages = c.Packages,
+            PackageWeight = c.PackageWeight,
+            LastPackageWeight = c.LastPackageWeight,
+            FreightClass = c.FreightClass,
+            PickupDate = new DateTime(2026, 11, 3)
+        };
+
+        public static FakeCarrierHttp LtlFakeFor(QuoteCase c) => new FakeCarrierHttp()
+            .RespondWith(new Uri(AuthenticationServer.Models.Configuration.TransportInsightRateUrl).Host, HttpStatusCode.OK, c.ResponseText);
     }
 }
