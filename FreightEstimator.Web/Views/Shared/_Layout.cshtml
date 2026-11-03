@@ -1,0 +1,26 @@
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment Env
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>@ViewBag.Title - Freight Estimator</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="~/Content/bootstrap.css" rel="stylesheet" />
+    <link href="~/Content/Site.css" rel="stylesheet" />
+    <script src="~/Scripts/modernizr-2.8.3.js"></script>
+</head>
+<body class="body-content" style="@(Env.IsDevelopment() ? "padding-top: 70px;" : null)">
+    
+        <partial name="_DevBanner" />
+
+        @RenderBody()
+        <hr />
+        <footer>
+            <p>&copy; @DateTime.Now.Year - Wise Business Forms - Wise Answers Freight Estimator (WAFE)</p>
+        </footer>
+        <script src="~/Scripts/jquery-3.7.1.js"></script>
+        <script src="~/Scripts/bootstrap.js"></script>
+        @RenderSection("scripts", required: false)
+    </body>
+</html>

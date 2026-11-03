@@ -34,8 +34,17 @@ namespace AuthenticationServer.Models
 
         // Data connection strings come from the <connectionStrings> section of Web.config, which pulls them
         // from ConnectionStrings.*.config files kept out of the repo (see ConnectionStrings.Sandbox.config.example).
+        /// <summary>
+        /// Where a host that has no Web.config (ASP.NET Core, which reads IConfiguration) supplies the data connection
+        /// strings. Returns null or empty for a name it does not know, and then Web.config / app.config is read as before.
+        /// </summary>
+        public static Func<string, string> ConnectionStringSource { get; set; }
+
         static string ConnectionString(string name)
         {
+            string supplied = ConnectionStringSource?.Invoke(name);
+            if (!string.IsNullOrWhiteSpace(supplied)) return supplied;
+
             var setting = System.Configuration.ConfigurationManager.ConnectionStrings[name];
             if (setting == null || string.IsNullOrWhiteSpace(setting.ConnectionString))
                 throw new InvalidOperationException("Connection string '" + name + "' is not configured. See ConnectionStrings.Sandbox.config.example.");

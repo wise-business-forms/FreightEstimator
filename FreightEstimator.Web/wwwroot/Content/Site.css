@@ -1,0 +1,223 @@
+﻿.alt {
+        background: #E8E8E8;
+
+}
+
+.body-content {    
+    margin-left: 100px;
+    background: #f5f5f5;
+    font-family: "Lucida Grande", Lucida, Verdana, sans-serif;
+    font-size: 11px;
+}
+
+.btn {
+    background: #333;
+    border: none;
+    color: #FFF;
+    padding: 4px;
+    margin: 5px;
+    width: 200px;   
+}
+
+.btn:hover {
+    background: #CCC;
+    color: #333;
+}
+
+.calc-highlight-green {
+    background-color:darkgreen;
+    color: white;
+}
+
+.center-column {
+    text-align: center;
+}
+
+.confirmation-address {
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.confirmation-value {
+    color: #a83333;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.content-panel {
+    background: #ffffff;
+    margin: 10px 10px 10px 10px;
+}
+
+.debug-alt-column {
+    background-color: darkgray;
+    color: black;
+}
+.debug-title {
+    background-color: burlywood;
+    font-size: 26px;
+    font-weight: 900;
+    color: darkgreen;
+}
+
+.debug-column {
+    background-color: azure;
+    color: black;
+}
+
+.debug-column-header {
+    background-color:bisque;
+}
+
+.dev-banner {
+    background-color: #ffcccc;
+    color: #8b0000;
+    font-weight: bold;
+    padding: 40px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    border-bottom: 2px solid #8b0000; /* Add a border */
+    font-size: 1.2em; /* Make the font larger */
+}
+
+.error-row {
+    background: #FFC300 !important;
+}
+
+.form-label {
+    font-weight: bold;
+    width: 200px;
+    text-align: right;
+}
+.form-group{
+    margin: 3px 3px 3px 3px;
+}
+
+.internalTable {
+    padding: 0;
+    margin: 0 auto;
+}
+
+.label {
+    font-weight: bold;
+    padding: 4px 10px;    
+}
+
+.links {
+    padding: 5px;
+    vertical-align: top;
+    line-height: 1.3em;
+}
+
+.original {
+    font-weight: 500;
+}
+
+.results-table {
+    border-collapse: collapse;
+    background-color: #f2f2f2;
+    width: 100%
+}
+
+.styled-table th, .styled-table td {
+    border: 5px solid black;
+    padding: 8px;
+    text-align: left;
+}
+
+.styled-table th {
+    background-color: #f2f2f2;
+}
+
+.shipGrid {
+    width: 100%;
+    background-color: #FFF;
+    margin: 5px 0 10px 0;
+}
+
+.shipGrid th {
+    background-color: #424242;
+    color: #FFF;
+    padding: 5px;
+    text-align: left;
+}
+
+.shipTo {
+    padding: 20px 0 5px 0;
+    color: #0063A5;
+    font-weight: bold;
+    text-align:center;
+}
+
+a {
+    color: #A83333;
+    text-decoration: none;
+    font-size: 11px;
+}
+
+.toggleButton {
+    background-color: #f0f0f0; /* Light gray background */
+    color: #333; /* Dark gray text */
+    border: 1px solid #ccc; /* Light border */
+    padding: 3px 6px; /* Smaller padding */
+    border-radius: 3px; /* Slightly rounded corners */
+    cursor: pointer;
+    font-size: 10px; /* Smaller font size */
+    transition: background-color 0.3s ease, color 0.3s ease;
+    width: 150px;
+}
+
+    .toggleButton:hover {
+        background-color: #e0e0e0; /* Slightly darker gray */
+        color: #000; /* Darker text color */
+    }
+
+    .toggleButton:active {
+        background-color: #d0d0d0; /* Even darker gray for click effect */
+    }
+
+/* Container for the tooltip */
+.tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+    /* Tooltip text (custom) */
+    .tooltip .tooltip-text {
+        visibility: hidden;
+        width: 120px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        border-radius: 4px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%; /* Position above the text */
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0; /* Initially invisible */
+        transition: opacity 0.3s; /* Smooth transition */
+    }
+
+        /* Arrow below the tooltip */
+        .tooltip .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%; /* Position below the tooltip */
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: black transparent transparent transparent;
+        }
+
+    /* Show the tooltip on hover */
+    .tooltip:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }

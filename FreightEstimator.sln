@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FreightEstimatorCore", "..\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FreightEstimator.Core", "FreightEstimator.Core\FreightEstimator.Core.csproj", "{BA9C2A71-15D2-4B9A-A850-B423137BDB1B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FreightEstimator.Web", "FreightEstimator.Web\FreightEstimator.Web.csproj", "{5E3B0F4A-9A71-4C52-8D1E-2F6B7C9A4D13}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +43,12 @@ Global
 		{BA9C2A71-15D2-4B9A-A850-B423137BDB1B}.Local|Any CPU.Build.0 = Debug|Any CPU
 		{BA9C2A71-15D2-4B9A-A850-B423137BDB1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BA9C2A71-15D2-4B9A-A850-B423137BDB1B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E3B0F4A-9A71-4C52-8D1E-2F6B7C9A4D13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E3B0F4A-9A71-4C52-8D1E-2F6B7C9A4D13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E3B0F4A-9A71-4C52-8D1E-2F6B7C9A4D13}.Local|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E3B0F4A-9A71-4C52-8D1E-2F6B7C9A4D13}.Local|Any CPU.Build.0 = Debug|Any CPU
+		{5E3B0F4A-9A71-4C52-8D1E-2F6B7C9A4D13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E3B0F4A-9A71-4C52-8D1E-2F6B7C9A4D13}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
