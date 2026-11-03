@@ -231,6 +231,9 @@
     <Compile Include="Areas\HelpPage\SampleGeneration\SampleDirection.cs" />
     <Compile Include="Areas\HelpPage\SampleGeneration\TextSample.cs" />
     <Compile Include="Areas\HelpPage\XmlDocumentationProvider.cs" />
+    <Compile Include="Controllers\Api\ApiKeyAuthorizeAttribute.cs" />
+    <Compile Include="Controllers\Api\PlantsController.cs" />
+    <Compile Include="Controllers\Api\QuotesController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\LogController.cs" />
     <Compile Include="Controllers\PlantController.cs" />
@@ -241,6 +244,8 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Models\Api\QuoteApiModels.cs" />
+    <Compile Include="Models\Api\QuoteRequestValidator.cs" />
     <Compile Include="Models\Configuration.cs" />
     <Compile Include="Models\Data\Request.cs" />
     <Compile Include="Models\Invoice.cs" />
@@ -252,6 +257,10 @@
     <Compile Include="Models\Services\CalculatedRateShadowComparison.cs" />
     <Compile Include="Models\Services\CalculatedRateShadowLog.cs" />
     <Compile Include="Models\Services\CarrierHttp.cs" />
+    <Compile Include="Models\Services\ConsumerStore.cs" />
+    <Compile Include="Models\Services\PlantDirectory.cs" />
+    <Compile Include="Models\Services\QuoteLog.cs" />
+    <Compile Include="Models\Services\ServiceCatalog.cs" />
     <Compile Include="Models\Services\IChargeSchedule.cs" />
     <Compile Include="Models\Services\PlantServiceCharges.cs" />
     <Compile Include="Models\Services\RateCalculationsChargeSchedule.cs" />

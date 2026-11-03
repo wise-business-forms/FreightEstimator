@@ -4,7 +4,7 @@
 -- NEVER run this against production. Production already has all of these objects.
 --
 -- Baseline for the base objects the app needs that no other script in this folder creates.
--- Run this first, then 001 to 004 in order, then Database/schema-fingerprint.sql on both
+-- Run this first, then 001 to 005 in order, then Database/schema-fingerprint.sql on both
 -- servers and diff the outputs.
 --
 -- Provenance:
