@@ -654,6 +654,233 @@ namespace FreightEstimator.QuoteTests
             }
         }
 
+        // ---- LTL (Logistics Partner) available through the API (#21) -------------------------------------------
+
+        public static IEnumerable<TestCaseData> LtlCases() =>
+            QuoteCase.All("ltl").Select(c => new TestCaseData(c).SetName("ltl " + c.CaseId + " " + c.Plant + " " + c.Packages + " pkgs"));
+
+        /// <summary>
+        /// Every recorded LTL case: the API's LTL is the Logistics Partner's cheapest option, priced by the unified module
+        /// (the same markup, per-package and per-shipment charges the Plant page applies to each option today) and rounded.
+        /// </summary>
+        [TestCaseSource(nameof(LtlCases))]
+        public void LtlIsAvailableAndReturnsTheCheapestOptionsRoundedCalculatedRateWithItsBreakdown(QuoteCase c)
+        {
+            LtlReplies(c);
+            JObject body = LtlRequest(c);
+
+            using (ServiceCatalog.Use("LTL"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                JObject quote = JObject.Parse(Body(Post(body, _consumer.ApiKey)));
+
+                JToken service = quote["services"].Single();
+                Assert.That((string)service["service"], Is.EqualTo("LTL"));
+                Assert.That((string)service["availability"], Is.EqualTo("available"));
+
+                // What the Plant page shows for each option, pinned in #15.
+                var options = JObject.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Recorded", "quotes", "expected", c.CaseId + ".json")))
+                    .Properties()
+                    .Select(p => new
+                    {
+                        OnThePage = decimal.Parse((string)p.Value["calculatedRate"], System.Globalization.NumberStyles.Currency, System.Globalization.CultureInfo.GetCultureInfo("en-US")),
+                        CarrierRate = (decimal)p.Value["carrierRate"]
+                    })
+                    .OrderBy(o => o.OnThePage)
+                    .ToList();
+
+                Assert.That((decimal)service["calculatedRate"], Is.EqualTo(options[0].OnThePage));
+                Assert.That((decimal)service["carrierRate"], Is.EqualTo(options[0].CarrierRate));
+                // SANDBOX's TI row for the plant is 7.5% markup, 3.00 per package, 6.00 per shipment (KnownSchedule).
+                Assert.That((decimal)service["plantCharges"]["markupPercent"], Is.EqualTo(7.5m));
+                Assert.That((decimal)service["plantCharges"]["perPackageCharge"], Is.EqualTo(3m));
+                Assert.That((decimal)service["plantCharges"]["perShipmentCharge"], Is.EqualTo(6m));
+
+                Assert.That(quote["carriers"].Select(k => (string)k["carrier"] + ":" + (string)k["status"]), Is.EqualTo(new[] { "LogisticsPartner:ok" }));
+            }
+        }
+
+        [Test]
+        public void TheRequestsFreightClassIsWhatTheLogisticsPartnerIsAskedToRate()
+        {
+            QuoteCase c = QuoteCase.All("ltl").First();
+            LtlReplies(c);
+            JObject body = LtlRequest(c);
+            body["freightClass"] = 70;
+
+            using (ServiceCatalog.Use("LTL"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                Post(body, _consumer.ApiKey);
+
+                string sent = _carriers.Requests.Single(r => r.Url.Contains(LtlHost)).Body;
+                Assert.That(sent, Does.Contain("freightClass=\"70\""));
+                Assert.That(sent, Does.Not.Contain("freightClass=\"65\""));
+            }
+        }
+
+        [Test]
+        public void WithNoFreightClassTheLogisticsPartnerIsAskedForTheClassThePlantPageUses()
+        {
+            QuoteCase c = QuoteCase.All("ltl").First();
+            LtlReplies(c);
+            JObject body = LtlRequest(c);
+            body.Remove("freightClass");
+
+            using (ServiceCatalog.Use("LTL"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                Post(body, _consumer.ApiKey);
+
+                Assert.That(_carriers.Requests.Single(r => r.Url.Contains(LtlHost)).Body, Does.Contain("freightClass=\"65\""));
+            }
+        }
+
+        [Test]
+        public void EachPackageWeightInTheRequestReachesTheLogisticsPartner()
+        {
+            QuoteCase c = QuoteCase.All("ltl").First();
+            LtlReplies(c);
+            JObject body = LtlRequest(c);
+            body["packages"] = new JArray(new JObject { ["weight"] = 31 }, new JObject { ["weight"] = 17 }, new JObject { ["weight"] = 9 });
+
+            using (ServiceCatalog.Use("LTL"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                Post(body, _consumer.ApiKey);
+
+                string sent = _carriers.Requests.Single(r => r.Url.Contains(LtlHost)).Body;
+                Assert.That(System.Text.RegularExpressions.Regex.Matches(sent, "<Weight units=\"lb\">([0-9.]+)</Weight>").Cast<System.Text.RegularExpressions.Match>().Select(m => m.Groups[1].Value),
+                    Is.EqualTo(new[] { "31", "17", "9" }));
+            }
+        }
+
+        [Test]
+        public void TheLtlCalculatedRateIsLoggedWithTheConsumerAsRequester_NotTbd()
+        {
+            QuoteCase c = QuoteCase.All("ltl").First();
+            LtlReplies(c);
+
+            using (ServiceCatalog.Use("LTL"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                int streamBefore = _consumer.LtlStreamRows();
+                JObject quote = JObject.Parse(Body(Post(LtlRequest(c), _consumer.ApiKey)));
+
+                var logged = _consumer.Calculations(Guid.Parse((string)quote["quoteId"])).Single();
+                Assert.That(logged.Carrier, Is.EqualTo("LogisticsPartner"));
+                Assert.That(logged.ServiceName, Is.EqualTo("LTL"));
+                Assert.That(logged.UserName, Is.EqualTo(_consumer.Name));
+                Assert.That(logged.CalculatedRate, Is.EqualTo((decimal)quote["services"][0]["calculatedRate"]));
+                Assert.That(logged.CarrierRate, Is.EqualTo((decimal)quote["services"][0]["carrierRate"]));
+
+                // The Logistics Partner's own request/response stream names the Consumer too, where the Plant page writes "TBD".
+                Assert.That(_consumer.LtlStreamRows(), Is.EqualTo(streamBefore + 1));
+            }
+        }
+
+        [Test]
+        public void LtlIsNotAvailableUntilItIsSwitchedOn_AndTheLogisticsPartnerIsNotCalled()
+        {
+            QuoteCase c = QuoteCase.All("ltl").First();
+            LtlReplies(c);
+
+            JObject quote = JObject.Parse(Body(Post(LtlRequest(c), _consumer.ApiKey)));
+
+            Assert.That((string)quote["services"][0]["availability"], Is.EqualTo("notAvailable"));
+            Assert.That(quote["services"][0]["calculatedRate"], Is.Null);
+            Assert.That(_carriers.Requests, Is.Empty);
+        }
+
+        [Test]
+        public void ALogisticsPartnerTimeoutIsA200WithThatCarrierUnavailable_AndTheUpsResultsAreKept()
+        {
+            QuoteCase ltl = QuoteCase.All("ltl").First();
+            QuoteCase parcel = QuoteCase.All("parcel").First();
+            _carriers.Replay("security", "ups-token-response.json").Replay("addressvalidation", "ups-address-validation-commercial.json")
+                .RespondWith("rating/v2403/Shop", HttpStatusCode.OK, parcel.ResponseText).TimeOut(LtlHost);
+            JObject body = GroundFreightRequest(parcel);
+            body["plantCode"] = ltl.Plant;
+            body["services"] = new JArray("UPSGround", "LTL");
+
+            using (ServiceCatalog.Use("UPSGround", "LTL"))
+            using (new SandboxPlantCharges(ltl.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                HttpResponseMessage response = Post(body, _consumer.ApiKey);
+
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                JObject quote = JObject.Parse(Body(response));
+                Assert.That(quote["carriers"].Select(k => (string)k["carrier"] + ":" + (string)k["status"]),
+                    Is.EquivalentTo(new[] { "UPS:ok", "LogisticsPartner:unavailable" }));
+                Assert.That(quote["services"][0]["calculatedRate"], Is.Not.Null, "UPS was still quoted");
+                Assert.That((string)quote["services"][1]["availability"], Is.EqualTo("available"));
+                Assert.That(quote["services"][1]["calculatedRate"], Is.Null);
+                Assert.That((string)quote["carriers"].Single(k => (string)k["carrier"] == "LogisticsPartner")["message"], Is.EqualTo("The Logistics Partner did not answer in time."));
+                Assert.That(_consumer.Quotes(), Has.Count.EqualTo(1));
+            }
+        }
+
+        [Test]
+        public void AUpsFailureLeavesTheLtlResultAlone()
+        {
+            QuoteCase ltl = QuoteCase.All("ltl").First();
+            QuoteCase parcel = QuoteCase.All("parcel").First();
+            _carriers.Replay("security", "ups-token-response.json").Replay("addressvalidation", "ups-address-validation-commercial.json")
+                .TimeOut("rating/v2403/Shop").RespondWith(LtlHost, HttpStatusCode.OK, ltl.ResponseText);
+            JObject body = LtlRequest(ltl);
+            body["packages"] = new JArray(new JObject { ["weight"] = 20 }, new JObject { ["weight"] = 20 });   // UPS parcel rates at most 50 packages
+            body["services"] = new JArray("UPSGround", "LTL");
+
+            using (ServiceCatalog.Use("UPSGround", "LTL"))
+            using (new SandboxPlantCharges(ltl.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                JObject quote = JObject.Parse(Body(Post(body, _consumer.ApiKey)));
+
+                Assert.That(quote["carriers"].Select(k => (string)k["carrier"] + ":" + (string)k["status"]),
+                    Is.EquivalentTo(new[] { "UPS:unavailable", "LogisticsPartner:ok" }));
+                Assert.That(quote["services"][0]["calculatedRate"], Is.Null);
+                Assert.That(quote["services"][1]["calculatedRate"], Is.Not.Null);
+            }
+        }
+
+        [Test]
+        public void ALogisticsPartnerErrorReplyIsA200WithThatCarrierInError()
+        {
+            QuoteCase c = QuoteCase.All("ltl").First();
+            _carriers.RespondWith(LtlHost, HttpStatusCode.InternalServerError, "oops");
+
+            using (ServiceCatalog.Use("LTL"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                HttpResponseMessage response = Post(LtlRequest(c), _consumer.ApiKey);
+
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                JObject quote = JObject.Parse(Body(response));
+                Assert.That((string)quote["carriers"][0]["status"], Is.EqualTo("error"));
+                Assert.That(quote["services"][0]["calculatedRate"], Is.Null);
+                Assert.That(_consumer.Calculations(Guid.Parse((string)quote["quoteId"])), Is.Empty);
+            }
+        }
+
+        [Test]
+        public void ALogisticsPartnerReplyThatCannotBeUsedIsA200WithThatCarrierInError_NotA500()
+        {
+            QuoteCase c = QuoteCase.All("ltl").First();
+            _carriers.RespondWith(LtlHost, HttpStatusCode.OK, "<not-the-reply-we-expect/>");
+
+            using (ServiceCatalog.Use("LTL"))
+            using (new SandboxPlantCharges(c.Plant, SandboxPlantCharges.KnownSchedule()))
+            {
+                HttpResponseMessage response = Post(LtlRequest(c), _consumer.ApiKey);
+
+                Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+                JObject quote = JObject.Parse(Body(response));
+                Assert.That((string)quote["carriers"][0]["status"], Is.EqualTo("error"));
+                Assert.That((string)quote["carriers"][0]["message"], Is.EqualTo("The Logistics Partner returned a reply that could not be used."));
+                Assert.That(_consumer.Quotes(), Has.Count.EqualTo(1), "the Quote is still logged");
+            }
+        }
+
         // ---- helpers --------------------------------------------------------------------------------------------
 
         private void UpsParcelReplies(QuoteCase c) =>
@@ -689,6 +916,19 @@ namespace FreightEstimator.QuoteTests
                 case "14": return "NextDayAirEarlyAM";
                 default: return code;
             }
+        }
+
+        private static string LtlHost => new Uri(AuthenticationServer.Models.Configuration.TransportInsightRateUrl).Host;
+
+        private void LtlReplies(QuoteCase c) => _carriers.RespondWith(LtlHost, HttpStatusCode.OK, c.ResponseText);
+
+        /// <summary>A Quote request for what a recorded LTL case shipped, asking for LTL, at the case's freight class.</summary>
+        private static JObject LtlRequest(QuoteCase c)
+        {
+            JObject body = GroundFreightRequest(c);
+            body["services"] = new JArray("LTL");
+            body["freightClass"] = c.FreightClass;
+            return body;
         }
 
         private void UpsReplies(QuoteCase c) =>

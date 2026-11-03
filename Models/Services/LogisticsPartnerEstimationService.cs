@@ -62,6 +62,16 @@ namespace AuthenticationServer.Models.Services
         public float PackageWeight { get; set; }
         public float LastPackageWeight { get; set; }
         public int FreightClass { get; set; }
+
+        /// <summary>
+        /// Every package's weight, when the caller has them one by one (the Quote API). When set it replaces
+        /// NumberOfPackages, PackageWeight and LastPackageWeight, and the Logistics Partner is sent exactly these packages.
+        /// </summary>
+        public List<float> PackageWeights { get; set; }
+
+        /// <summary>Milliseconds the Logistics Partner gets to answer. 0 leaves the framework's default, which is what the Plant page uses.</summary>
+        public int TimeoutMs { get; set; }
+
         public DateTime PickupDate { get; set; }
         public LtlAccessorials Accessorials { get; set; } = new LtlAccessorials();
     }
@@ -77,6 +87,21 @@ namespace AuthenticationServer.Models.Services
         public string Country { get; set; }
         public string RequestMessage { get; set; }
         public string ResponseMessage { get; set; }
+    }
+
+    /// <summary>
+    /// The outcome of asking the Logistics Partner for LTL on behalf of the Quote API. The API's one LTL service is the
+    /// Logistics Partner's cheapest option by Calculated Rate.
+    /// </summary>
+    public class LogisticsPartnerEstimate
+    {
+        public CarrierStatus Status { get; set; }
+
+        /// <summary>Why the carrier is not Ok. Never exception text, which can name our hosts. Null when Ok.</summary>
+        public string Message { get; set; }
+
+        /// <summary>The Calculated Rate from the unified module, with the Carrier Rate and Plant Charges that built it. Null unless Ok.</summary>
+        public CalculatedRate CalculatedRate { get; set; }
     }
 
     public class LogisticsPartnerQuoteResult
@@ -100,7 +125,7 @@ namespace AuthenticationServer.Models.Services
             if (request == null) throw new ArgumentNullException(nameof(request));
 
             Shipment shipment = WorkingShipment(request);
-            ShopRateResponse rates = GetRates(shipment);
+            ShopRateResponse rates = GetRates(shipment, null);
 
             return new LogisticsPartnerQuoteResult
             {
@@ -115,9 +140,76 @@ namespace AuthenticationServer.Models.Services
             };
         }
 
+        /// <summary>
+        /// LTL for the Quote API: the Calculated Rate comes from the unified module (ADR 0003) over the cheapest Carrier Rate
+        /// the Logistics Partner returned, unrounded here and rounded once at the edge (ADR 0004). The request's freight class
+        /// goes to the Logistics Partner as given. Logged as the Plant page's are, with the Consumer as the requester in place
+        /// of "TBD". The Plant page does not use this; it keeps its legacy formula in <see cref="Quote"/>. A carrier that does
+        /// not answer, or answers badly, is reported in the estimate rather than thrown.
+        /// </summary>
+        public LogisticsPartnerEstimate Estimate(LogisticsPartnerQuoteRequest request)
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+
+            Shipment shipment = WorkingShipment(request);
+            ShopRateResponse rates;
+            try
+            {
+                rates = GetRates(shipment, new LtlCallOptions { TimeoutMs = request.TimeoutMs, UserName = request.UserName });
+            }
+            catch (CarrierUnavailableException)
+            {
+                return new LogisticsPartnerEstimate { Status = CarrierStatus.Unavailable, Message = "The Logistics Partner did not answer in time." };
+            }
+            catch (Exception ex)
+            {
+                // An unreadable reply, or a Plant with no Logistics Partner charges: the carrier is in error, and that must not fail the Quote.
+                System.Diagnostics.Trace.TraceWarning("Logistics Partner quote could not be used: " + ex.Message);
+                return new LogisticsPartnerEstimate { Status = CarrierStatus.Error, Message = "The Logistics Partner returned a reply that could not be used." };
+            }
+
+            UPSService[] quoted = rates?.UPSServices?.Where(s => s.CustomerRate > 0).ToArray();
+            if (quoted == null || quoted.Length == 0)
+            {
+                return new LogisticsPartnerEstimate { Status = CarrierStatus.Error, Message = "The Logistics Partner returned no rates." };
+            }
+
+            var schedule = new RateCalculationsChargeSchedule();
+            CalculatedRate cheapest = quoted
+                .Select(s => CalculatedRate.Apply((decimal)s.CustomerRate, schedule, new RatingContext
+                {
+                    PlantCode = shipment.PlantId,
+                    ServiceName = RateCalculationsChargeSchedule.LtlServiceName,
+                    PackageCount = shipment.number_of_packages,
+                    IsCwtEligible = false // LTL has no CWT concept.
+                }))
+                .OrderBy(r => r.RoundedAmount)
+                .First();
+
+            try
+            {
+                Log.LogQuoteServiceCalculation(QuoteServiceCalculation.FromCalculatedRate(
+                    shipment.QuoteId, ServiceCatalog.LogisticsPartner, shipment.PlantId, shipment.user_name, RateCalculationsChargeSchedule.LtlServiceName, cheapest));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceWarning("Logging the LTL Calculated Rate failed: " + ex.Message);
+            }
+
+            return new LogisticsPartnerEstimate { Status = CarrierStatus.Ok, CalculatedRate = cheapest };
+        }
+
+        /// <summary>How the Quote API's call differs from the Plant page's. Null options are the Plant page, unchanged.</summary>
+        private class LtlCallOptions
+        {
+            public int TimeoutMs { get; set; }
+            public string UserName { get; set; }
+        }
+
         private static Shipment WorkingShipment(LogisticsPartnerQuoteRequest request)
         {
             LtlAccessorials a = request.Accessorials ?? new LtlAccessorials();
+            bool listed = request.PackageWeights != null && request.PackageWeights.Count > 0;
             return new Shipment
             {
                 PlantId = request.PlantCode,
@@ -128,9 +220,10 @@ namespace AuthenticationServer.Models.Services
                 State_selection = request.State,
                 Zip = request.Zip,
                 Country_selection = request.Country,
-                number_of_packages = request.NumberOfPackages,
-                package_weight = request.PackageWeight,
-                last_package_weight = request.LastPackageWeight,
+                number_of_packages = listed ? request.PackageWeights.Count : request.NumberOfPackages,
+                package_weight = listed ? request.PackageWeights[0] : request.PackageWeight,
+                last_package_weight = listed ? 0 : request.LastPackageWeight,
+                PackageWeights = listed ? new List<float>(request.PackageWeights) : null,
                 freight_class_selected = request.FreightClass,
                 pick_up_date = request.PickupDate,
                 notify_before_delivery = a.NotifyBeforeDelivery,
@@ -172,7 +265,7 @@ namespace AuthenticationServer.Models.Services
         /// </summary>
         /// <param name="shipment"></param>
         /// <returns></returns>
-        private static ShopRateResponse GetRates(Shipment shipment)
+        private static ShopRateResponse GetRates(Shipment shipment, LtlCallOptions options)
         {
             float PlantUpcharges = GetPlantUpcharges(shipment, "TI");
             double plantSurcharge = 0;
@@ -332,7 +425,20 @@ namespace AuthenticationServer.Models.Services
                             
                         request.Append("</Constraints>");
                         request.Append("<Items>");
-                    if (shipment.last_package_weight > 0)
+                    if (shipment.PackageWeights != null && shipment.PackageWeights.Count > 0)
+                    {
+                        foreach (float weight in shipment.PackageWeights)
+                        {
+                            request.Append("<Item sequence=\"1\" freightClass=\"");
+                            request.Append(ltlClass);
+                            request.Append("\">");
+                            request.Append("<Weight units=\"lb\">");
+                            request.Append(weight.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                            request.Append("</Weight>");
+                            request.Append("<Dimensions length=\"5.0\" width=\"5.0\" height=\"5.0\" units=\"in\" /></Item>");
+                        }
+                    }
+                    else if (shipment.last_package_weight > 0)
                     {
                         for (int i = 0; i < shipment.number_of_packages-1; i++)
                         {
@@ -402,7 +508,8 @@ namespace AuthenticationServer.Models.Services
                     {
                         Url = url,
                         ContentType = "application/x-www-form-urlencoded",
-                        Body = postData.ToString()
+                        Body = postData.ToString(),
+                        TimeoutMs = options?.TimeoutMs ?? 0
                     };
 
                     shipment.requestMessage = postData.ToString();
@@ -412,7 +519,16 @@ namespace AuthenticationServer.Models.Services
                     results.Append("<br/>" + url);
                     results.Append("\n\n\n");
                     // Get the response.
-                    CarrierHttpResponse carrierResponse = CarrierHttp.Current.Post(carrierRequest);
+                    CarrierHttpResponse carrierResponse;
+                    try
+                    {
+                        carrierResponse = CarrierHttp.Current.Post(carrierRequest);
+                    }
+                    catch (WebException ex) when (options != null)
+                    {
+                        // The Quote API reports a carrier that did not answer; the Plant page's handler below swallows it, as it always has.
+                        throw new CarrierUnavailableException("The Logistics Partner did not answer: " + ex.Message, ex);
+                    }
                     if (carrierResponse.IsError)
                     {
                         // An error status used to throw to the WebException handler below, which logs it and returns the empty response.
@@ -495,6 +611,8 @@ namespace AuthenticationServer.Models.Services
 
                         ltlServices.Add(service);
 
+                        if (options == null)
+                        {
                         LogCalculation(
                             shipment, service,
                             carrierRate: service.CustomerRate,
@@ -512,6 +630,7 @@ namespace AuthenticationServer.Models.Services
                             carrierRate: (decimal)service.CustomerRate,
                             isCwtEligible: false, // LTL has no CWT concept.
                             existingCalculatedRate: (decimal)totalCharges);
+                        }
                     }
 
                     response.UPSServices = ltlServices.ToArray();
@@ -535,7 +654,8 @@ namespace AuthenticationServer.Models.Services
                 #region -- log results --
                 try
                 {
-                    string UserName = "TBD";
+                    // LogResultsLTL's @UserName holds 10 characters.
+                    string UserName = options?.UserName == null ? "TBD" : options.UserName.Length > 10 ? options.UserName.Substring(0, 10) : options.UserName;
 
                     SqlConnection conlog = new SqlConnection(Configuration.UpsRateSqlConnection);
                     conlog.Open();

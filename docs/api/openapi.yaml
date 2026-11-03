@@ -1,0 +1,305 @@
+openapi: 3.0.3
+info:
+  title: Freight Estimator Quote API
+  version: "1.0"
+  description: |
+    Freight estimates from the same quoting logic the Freight Estimator Plant page uses.
+
+    Every `POST /api/v1/quotes` call is a new **Quote** with its own `quoteId`. Calls are not idempotent: sending the
+    same request twice creates two Quotes. Keep the `quoteId` and your own `referenceNumber` to find the Quote later.
+
+    Two statuses are reported separately and mean different things; read `docs/api/caveats.md` before relying on them:
+
+    * **Service availability** (`services[].availability`): whether the service can be quoted through the API at all yet.
+    * **Carrier status** (`carriers[].status`): whether the carrier answered on this call.
+servers:
+  - url: /
+    description: The server this document was served from. Paths already include the `/api/v1` prefix.
+security:
+  - ApiKey: []
+paths:
+  /api/v1/plants:
+    get:
+      operationId: listPlants
+      summary: List the plants a Quote can be requested for
+      description: Returns the valid values for `plantCode`, so a client need not hardcode a list that drifts.
+      responses:
+        "200":
+          description: The valid plant codes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example: [ALP, BUT, EBT]
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /api/v1/quotes:
+    post:
+      operationId: createQuote
+      summary: Request a Quote
+      description: |
+        Quotes each requested service that is available and reports the rest as not available. A carrier that does
+        not answer, or answers with an error, does not fail the request: the response is still `200`, that carrier's
+        entry in `carriers` says what happened, and the services of other carriers are unaffected.
+
+        A request that fails validation is rejected with `400`, naming every field at fault, and is **not** recorded as a Quote.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuoteRequest"
+            example:
+              plantCode: ALP
+              referenceNumber: JOB-1001
+              destination:
+                address: 1 Main St
+                city: Pittsburgh
+                state: PA
+                postalCode: "15201"
+                country: US
+              packages:
+                - weight: 12.5
+                - weight: 8
+              services: [UPSGround, UPSGroundFreight, LTL]
+              freightClass: 65
+      responses:
+        "200":
+          description: The Quote. Individual services and carriers may still have failed; see their statuses.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteResponse"
+              example:
+                quoteId: 3f2b6c1e-4c63-4a54-9d60-1f0d8f5f2f11
+                referenceNumber: JOB-1001
+                plantCode: ALP
+                services:
+                  - service: UPSGround
+                    carrier: UPS
+                    availability: available
+                    calculatedRate: 60.56
+                    carrierRate: 49.1
+                    plantCharges:
+                      markupPercent: 5
+                      perPackageCharge: 2
+                      perShipmentCharge: 5
+                  - service: LTL
+                    carrier: LogisticsPartner
+                    availability: notAvailable
+                addressClassification: Commercial
+                warnings: []
+                carriers:
+                  - carrier: UPS
+                    status: ok
+        "400":
+          description: The request is not a valid Quote request. Nothing was recorded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+components:
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+      description: The API key issued to your application (a Consumer). Keys can be revoked.
+  responses:
+    Unauthorized:
+      description: The `X-Api-Key` header is missing, unknown, or belongs to a revoked Consumer.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Unauthorized"
+  schemas:
+    QuoteRequest:
+      type: object
+      required: [plantCode, referenceNumber, destination, packages]
+      properties:
+        plantCode:
+          type: string
+          description: The plant the shipment ships from. Required; never inferred. See `GET /api/v1/plants`. Case-insensitive.
+        referenceNumber:
+          type: string
+          maxLength: 100
+          description: Your own number for the shipment. It must also be findable on the carrier Invoice, which is how a Quote is later compared with what was billed.
+        destination:
+          $ref: "#/components/schemas/Destination"
+        packages:
+          type: array
+          minItems: 1
+          description: Every package, one entry each. Packages are sent to the carrier one by one; there is no "n packages of weight w".
+          items:
+            $ref: "#/components/schemas/Package"
+        services:
+          type: array
+          description: The services wanted, by name (case-insensitive). Omitted or empty means every service.
+          items:
+            $ref: "#/components/schemas/ServiceName"
+        freightClass:
+          type: integer
+          nullable: true
+          description: The freight class used to rate LTL. Optional; 65 when omitted. Ignored by UPS services.
+    Destination:
+      type: object
+      required: [state, postalCode]
+      properties:
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+          description: Defaults to `US`.
+    Package:
+      type: object
+      required: [weight]
+      properties:
+        weight:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+          description: Pounds. Must be greater than zero.
+    ServiceName:
+      type: string
+      enum:
+        - UPSGround
+        - UPS3DaySelect
+        - UPS2ndDayAir
+        - SecondDayAirAM
+        - NextDayAirSaver
+        - UPSNextDayAir
+        - NextDayAirEarlyAM
+        - UPSGroundFreight
+        - LTL
+    QuoteResponse:
+      type: object
+      required: [quoteId, referenceNumber, plantCode, services, warnings, carriers]
+      properties:
+        quoteId:
+          type: string
+          format: uuid
+          description: Generated for every call.
+        referenceNumber:
+          type: string
+        plantCode:
+          type: string
+          description: The plant code as the API knows it (normalised case).
+        services:
+          type: array
+          description: One entry per requested service, in catalog order.
+          items:
+            $ref: "#/components/schemas/QuotedService"
+        addressClassification:
+          type: string
+          description: UPS's classification of the delivery address (`Residential`, `Commercial` or `Unknown`). Present only when UPS was asked and could say.
+        warnings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Warning"
+        carriers:
+          type: array
+          description: One entry per carrier that was asked on this call. A carrier that was not asked has no entry.
+          items:
+            $ref: "#/components/schemas/CarrierResult"
+    QuotedService:
+      type: object
+      required: [service, carrier, availability]
+      properties:
+        service:
+          $ref: "#/components/schemas/ServiceName"
+        carrier:
+          type: string
+          enum: [UPS, LogisticsPartner]
+        availability:
+          type: string
+          enum: [available, notAvailable]
+          description: |
+            `notAvailable`: the API cannot quote this service yet. The carrier was not called and no rate is given.
+            `available`: the API quotes this service. A rate is present only if the carrier answered on this call;
+            if `calculatedRate` is absent, the carrier's entry in `carriers` says why.
+        calculatedRate:
+          type: number
+          description: The final price, rounded half-up to the cent. Present only when the service was quoted.
+        carrierRate:
+          type: number
+          description: What the carrier charged, before our Plant Charges. Not rounded.
+        plantCharges:
+          $ref: "#/components/schemas/PlantChargesApplied"
+    PlantChargesApplied:
+      type: object
+      description: The Plant Charges applied to the carrier rate, as applied (not rounded).
+      required: [markupPercent, perPackageCharge, perShipmentCharge]
+      properties:
+        markupPercent:
+          type: number
+          description: A percentage of the carrier rate, e.g. `5` for 5%.
+        perPackageCharge:
+          type: number
+          description: Added once for each package.
+        perShipmentCharge:
+          type: number
+          description: Added once.
+    CarrierResult:
+      type: object
+      required: [carrier, status]
+      properties:
+        carrier:
+          type: string
+          enum: [UPS, LogisticsPartner]
+        status:
+          type: string
+          enum: [ok, unavailable, error]
+          description: |
+            `ok`: the carrier answered with usable rates.
+            `unavailable`: the carrier did not answer at all (a timeout, or no connection).
+            `error`: the carrier answered, but with an error or with something that could not be used.
+            When one carrier has several services in the request, its status is the worst of them.
+        message:
+          type: string
+          description: Why the carrier is not `ok`. A fixed message, never exception text. Absent when `ok`.
+    Warning:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [addressClassificationUnknown]
+        message:
+          type: string
+    ValidationFailed:
+      type: object
+      required: [error, errors]
+      properties:
+        error:
+          type: string
+          enum: [validationFailed]
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field:
+                type: string
+                description: The request field at fault, e.g. `referenceNumber` or `packages[1].weight`.
+              message:
+                type: string
+    Unauthorized:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          enum: [unauthorized]
+        message:
+          type: string

@@ -80,6 +80,21 @@ namespace FreightEstimator.QuoteTests
             return rows;
         }
 
+        /// <summary>
+        /// The rows in the Logistics Partner's request/response stream (dbo.Log_LTL) written for Consumers of these tests.
+        /// The stream's requester column holds 10 characters, so a Consumer shows as the first 10 of its name, and every
+        /// test Consumer shares "QuoteTests". Dispose removes them.
+        /// </summary>
+        public int LtlStreamRows()
+        {
+            using (var conn = Open())
+            using (var cmd = new SqlCommand("SELECT COUNT(*) FROM dbo.Log_LTL WHERE UserName = @u", conn))
+            {
+                cmd.Parameters.AddWithValue("@u", Name.Substring(0, 10));
+                return (int)cmd.ExecuteScalar();
+            }
+        }
+
         public class QuoteRow
         {
             public Guid QuoteId;
@@ -97,9 +112,10 @@ namespace FreightEstimator.QuoteTests
         public void Dispose()
         {
             using (var conn = Open())
-            using (var cmd = new SqlCommand("DELETE c FROM dbo.QuoteServiceCalculation c JOIN dbo.Quote q ON q.QuoteId = c.QuoteId WHERE q.ConsumerId = @c; DELETE FROM dbo.Quote WHERE ConsumerId = @c; DELETE FROM dbo.Consumer WHERE ConsumerId = @c", conn))
+            using (var cmd = new SqlCommand("DELETE c FROM dbo.QuoteServiceCalculation c JOIN dbo.Quote q ON q.QuoteId = c.QuoteId WHERE q.ConsumerId = @c; DELETE FROM dbo.Quote WHERE ConsumerId = @c; DELETE FROM dbo.Consumer WHERE ConsumerId = @c; DELETE FROM dbo.Log_LTL WHERE UserName = @u", conn))
             {
                 cmd.Parameters.AddWithValue("@c", ConsumerId);
+                cmd.Parameters.AddWithValue("@u", Name.Substring(0, 10));
                 cmd.ExecuteNonQuery();
             }
         }

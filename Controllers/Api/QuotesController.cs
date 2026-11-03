@@ -25,6 +25,12 @@ namespace AuthenticationServer.Controllers.Api
         /// <summary>How long UPS gets to answer each call before it is reported as unavailable.</summary>
         private const int UpsTimeoutMs = 10000;
 
+        /// <summary>How long the Logistics Partner gets to answer before it is reported as unavailable.</summary>
+        private const int CarrierTimeoutMs = 10000;
+
+        /// <summary>The freight class the Plant page rates LTL at (per feedback, Sep 2025), used when a request names none.</summary>
+        private const int DefaultFreightClass = 65;
+
         private const string UnknownClassificationWarning =
             "UPS could not classify the delivery address as residential or commercial. A residential delivery surcharge " +
             "may still appear on the Invoice with nothing on this Quote to warn of it.";
@@ -74,6 +80,7 @@ namespace AuthenticationServer.Controllers.Api
             };
 
             QuoteUps(response, request, consumer, quoteId, plantCode);
+            QuoteLtl(response, request, consumer, quoteId, plantCode);
             return Ok(response);
         }
 
@@ -147,6 +154,50 @@ namespace AuthenticationServer.Controllers.Api
             {
                 response.Warnings.Add(new ApiWarning { Code = "addressClassificationUnknown", Message = UnknownClassificationWarning });
             }
+        }
+
+        /// <summary>
+        /// Quotes LTL if it was asked for and is available (#21). The Logistics Partner is its own carrier: its failure or
+        /// timeout is its own status and leaves the UPS results as they were.
+        /// </summary>
+        private static void QuoteLtl(QuoteResponse response, QuoteRequest request, Consumer consumer, Guid quoteId, string plantCode)
+        {
+            QuotedService ltl = response.Services.FirstOrDefault(s => s.Service == RateCalculationsChargeSchedule.LtlServiceName && s.Availability == "available");
+            if (ltl == null) return;
+
+            LogisticsPartnerEstimate estimate = new LogisticsPartnerEstimationService().Estimate(new LogisticsPartnerQuoteRequest
+            {
+                PlantCode = plantCode,
+                QuoteId = quoteId,
+                ReferenceNumber = request.ReferenceNumber.Trim(),
+                Consumer = consumer.Name,
+                UserName = consumer.Name,
+                AccountNumber = "0",
+                CorrectedCity = request.Destination.City,
+                State = request.Destination.State,
+                Zip = request.Destination.PostalCode,
+                Country = string.IsNullOrWhiteSpace(request.Destination.Country) ? "US" : request.Destination.Country,
+                PackageWeights = request.Packages.Select(p => (float)p.Weight.Value).ToList(),
+                FreightClass = request.FreightClass ?? DefaultFreightClass,
+                PickupDate = NextBusinessDay(DateTime.Today),
+                TimeoutMs = CarrierTimeoutMs
+            });
+
+            response.Carriers.Add(new CarrierResult
+            {
+                Carrier = ServiceCatalog.LogisticsPartner,
+                Status = estimate.Status == CarrierStatus.Ok ? "ok" : estimate.Status == CarrierStatus.Unavailable ? "unavailable" : "error",
+                Message = estimate.Message
+            });
+
+            if (estimate.Status == CarrierStatus.Ok) Fill(ltl, estimate.CalculatedRate);
+        }
+
+        private static DateTime NextBusinessDay(DateTime from)
+        {
+            DateTime day = from.AddDays(1);
+            while (day.DayOfWeek == DayOfWeek.Saturday || day.DayOfWeek == DayOfWeek.Sunday) day = day.AddDays(1);
+            return day;
         }
 
         private static void Fill(QuotedService service, CalculatedRate rate)
