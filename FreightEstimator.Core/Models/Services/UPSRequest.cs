@@ -1,0 +1,746 @@
+﻿using AuthenticationServer.Models.Carrier.UPS;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Runtime.ConstrainedExecution;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
+
+namespace AuthenticationServer.Models.Services
+{
+    /// <summary>How a UPS call treats a carrier that cannot be reached.</summary>
+    public class UpsCallOptions
+    {
+        /// <summary>Milliseconds to wait for UPS on each call. 0 is the framework default.</summary>
+        public int TimeoutMs { get; set; }
+
+        /// <summary>
+        /// Throw <see cref="CarrierUnavailableException"/> when UPS does not answer at all, instead of carrying on
+        /// with the failure text as if it were UPS's reply (which is what the Plant page has always done).
+        /// </summary>
+        public bool ThrowWhenCarrierDoesNotAnswer { get; set; }
+    }
+
+    public class UPSRequest { 
+
+        private string _response = String.Empty;
+        private Shipment _shipment = null;
+        private UPSService[] _uPSServices = null;
+        private string _errorMessage = String.Empty;
+
+        private List<PlantCharges> plantCharges = new List<PlantCharges>();
+
+        public enum RequestOption { Rate, Shop, Ratetimeintransit, Shoptimeintransit };
+        public enum RateClassification { Published, Negotiated }
+        int _counter = 0;
+
+        private readonly UpsCallOptions _options;
+
+        public UPSRequest() { }
+        /// <summary>
+        /// Builds the response object from the UPS API.  This should be used to build the shipment and other objects needed.
+        /// </summary>
+        /// <param name="shipment"></param>
+        /// <param name="plant"></param>
+        /// <param name="requestOption"></param>
+        public UPSRequest(Shipment shipment, Plant plant, RequestOption requestOption, RateClassification rateClassification)
+            : this(shipment, plant, requestOption, rateClassification, null) { }
+
+        /// <param name="options">How to treat a carrier that does not answer. Null is the Plant page's behaviour, unchanged.</param>
+        public UPSRequest(Shipment shipment, Plant plant, RequestOption requestOption, RateClassification rateClassification, UpsCallOptions options)
+        {
+            _options = options;
+            _shipment = shipment;
+
+            // For rating without address.
+            if (_shipment.Address == null || _shipment.Address.Trim() == "") _shipment.Address = "";
+            if (_shipment.City == null || _shipment.City.Trim() == "") _shipment.City = "";
+            if (_shipment.State_selection == null || _shipment.State_selection.Trim() == "") _shipment.State_selection = "";
+            if (_shipment.number_of_packages == 0)
+            {
+                _shipment.number_of_packages = 1;
+                _shipment.package_weight = 1;
+            }
+
+            // Address Vlidation
+            string _request = AddressValidationRequest(shipment, plant, requestOption);
+            string _url = Configuration.UPSAddressValidationURL;
+            string _response = Response(_request, _url);
+            string address = string.Empty;
+            shipment.ErrorMessage = "";
+            
+            try
+            {
+                JObject addressValidationResponse = JObject.Parse(_response);
+
+
+
+                var addressLine = addressValidationResponse["XAVResponse"];
+                var city = addressValidationResponse["XAVResponse"];
+                var state = addressValidationResponse["XAVResponse"];
+                var postal_extention = addressValidationResponse["XAVResponse"];
+                var classification = addressValidationResponse["XAVResponse"];
+
+
+                try  // Sometimes the address is an array.  We only neeed the first instance.
+                {
+                    addressLine = addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["AddressLine"];
+                    city = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["PoliticalDivision2"];
+                    state = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["PoliticalDivision1"];
+                    postal_extention = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressKeyFormat"]["PostcodeExtendedLow"];
+                    classification = (string)addressValidationResponse["XAVResponse"]["Candidate"][0]["AddressClassification"]["Description"];
+                }
+                catch // And when it is not.
+                {
+                    addressLine = addressValidationResponse["XAVResponse"]["Candidate"]["AddressKeyFormat"]["AddressLine"];
+                    city = (string)addressValidationResponse["XAVResponse"]["Candidate"]["AddressKeyFormat"]["PoliticalDivision2"];
+                    state = (string)addressValidationResponse["XAVResponse"]["Candidate"]["AddressKeyFormat"]["PoliticalDivision1"];
+                    postal_extention = (string)addressValidationResponse["XAVResponse"]["Candidate"]["AddressKeyFormat"]["PostcodeExtendedLow"];
+                }
+                
+
+                if (addressLine == null)  // Address was NOT corrected or validated.
+                {
+                    address = shipment.Address;
+                    shipment.ErrorMessage = "Address not validated";
+                }
+                else
+                {
+                    if (addressLine.Type == JTokenType.Array)
+                    {
+                        var addressJoin = addressLine.ToObject<List<string>>();
+                        address = string.Join(", ", addressJoin);
+                    }
+                    else if (addressLine.Type == JTokenType.String)
+                    {
+                        address = addressLine.ToString();
+                    }
+                }
+
+                //string city = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision2"];
+                
+                if (city == null)
+                {
+                    city = shipment.City;
+                }
+                //string state = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PoliticalDivision1"];
+                
+                if (state == null)
+                {
+                    state = shipment.State_selection;
+                }
+                //string postal_extention = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressKeyFormat"]?["PostcodeExtendedLow"];
+                
+
+                if (shipment.Address != address || shipment.City != city.ToString() || shipment.State_selection != state.ToString()|| (!shipment.Zip.Contains("-") && postal_extention != null))
+                {
+                    shipment.Address = address;
+                    shipment.City = city.ToString();
+                    shipment.State_selection = state.ToString();
+                    if (!shipment.Zip.Contains("-")) { shipment.Zip = shipment.Zip + "-" + postal_extention; }
+
+                    shipment.Corrected_Address = address;
+                    shipment.Corrected_City = city.ToString();
+                    shipment.Corrected_State_selection = state.ToString();
+                }
+
+                // If the address classification doesn't parse as expected for some reason it will return an empty string.
+                var address_classification = (string)addressValidationResponse["XAVResponse"]?["Candidate"]?["AddressClassification"]?["Description"] ?? string.Empty;
+
+                shipment.Address_Classification = address_classification;
+
+            }
+            catch
+            {
+
+            }
+            // Rate Request
+            _request = RateRequest(shipment, new Plant(shipment.PlantId), requestOption, rateClassification);
+            _url = Configuration.UPSShopRatesURL + requestOption.ToString();
+            _response = Response(_request, _url);
+
+            // What kind of response did we get?
+            
+            JObject rateResponse = JObject.Parse(_response);
+            JProperty root = rateResponse.Properties().FirstOrDefault();
+            JToken ratedShipment = root.Value<JToken>();
+
+            // There are several possible response options.
+            try 
+            {
+                if(root != null)
+                {
+                    switch (root.Name)
+                    {
+                        case "RateResponse":
+                            ratedShipment = rateResponse["RateResponse"]["RatedShipment"];
+                            //var test = rateResponse["RateResponse"]["RatedShipment"]["BillingWeight"]["Weight"].ToString();
+                            //shipment.billing_weight = float.Parse(rateResponse["RateResponse"]["RatedShipment"][0]["BillingWeight"]["Weight"].ToString());
+                            shipment.AlertMessages = rateResponse["RateResponse"]["Response"]["Alert"].Select(a => (string)a["Description"]).ToArray();
+                            break;
+                        case "response":
+                            shipment.ErrorMessage = (string)rateResponse["response"]?["errors"]?[0]?["message"]?.ToString();
+                            break;
+                    }
+                }
+                
+            }
+            catch (Exception ex) 
+            {
+                Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _response, _response, ex.Message);
+            }   
+        }
+       
+
+        /// <summary>
+        /// Returns the response from the UPS API.
+        /// </summary>
+        /// <returns></returns>
+        private string Response(string rateRequest, string url)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("Authorization", "Bearer " + GetToken());
+
+                try
+                {
+                    CarrierHttpRequest request = new CarrierHttpRequest
+                    {
+                        Url = url,
+                        ContentType = "application/json",
+                        Body = rateRequest,
+                        TimeoutMs = _options?.TimeoutMs ?? 0
+                    };
+                    request.Headers["Authorization"] = "Bearer " + GetToken();
+
+                    // Get the response
+                    CarrierHttpResponse response = CarrierHttp.Current.Post(request);
+                    if (response.StatusCode == HttpStatusCode.OK || response.IsError)
+                    {
+                        // On an error status the body is the carrier's error message; keep it as the response too.
+                        _response = response.Body;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Error: {response.StatusCode} - {response.StatusDescription}");
+                    }
+
+                    //Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, _response, "UPS", "");
+                }
+                catch (WebException ex)
+                {
+                    // No reply at all (timeout, connection failure): an error status comes back as a response above.
+                    _response = ex.Message.ToString();
+                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City ?? string.Empty, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, ex.Message, "");
+                    if (_options != null && _options.ThrowWhenCarrierDoesNotAnswer)
+                    {
+                        throw new CarrierUnavailableException("UPS did not answer: " + ex.Message, ex);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+            Log.LogRequest_Rate("", _shipment.Address, _shipment.City ?? string.Empty, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, _response, "");
+
+            return _response;
+        }
+
+        /// <summary>
+        /// Gather the carrier rates for each service.
+        /// </summary>
+        /// <param name="service"></param>
+        /// <returns></returns>
+        private UPSService ParseUPSService(JToken service)
+        {
+            UPSService uPSService = new UPSService();
+            var serviceCode = service.SelectToken("Service")?.SelectToken("Code")?.ToString() ?? "No Service Code";
+            bool upsGroundFreight = false;
+
+            switch (serviceCode)
+            {
+                case "01":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSNextDayAir.ToString();
+                    break;
+                case "02":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPS2ndDayAir.ToString();
+                    break;
+                case "03":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSGround.ToString();
+
+                    // Check to see if this is UPS GROUND FREIGHT
+                    if(service.SelectToken("FRSShipmentData") != null)
+                    {
+                        upsGroundFreight = true;
+                    }
+                    break;
+                case "07":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSWorldwideExpress.ToString();
+                    break;
+                case "08":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSWorldwideExpedited.ToString();
+                    break;
+                case "11":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSStandard.ToString();
+                    break;
+                case "12":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPS3DaySelect.ToString();
+                    break;
+                case "13":
+                    uPSService.ServiceName = UPSService.ServiceCode.NextDayAirSaver.ToString();
+                    break;
+                case "14":
+                    uPSService.ServiceName = UPSService.ServiceCode.NextDayAirEarlyAM.ToString();
+                    break;
+                case "54":
+                    uPSService.ServiceName = UPSService.ServiceCode.ExpressPlus.ToString();
+                    break;
+                case "59":
+                    uPSService.ServiceName = UPSService.ServiceCode.SecondDayAirAM.ToString();
+                    break;
+                case "65":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSSaver.ToString();
+                    break;
+                case "82":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSTodayStandard.ToString();
+                    break;
+                case "83":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSTodayDedicatedCourier.ToString();
+                    break;
+                case "84":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSTodayIntercity.ToString();
+                    break;
+                case "85":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSTodayExpress.ToString();
+                    break;
+                case "86":
+                    uPSService.ServiceName = UPSService.ServiceCode.UPSTodayExpressSaver.ToString();
+                    break;
+                default:
+                    uPSService.ServiceName = "No Service Name";
+                    break;
+            }
+            uPSService.PlantCode = _shipment.PlantId;
+            uPSService.CustomerRate = Double.Parse(service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "0.0");
+            //uPSService.CWTRate = double.TryParse(service.SelectToken("NegotiatedRateCharges.TotalCharge.MonetaryValue")?.ToString(), out double parsedValue) ? parsedValue : 0.0;
+            uPSService.CWT = "No"; // Default setting
+            uPSService.TransitDays = service.SelectToken("GuaranteedDelivery.BusinessDaysInTransit")?.ToString() ?? "-";
+
+            #region Set CWT flag
+            // AIR SERVICES - If package count >= 2 and total package weight >= 100 lbs. but < 200 lbs. then it is CWT.  (Over 200 is LTL?)
+            if ((serviceCode == "01" || serviceCode == "02" || serviceCode == "13" || serviceCode == "59" || serviceCode == "14") && (_shipment.number_of_packages >= 2 && _shipment.billing_weight >= Configuration.MinCWTWeightAir))
+            {
+                uPSService.CWT = "Yes";
+            }
+
+            // GROUND SERVICES - If package count >= 2 and total package weight >= 200 lbs.
+            if ((serviceCode == "03" || serviceCode == "12") && (_shipment.number_of_packages >= 2 && _shipment.billing_weight >= Configuration.MinCWTWeightGround))
+            {
+                uPSService.CWT = "Yes";
+            }
+            #endregion
+
+            uPSService.RatedShipment_TransportationCharges_MonetaryValue = service.SelectToken("TransportationCharges.MonetaryValue")?.ToString() ?? "0";
+            uPSService.RatedShipment_BaseServiceCharge_MonetaryValue = service.SelectToken("BaseServiceCharge.MonetaryValue")?.ToString() ?? "0";
+            uPSService.RatedShipment_ServiceOptionsCharges_MonetaryValue = service.SelectToken("ServiceOptionsCharges.MonetaryValue")?.ToString() ?? "0";
+            uPSService.RatedShipment_PublishedRateCharges_MonetaryValue = service.SelectToken("TotalCharges.MonetaryValue")?.ToString() ?? "0";
+            uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge = service.SelectToken("NegotiatedRateCharges.TotalCharge.MonetaryValue")?.ToString() ?? "0";
+
+            // USP GROUND FREIGHT is a bit different for a couple of fields.
+            if (upsGroundFreight)
+            {
+                // Dictionary to store the total MonetaryValue for each Code
+                Dictionary<string, decimal> itemizedChargesTotals = new Dictionary<string, decimal>();
+
+                if (service["RatedResponse"]?["RatedShipment"]?["RatedPackage"] is JArray ratedPackages)
+                {
+                    foreach(JToken package in ratedPackages)
+                    {
+                        if (package["ItemizedCharges"] is JArray primaryItemizedCharges)
+                        {
+                            foreach (JToken charge in primaryItemizedCharges)
+                            {
+                                ProcessCharge(charge, itemizedChargesTotals);
+                            }
+                        }
+                    }
+                }
+
+                // Use the original Total Charges, as they present the negotiated rate as the default total, to calculate the accessorial charges which are not broken down seperately.
+                uPSService.RatedShipment_AccessorialCharges_MonetaryValue = (Double.Parse(uPSService.RatedShipment_NegotiatedRateCharges_TotalCharge) - Double.Parse(uPSService.RatedShipment_BaseServiceCharge_MonetaryValue)).ToString();                
+
+                // Now update the published rate.
+                uPSService.RatedShipment_PublishedRateCharges_MonetaryValue = service.SelectToken("FRSShipmentData.TransportationCharges.GrossCharge.MonetaryValue")?.ToString() ?? "0";
+            }
+            
+            return uPSService;
+        }
+
+        private static void ProcessCharge(JToken charge, Dictionary<string, decimal> totals)
+        {
+            string code = charge["Code"]?.ToString();
+            string monetaryValueString = charge["MonetaryValue"]?.ToString();
+
+            if (!string.IsNullOrEmpty(code) && decimal.TryParse(monetaryValueString, out decimal monetaryValue))
+            {
+                if (totals.ContainsKey(code))
+                {
+                    totals[code] += monetaryValue;
+                }
+                else
+                {
+                    totals[code] = monetaryValue;
+                }
+            }
+        }
+
+
+        public UPSService[] UPSServices { get {
+                if (_shipment.ErrorMessage == "" || _shipment.ErrorMessage == "Address not validated")
+                {
+                    try
+                    {
+                        dynamic data = JObject.Parse(_response);
+
+                        JToken services = data.SelectToken("RateResponse.RatedShipment");
+                        if (services.Type == JTokenType.Array)
+                        {
+                            // Check for each key's existence and assign values accordingly
+                            var serviceIndex = 0;
+                            List<UPSService> serviceSort = new List<UPSService>();
+                            foreach (var service in services)
+                            {
+                                serviceSort.Add(ParseUPSService(service));
+                                serviceIndex++;
+                            }
+
+                            // Remove extra (null) UPS Services values slots from the array.
+                            serviceSort.RemoveAll(service => service == null);
+
+                            // Not the best place to sort for presentation ... but here we are.
+                            serviceSort.Sort(new UPSSort());
+                            _uPSServices = serviceSort.ToArray();
+                        }
+                        else
+                        {
+                            List<UPSService> serviceSort = new List<UPSService>();
+                            serviceSort.Add(ParseUPSService(services));
+                            return serviceSort.ToArray();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        //Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _response, ex.Message, "UPS", "");
+                       
+                    }
+                }
+                return _uPSServices;
+            }
+        } 
+
+        public string XAVRequest { get; set; }
+        public AddressKeyFormat AddressKeyFormat { get; set; }
+
+        public string ToJson()
+        {
+            return JsonSerializer.Serialize(this);
+        }
+
+        public string GetToken()
+        {
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+
+            string req = "grant_type=client_credentials";
+            var accessID = Configuration.UPSClientId + ":" + Configuration.UPSClientSecret;
+            var base64 = Convert.ToBase64String(Encoding.Default.GetBytes(accessID));
+            string sResponse = "";
+            string sToken = "";
+            string url = Configuration.UPSGenerateTokenURL;
+
+            CarrierHttpRequest oRequest = new CarrierHttpRequest
+            {
+                Url = url,
+                ContentType = "application/x-www-form-urlencoded",
+                Body = req,
+                TimeoutMs = _options?.TimeoutMs ?? 0
+            };
+            oRequest.Headers["Authorization"] = "Basic " + base64;
+            oRequest.Headers["x-merchant-id"] = Configuration.ShipFromShipperNumber;
+
+            try
+            {
+                CarrierHttpResponse oResponse = CarrierHttp.Current.Post(oRequest);
+                oResponse.EnsureSuccessStatus();
+                sResponse = oResponse.Body;
+                using (JsonDocument doc = JsonDocument.Parse(sResponse))
+                {
+                    JsonElement root = doc.RootElement;
+                    sToken = root.GetProperty("access_token").GetString();
+                }
+            }
+            catch (WebException ex) when (_options != null && _options.ThrowWhenCarrierDoesNotAnswer && ex.Status != WebExceptionStatus.ProtocolError)
+            {
+                throw new CarrierUnavailableException("UPS did not answer: " + ex.Message, ex);
+            }
+            catch (Exception ex)
+            {
+                sToken = ex.Message;
+            }
+
+            return sToken;
+        }
+
+        private string AddressValidationRequest(Shipment shipment, Plant plant, RequestOption requestOption)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("{\"XAVRequest\": {");
+            sb.Append("\"AddressKeyFormat\": {");
+            sb.Append("\"ConsigneeName\": \"").Append(string.Empty).Append("\",");
+            sb.Append("\"BuildingName\": \"").Append(string.Empty).Append("\",");
+            sb.Append("\"AddressLine\": [\"").Append(shipment.Address).Append("\",").Append("\"\",").Append("\"\"],");
+            sb.Append("\"Region\": \"").Append(shipment.City).Append(",").Append(shipment.State_selection).Append(",").Append(shipment.Zip).Append("\",");
+            sb.Append("\"PoliticalDivision2\": \"").Append(string.Empty).Append("\",");
+            sb.Append("\"PoliticalDivision1\": \"").Append(shipment.State_selection).Append("\",");
+            sb.Append("\"PostcodePrimaryLow\": \"").Append(shipment.Zip).Append("\",");
+            sb.Append("\"PostcodeExtendedLow\": \"").Append(string.Empty).Append("\",");
+            sb.Append("\"Urbanization\": \"").Append(string.Empty).Append("\",");
+            sb.Append("\"CountryCode\": \"").Append(shipment.Country_selection).Append("\"");
+            sb.Append("}"); // AddressKeyFormat
+            sb.Append("}"); // XAVRequest
+            sb.Append("}"); // Root
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Builds the JSON shipment request for the UPS Rate API
+        /// </summary>
+        /// <param name="shipment"></param>
+        /// <returns></returns>
+        internal string RateRequest(Shipment shipment, Plant plant, RequestOption requestOption, RateClassification rateClassification)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("{\"RateRequest\":");
+
+            sb.Append("{\"Request\":");
+            sb.Append("{\"TransactionReference\":{\"CustomerContext\": \"CustomerContext\"}"); // TransactionReference
+            sb.Append("},"); // Request
+
+            sb.Append("\"Shipment\":");
+            sb.Append("{\"Shipper\":");
+            sb.Append("{\"Name\": \"" + plant.Name + "\",");
+            //sb.Append("\"ShipperNumber\": \"" + plant.UpsShippingNumber.Trim() + "\",");      // Every plant uses their own shipping number.
+            sb.Append("\"ShipperNumber\": \"" + Configuration.ShipFromShipperNumber + "\",");   // Every plant will use the same shipping number.
+            sb.Append("\"Address\":");
+            sb.Append("{\"AddressLine\": [");
+            sb.Append("\"" + plant.Address + "\",");
+            sb.Append("\"\",");
+            sb.Append("\"\"");
+            sb.Append("],"); // AddressLine
+            sb.Append("\"City\": \"" + plant.City + "\",");
+            sb.Append("\"StateProvinceCode\": \"" + plant.State + "\",");
+            sb.Append("\"PostalCode\": \"" + plant.Zip + "\",");
+            sb.Append("\"CountryCode\": \"" + plant.Country + "\"");
+            sb.Append("}"); // Address
+            sb.Append("},"); // Shipper
+            
+            sb.Append("\"ShipTo\":");
+            sb.Append("{\"Name\": \"" + shipment.AcctNum + "\",");
+            sb.Append("\"Address\":");
+            sb.Append("{\"AddressLine\": [");
+            sb.Append("\"" + shipment.Address + "\",");
+            sb.Append("\"\",");
+            sb.Append("\"\"");
+            sb.Append("],");
+            sb.Append("\"City\": \"" + shipment.City + "\",");
+            sb.Append("\"StateProvinceCode\": \"" + shipment.State_selection + "\",");
+            sb.Append("\"PostalCode\": \"" + shipment.Zip + "\",");
+            sb.Append("\"CountryCode\": \"" + shipment.Country_selection + "\"");
+            // Address validation (above) already told us when UPS's own address database
+            // classifies this delivery as residential; passing that through here is what
+            // makes UPS quote the residential surcharge instead of only billing it later,
+            // unannounced, at invoice time. See docs/issues/0002-residential-surcharge-not-quoted.md.
+            if (string.Equals(shipment.Address_Classification, "Residential", StringComparison.OrdinalIgnoreCase))
+            {
+                sb.Append(",\"ResidentialAddressIndicator\": \"\"");
+            }
+            sb.Append("}"); // Address
+            sb.Append("},"); // ShipTo
+
+            sb.Append("\"ShipFrom\":");
+            sb.Append("{\"Name\": \"" + plant.Name + "\",");
+            sb.Append("\"Address\":");
+            sb.Append("{\"AddressLine\": [");
+            sb.Append("\"" + plant.Address + "\",");
+            sb.Append("\"\",");
+            sb.Append("\"\"");
+            sb.Append("],");
+            sb.Append("\"City\": \"" + plant.City + "\",");
+            sb.Append("\"StateProvinceCode\": \"" + plant.State + "\",");
+            sb.Append("\"PostalCode\": \"" + plant.Zip + "\",");
+            sb.Append("\"CountryCode\": \"" + plant.Country + "\"");
+            sb.Append("}"); // Address
+            sb.Append("},"); // ShipFrom
+
+            // Ground Freight
+            if(requestOption == RequestOption.Rate) {
+                sb.Append("\"FRSPaymentInformation\": {\"Type\": {\"Code\": \"01\"}},");
+            } else
+            {
+                sb.Append("\"PaymentDetails\":");
+                sb.Append("{\"ShipmentCharge\":");
+                sb.Append("{\"Type\": \"01\",");
+                //sb.Append("\"BillShipper\": {\"AccountNumber\": \"" + plant.UpsShippingNumber.Trim() + "\"}");      // Every plant uses their own shipping number.
+                sb.Append("\"BillShipper\": {\"AccountNumber\": \"" + Configuration.ShipFromShipperNumber + "\"}");   // Every plant will use the same shipping number.
+                sb.Append("}"); // ShipmentCharge
+                sb.Append("},"); // PaymentDetails
+            }
+
+            sb.Append(AppendShipmentRatingOptions(requestOption, rateClassification));
+
+            sb.Append("\"Service\":");
+            sb.Append("{\"Code\": \"03\",");
+            sb.Append("\"Description\": \"UPS Worldwide Economy DDU\"");
+            sb.Append("},"); // Service
+
+
+            sb.Append("\"NumOfPieces\": \"" + shipment.number_of_packages + "\",");
+            
+            // Add the packages to the request but be mindful of the last package if it is different.
+            sb.Append("\"Package\":");            
+            sb.Append("[");
+
+            // Add the packages...
+
+            // The caller listed every package's weight (the Quote API): send exactly those.
+            if (shipment.PackageWeights != null && shipment.PackageWeights.Count > 0)
+            {
+                for (int p = 0; p < shipment.PackageWeights.Count; p++)
+                {
+                    sb.Append(Package(shipment.PackageWeights[p], requestOption, shipment.freight_class_selected.ToString()));
+                    if (p < shipment.PackageWeights.Count - 1) sb.Append(", ");
+                }
+            }
+            // if there is a last package....
+            else if (shipment.last_package_weight > 0)
+            {
+                for (int p = 1; p <= shipment.number_of_packages - 1; p++)
+                {
+                    sb.Append(Package(shipment.package_weight, requestOption, shipment.freight_class_selected.ToString()));
+                    sb.Append(", ");
+                }
+
+                // Packages have to weight something.  Sometimes people will not give the last package a weight if it is the same.
+                //if (shipment.last_package_weight == 0 || shipment.last_package_weight.ToString().Trim().IsNullOrWhiteSpace()) shipment.last_package_weight = shipment.package_weight;
+
+                // Add last package
+                sb.Append(Package(shipment.last_package_weight, requestOption, shipment.freight_class_selected.ToString()));
+            }
+            else  // all packages are the same weight.
+            {
+                for (int p = 1; p <= shipment.number_of_packages; p++)
+                {
+                    sb.Append(Package(shipment.package_weight, requestOption, shipment.freight_class_selected.ToString()));
+                    if (p < shipment.number_of_packages) sb.Append(", ");
+                }
+            }
+            sb.Append("],");
+            
+
+            if(requestOption == RequestOption.Rate)
+            {
+                sb.Append("\"Commodity\":");
+                // Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
+                // Sep 26, 2025 - Switching from FreightClass 85 to 65 per feedback.
+                sb.Append("{\"FreightClass\": \"65\"");
+                //sb.Append("{\"FreightClass\": \"" + shipment.freight_class_selected + "\"");
+                sb.Append("},");
+            }
+            //sb.Append("\"OversizeIndicator\": \"X\",");
+            sb.Append("\"MinimumBillableWeightIndicator\": \"X\"");
+            sb.Append("}"); // RateRequest.Shipment
+            sb.Append("}"); // RateRequest
+            sb.Append("}"); // ROOT
+            return sb.ToString();
+        }
+
+        private string Package(float package_weight, RequestOption requestOption, string freightClass)
+        {
+            _counter++;
+            StringBuilder sb = new StringBuilder();
+            sb.Append("{\"PackagingType\":");
+
+                sb.Append("{\"Code\": \"02\",");
+                sb.Append("\"Description\": \"Packaging\"");
+                sb.Append("},"); // Code
+
+            sb.Append("\"Dimensions\":");
+                sb.Append("{\"UnitOfMeasurement\":");
+                    sb.Append("{\"Code\": \"IN\",");
+                        sb.Append("\"Description\": \"Inches\"");
+                    sb.Append("},");
+                    sb.Append("\"Length\": \"5\",");
+                    sb.Append("\"Width\": \"5\",");
+                    sb.Append("\"Height\": \"5\"");
+                sb.Append("},"); // Dimentions
+
+            sb.Append("\"PackageWeight\":");
+                sb.Append("{\"UnitOfMeasurement\":");
+                    sb.Append("{\"Code\": \"LBS\",");
+                    sb.Append("\"Description\": \"Pounds\"");
+                    sb.Append("},");  // UnitOfMeasurement
+            sb.Append("\"Weight\": \"" + package_weight + "\"");            
+            sb.Append("}"); // PackageWeight
+
+            // Ground Freight
+            if (requestOption == RequestOption.Rate)
+            {
+                //sb.Append(",\"Commodity\": {\"FreightClass\": \"" + freightClass + "\"}");
+                // Sep 21, 2025 - Switching from FreightClass 55 to 85 per NMFC changes.
+                // Sep 26, 2025 - Switching from FreightClass 85 to 65 per feedback.
+                sb.Append(",\"Commodity\": {\"FreightClass\": \"65\"}");
+            }
+
+            sb.Append("}"); // PackagingType
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Applies the Shipment Rating Options configuration.
+        /// </summary>
+        /// <param name="requestOption"></param>
+        /// <param name="rateClassification"></param>
+        /// <returns></returns>
+        private string AppendShipmentRatingOptions(RequestOption requestOption, RateClassification rateClassification)
+        {
+            if (rateClassification != RateClassification.Published)
+            {
+                StringBuilder sb = new StringBuilder("\"ShipmentRatingOptions\": {");
+
+                // Ground Freight
+                if (requestOption == RequestOption.Rate)
+                {
+                    sb.Append("\"FRSShipmentIndicator\": \"\",");
+                }
+                // UPS Ground
+                if (rateClassification == RateClassification.Negotiated)
+                {
+                    sb.Append("\"NegotiatedRatesIndicator\": \"Y\"");
+                }
+                sb.Append("},"); // ShipmentRatingOptions
+                return sb.ToString();
+            }
+            else
+            {
+                return "";
+            }
+        }
+    }
+}

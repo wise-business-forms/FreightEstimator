@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    Port stage 2 (ADR 0005, #29): the Plant page on ASP.NET Core, hosted by IIS (in-process, via the ASP.NET Core
+    Module; the app is never self-hosted on Kestrel). It sits beside the .NET Framework web app, which stays as it is
+    until the Plant page has been checked under IIS. The estimation core is the same FreightEstimator.Core assembly.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>AuthenticationServer</RootNamespace>
+    <AssemblyName>FreightEstimator.Web</AssemblyName>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FreightEstimator.Core\FreightEstimator.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="FreightEstimator.QuoteTests" />
+  </ItemGroup>
+
+</Project>

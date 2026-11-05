@@ -1,0 +1,169 @@
+@using AuthenticationServer.Models.Reports
+@model List<MatchGroup>
+
+@{
+    ViewBag.Title = "Rate Changes";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    string selectedPlant = ViewBag.SelectedPlant;
+    DateTime from = ViewBag.From;
+    DateTime to = ViewBag.To;
+    bool changesOnly = ViewBag.ChangesOnly;
+    var plants = (List<AuthenticationServer.Models.Plant>)ViewBag.Plants;
+    bool noPlant = !plants.Any(p => string.Equals(p.Id, selectedPlant, StringComparison.OrdinalIgnoreCase));
+}
+
+@functions {
+    static string Money(decimal? value) => value.HasValue ? value.Value.ToString("C") : "—";
+
+    static string FirstToLatest(decimal? first, decimal? latest) =>
+        Money(first) + " → " + Money(latest);
+}
+
+<style>
+    .changes-table th {
+        background-color: #9ec5fe;
+        white-space: nowrap;
+    }
+    .changes-table td.moved {
+        background-color: #fff3cd;
+    }
+    .cause {
+        display: inline-block;
+        padding: 1px 6px;
+        margin: 1px 2px;
+        border-radius: 3px;
+        font-size: 0.85em;
+        white-space: nowrap;
+    }
+    .cause-ups { background-color: #cfe2ff; }
+    .cause-ours { background-color: #f8d7da; }
+    .cause-unknown { background-color: #e2e3e5; }
+</style>
+
+<div class="container-fluid" style="margin-top: 20px;">
+    <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 10px;">
+        <h2 style="margin: 0;">Rate Changes</h2>
+        @if (!noPlant)
+        {
+            <span class="text-muted">@Model.Count match group@(Model.Count == 1 ? "" : "s")</span>
+        }
+        <a href="@Url.Action("Index", "Reports")" class="btn btn-sm btn-outline-secondary" style="margin-left: auto;">&#8592; Reports</a>
+    </div>
+    <hr style="margin-top: 6px;" />
+
+    <form method="get" action="@Url.Action("RateChanges", "Reports")" class="form-inline" id="rate-changes-form"
+          style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
+        <label for="plant-filter">Plant</label>
+        <select id="plant-filter" name="plant" class="form-control">
+            <option value="" @(noPlant ? "selected" : "")></option>
+            @foreach (var p in plants)
+            {
+                <option value="@p.Id" @(string.Equals(p.Id, selectedPlant, StringComparison.OrdinalIgnoreCase) ? "selected" : "")>@p.Id &ndash; @p.Name</option>
+            }
+        </select>
+        <label for="from">From</label>
+        <input type="date" id="from" name="from" class="form-control" value="@from.ToString("yyyy-MM-dd")" />
+        <label for="to">To</label>
+        <input type="date" id="to" name="to" class="form-control" value="@to.ToString("yyyy-MM-dd")" />
+        <label style="font-weight: normal;">
+            <input type="checkbox" name="changesOnly" value="true" @(changesOnly ? "checked" : "") />
+            Changes only
+        </label>
+        <input type="hidden" name="changesOnly" value="false" />
+        <button type="submit" class="btn btn-primary">Show</button>
+        <span id="changes-loading" class="text-muted" style="display: none;">
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            Loading&hellip;
+        </span>
+    </form>
+
+    @if (noPlant)
+    {
+        <p class="text-muted">Select a plant to view rate changes.</p>
+    }
+    else if (Model.Count == 0)
+    {
+        <p class="text-muted">No match groups with two or more quotes@(changesOnly ? " and a rate change" : "") in this date range.</p>
+    }
+    else
+    {
+        <table class="table table-bordered table-sm changes-table">
+            <thead>
+                <tr>
+                    <th>Ship-to zip</th>
+                    <th>Packages</th>
+                    <th>Weights (lbs)</th>
+                    <th>Resi.</th>
+                    <th>Quotes</th>
+                    <th>Service</th>
+                    <th>Published</th>
+                    <th>Negotiated</th>
+                    <th>Calculated</th>
+                    <th>Changes</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var group in Model)
+                {
+                    var services = group.Services
+                        .Where(s => s.Entries.Count >= 2 && (!changesOnly || s.Entries.Any(e => e.Change != null)))
+                        .OrderBy(s => s.ServiceCode)
+                        .ToList();
+                    var latest = group.Quotes.Last();
+                    for (int i = 0; i < services.Count; i++)
+                    {
+                        var service = services[i];
+                        var first = service.Entries.First();
+                        var last = service.Entries.Last();
+                        var causes = service.Entries.Where(e => e.Change != null)
+                            .SelectMany(e => e.Change.Causes.Select(c => new { Cause = c, e.Change.ChangedCharges }))
+                            .GroupBy(x => RateChangeLabels.For(x.Cause, x.ChangedCharges))
+                            .Select(g => new { Label = g.Key, g.First().Cause, Count = g.Count() })
+                            .ToList();
+                        <tr>
+                            @if (i == 0)
+                            {
+                                <td rowspan="@services.Count">@group.Key.ShipToZip</td>
+                                <td rowspan="@services.Count">@group.Key.PackageCount</td>
+                                <td rowspan="@services.Count">@group.Key.WeightsKey.Replace(",", ", ")</td>
+                                <td rowspan="@services.Count">@(group.Key.ResidentialIndicatorSent ? "Yes" : "No")</td>
+                                <td rowspan="@services.Count" style="white-space: nowrap;">
+                                    @group.Quotes.Count<br />
+                                    <span class="text-muted" style="font-size: 0.85em;">@group.Quotes.First().RequestDate.ToString("MM/dd/yy") &ndash; @latest.RequestDate.ToString("MM/dd/yy")</span>
+                                </td>
+                            }
+                            <td style="white-space: nowrap;">@service.ServiceName</td>
+                            <td class="@(RateChanges.Differs(first.Rate.PublishedRate, last.Rate.PublishedRate) ? "moved" : "")" style="white-space: nowrap;">@FirstToLatest(first.Rate.PublishedRate, last.Rate.PublishedRate)</td>
+                            <td class="@(RateChanges.Differs(first.Rate.NegotiatedRate, last.Rate.NegotiatedRate) ? "moved" : "")" style="white-space: nowrap;">@FirstToLatest(first.Rate.NegotiatedRate, last.Rate.NegotiatedRate)</td>
+                            <td style="white-space: nowrap;">@FirstToLatest(first.Calculation?.CalculatedRate, last.Calculation?.CalculatedRate)</td>
+                            <td>
+                                @foreach (var c in causes)
+                                {
+                                    <span class="cause @RateChangeLabels.CssClassFor(c.Cause)">@c.Label@(c.Count > 1 ? " ×" + c.Count : "")</span>
+                                }
+                            </td>
+                            @if (i == 0)
+                            {
+                                <td rowspan="@services.Count"><a href="@Url.Action("Compare", "Reports", new { id = latest.RequestId })" class="btn btn-sm btn-outline-primary">Compare</a></td>
+                            }
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+        <p class="text-muted" style="font-size: 0.85em;">
+            Rates show first &rarr; latest quote in the date range. Only quotes requested in the range are included.
+        </p>
+    }
+</div>
+
+@section scripts {
+    <script>
+        $(window).on('pageshow', function () { $('#changes-loading').hide(); });
+        $(document).ready(function () {
+            $('#rate-changes-form').on('submit', function () { $('#changes-loading').show(); });
+            $('#plant-filter').on('change', function () { $('#changes-loading').show(); this.form.submit(); });
+        });
+    </script>
+}

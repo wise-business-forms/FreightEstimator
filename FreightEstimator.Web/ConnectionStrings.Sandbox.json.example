@@ -1,0 +1,8 @@
+{
+  "_comment": "Copy to ConnectionStrings.Sandbox.json and fill in. That copy is gitignored; never commit credentials. Development (Debug) runs read this file. The UpsRate database MUST be named UpsRate: some stored procedures write to [UpsRate].[dbo].[...].",
+  "ConnectionStrings": {
+    "UpsRate": "Server=SANDBOX_SERVER;Initial Catalog=UpsRate;uid=USER;pwd=PASSWORD;",
+    "Datawarehouse": "Server=SANDBOX_SERVER;Initial Catalog=Datawarehouse;uid=USER;pwd=PASSWORD;",
+    "WiseLink": "Server=SANDBOX_SERVER;Initial Catalog=WBFDOTCOM;uid=USER;pwd=PASSWORD;"
+  }
+}

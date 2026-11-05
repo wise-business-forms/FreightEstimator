@@ -1,0 +1,23 @@
+@{
+    ViewBag.Title = "Reports";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container" style="margin-top: 20px;">
+    <h2>Reports</h2>
+    <hr />
+    <div class="list-group">
+        <a href="@Url.Action("Quotes", "Reports")" class="list-group-item list-group-item-action">
+            <strong>Past Quotes</strong>
+            <span class="text-muted" style="margin-left: 10px;">View all rate quote requests and their results</span>
+        </a>
+        <a href="@Url.Action("RateChanges", "Reports")" class="list-group-item list-group-item-action">
+            <strong>Rate Changes</strong>
+            <span class="text-muted" style="margin-left: 10px;">Find where rates changed between matching quotes, and whether UPS or we caused it</span>
+        </a>
+        <a href="@Url.Action("MarginReport", "Reports")" class="list-group-item list-group-item-action">
+            <strong>Margin Report</strong>
+            <span class="text-muted" style="margin-left: 10px;">View freight margin data by invoice</span>
+        </a>
+    </div>
+</div>

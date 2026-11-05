@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Characterization tests for the Plant page's quote flow (#15). Runs on .NET Framework because
+    PlantController is an ASP.NET MVC 5 controller, which cannot load on net8.0 (the Tests project).
+    Needs a SANDBOX UpsRate database: see ConnectionStrings.Sandbox.config.example. Build the web
+    project first (Visual Studio MSBuild); see docs/agents/ for the test commands.
+  -->
+  <PropertyGroup>
+    <TargetFrameworks>net472;net8.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>FreightEstimator.QuoteTests</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <!-- net472: the .NET Framework app (MVC 5, Web API 2). -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <PackageReference Include="Microsoft.AspNet.Mvc" Version="5.3.0" />
+    <!-- The Quote API tests (#18) host the web project's Web API in memory. Same version as its packages.config. -->
+    <PackageReference Include="Microsoft.AspNet.WebApi.Core" Version="5.3.0" />
+    <!-- Same versions as the web project's packages.config, so the runtime loads the assemblies it was built against. -->
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
+    <PackageReference Include="System.Memory" Version="4.6.0" />
+    <PackageReference Include="System.Buffers" Version="4.6.0" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.6.0" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.0" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.0" />
+    <PackageReference Include="System.Text.Encodings.Web" Version="9.0.0" />
+    <Reference Include="System.Configuration" />
+    <ProjectReference Include="..\FreightEstimator.csproj" />
+  </ItemGroup>
+
+  <!-- net8.0: the ASP.NET Core app (port stage 2, #29). The Quote API tests drive the Web API 2 pipeline, so they stay net472 only. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <ProjectReference Include="..\FreightEstimator.Web\FreightEstimator.Web.csproj" />
+    <Compile Remove="QuoteApiTests.cs" />
+    <!-- The test host on .NET reads testhost.dll.config, not the test assembly's own, so the connection strings need to be there. -->
+    <None Include="app.config" Link="testhost.dll.config" CopyToOutputDirectory="PreserveNewest" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.1" />
+    <!-- Hosts the ASP.NET Core app in memory, to prove it starts, routes, serves its assets and renders the Plant page. -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="NUnit.Framework" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The same fake the net8 tests use. -->
+    <Compile Include="..\Tests\Fakes\FakeCarrierHttp.cs" Link="Fakes\FakeCarrierHttp.cs" />
+    <None Include="..\Tests\Recorded\**" Link="Recorded\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Recorded\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Connection strings: SANDBOX only. The test refuses to run if they point anywhere else. -->
+    <None Include="..\ConnectionStrings.Sandbox.config" Link="ConnectionStrings.Sandbox.config" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\ConnectionStrings.Sandbox.config')" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,125 @@
+@using AuthenticationServer.Models.Reports
+@model MatchGroup
+
+@{
+    ViewBag.Title = "Compare Quotes";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    int requestId = ViewBag.RequestId;
+    var plant = ViewBag.Plant as AuthenticationServer.Models.Plant;
+}
+
+@functions {
+    static string Money(decimal? value) => value.HasValue ? value.Value.ToString("C") : "—";
+}
+
+<style>
+    .compare-table th {
+        background-color: #9ec5fe;
+        white-space: nowrap;
+    }
+    .compare-table td.changed {
+        background-color: #fff3cd;
+        font-weight: bold;
+    }
+    .compare-table tr.this-quote td {
+        border-top: 2px solid #0d6efd;
+        border-bottom: 2px solid #0d6efd;
+    }
+    .cause {
+        display: inline-block;
+        padding: 1px 6px;
+        margin: 1px 2px;
+        border-radius: 3px;
+        font-size: 0.85em;
+        white-space: nowrap;
+    }
+    .cause-ups { background-color: #cfe2ff; }
+    .cause-ours { background-color: #f8d7da; }
+    .cause-unknown { background-color: #e2e3e5; }
+</style>
+
+<div class="container-fluid" style="margin-top: 20px;">
+    <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 10px;">
+        <h2 style="margin: 0;">Compare Quotes</h2>
+        <span class="text-muted">@Model.Quotes.Count matching quote@(Model.Quotes.Count == 1 ? "" : "s") for quote #@requestId</span>
+        <a href="@Url.Action("RateChanges", "Reports", new { plant = Model.Key.PlantCode })" class="btn btn-sm btn-outline-secondary" style="margin-left: auto;">Rate Changes</a>
+        <a href="@Url.Action("Quotes", "Reports", new { plant = Model.Key.PlantCode })" class="btn btn-sm btn-outline-secondary">&#8592; Past Quotes</a>
+    </div>
+    <hr style="margin-top: 6px;" />
+
+    <table class="table table-sm table-borderless" style="width: auto; margin-bottom: 16px;">
+        <tbody>
+            <tr><td class="text-muted">Plant</td><td>@Model.Key.PlantCode@(plant != null ? " – " + plant.Name : "")</td></tr>
+            <tr><td class="text-muted">Ship-to zip</td><td>@Model.Key.ShipToZip</td></tr>
+            <tr><td class="text-muted">Packages</td><td>@Model.Key.PackageCount</td></tr>
+            <tr><td class="text-muted">Weights (lbs, rounded up)</td><td>@Model.Key.WeightsKey.Replace(",", ", ")</td></tr>
+            <tr>
+                <td class="text-muted">Residential surcharge quoted</td>
+                <td>
+                    @(Model.Key.ResidentialIndicatorSent ? "Yes" : "No")
+                    @if (!Model.Key.ResidentialIndicatorSent)
+                    {
+                        <span class="text-muted" style="font-size: 0.85em;">&mdash; residential addresses quoted before the residential-surcharge fix (docs/issues/0002) also show No</span>
+                    }
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    @if (Model.Quotes.Count < 2)
+    {
+        <p class="text-muted">No other quotes match this one yet.</p>
+    }
+
+    @foreach (var service in Model.Services.OrderBy(s => s.ServiceCode))
+    {
+        <h4 style="margin-top: 20px;">@service.ServiceName <small class="text-muted">(@service.ServiceCode)</small></h4>
+        <table class="table table-bordered table-sm compare-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Quote #</th>
+                    <th>Published Rate</th>
+                    <th>Negotiated Rate</th>
+                    <th>Calculated Rate</th>
+                    <th>Change from previous</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var entry in service.Entries)
+                {
+                    var change = entry.Change;
+                    var calc = entry.Calculation;
+                    <tr class="@(entry.Quote.RequestId == requestId ? "this-quote" : "")">
+                        <td style="white-space: nowrap;">@entry.Quote.RequestDate.ToString("MM/dd/yyyy HH:mm")</td>
+                        <td><a href="@Url.Action("Quotes", "Reports", new { search = entry.Quote.RequestId, plant = Model.Key.PlantCode })">@entry.Quote.RequestId</a></td>
+                        <td class="@(change != null && change.PublishedChanged ? "changed" : "")">@Money(entry.Rate.PublishedRate)</td>
+                        <td class="@(change != null && change.NegotiatedChanged ? "changed" : "")">@Money(entry.Rate.NegotiatedRate)</td>
+                        <td class="@(change != null && change.CalculatedChanged ? "changed" : "")"
+                            title="@(calc == null ? "No calculation could be matched to this quote with certainty" :
+                                     string.Format("Base: {0} ({1}); markup {2}%; per-package {3}; per-shipment {4}",
+                                         Money(calc.CarrierRate), calc.IsNegotiatedRate == true ? "negotiated" : "published",
+                                         calc.MarkupPercent, Money(calc.PerPackageCharge), Money(calc.PerShipmentCharge)))">
+                            @(calc == null ? "—" : Money(calc.CalculatedRate))
+                        </td>
+                        <td>
+                            @if (change != null)
+                            {
+                                foreach (var cause in change.Causes)
+                                {
+                                    <span class="cause @RateChangeLabels.CssClassFor(cause)">@RateChangeLabels.For(cause, change.ChangedCharges)</span>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <p class="text-muted" style="font-size: 0.85em;">
+        Quotes match when they share plant, ship-to zip, package count, package weights (rounded up to a whole pound) and whether the
+        residential surcharge was quoted. Calculated Rate is matched to a quote only when exactly one calculation fits; otherwise it shows &mdash;.
+        Hover a Calculated Rate to see the charges behind it.
+    </p>
+</div>

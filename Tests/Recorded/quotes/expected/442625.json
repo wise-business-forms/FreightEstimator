@@ -1,0 +1,58 @@
+{
+  "NextDayAirEarlyAM": {
+    "calculatedRate": 3371.4385,
+    "cwt": "Yes",
+    "chargeSchedule": "UPSCWT",
+    "markupPercent": "15",
+    "perPackageCharge": "1",
+    "perShipmentCharge": "3"
+  },
+  "NextDayAirSaver": {
+    "calculatedRate": 1122.3322,
+    "cwt": "Yes",
+    "chargeSchedule": "UPSCWT",
+    "markupPercent": "14",
+    "perPackageCharge": "1",
+    "perShipmentCharge": "3"
+  },
+  "SecondDayAirAM": {
+    "calculatedRate": 596.6352,
+    "cwt": "Yes",
+    "chargeSchedule": "UPSCWT",
+    "markupPercent": "16",
+    "perPackageCharge": "1",
+    "perShipmentCharge": "3"
+  },
+  "UPS2ndDayAir": {
+    "calculatedRate": 509.9662,
+    "cwt": "Yes",
+    "chargeSchedule": "UPSCWT",
+    "markupPercent": "11",
+    "perPackageCharge": "1",
+    "perShipmentCharge": "3"
+  },
+  "UPS3DaySelect": {
+    "calculatedRate": 686.1,
+    "cwt": "No",
+    "chargeSchedule": "UPS",
+    "markupPercent": "6",
+    "perPackageCharge": "2",
+    "perShipmentCharge": "5"
+  },
+  "UPSGround": {
+    "calculatedRate": 252.45,
+    "cwt": "No",
+    "chargeSchedule": "UPS",
+    "markupPercent": "5",
+    "perPackageCharge": "2",
+    "perShipmentCharge": "5"
+  },
+  "UPSNextDayAir": {
+    "calculatedRate": 1099.363,
+    "cwt": "Yes",
+    "chargeSchedule": "UPSCWT",
+    "markupPercent": "10",
+    "perPackageCharge": "1",
+    "perShipmentCharge": "3"
+  }
+}

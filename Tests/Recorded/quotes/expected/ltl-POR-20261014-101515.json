@@ -1,0 +1,37 @@
+{
+  "A. DUIE PYLE, INC. #1": {
+    "carrierRate": 167.1,
+    "calculatedRate": "$278.63",
+    "markupAmount": "$12.53",
+    "perPackageCharge": "$93.00",
+    "perShipmentCharge": "$6.00"
+  },
+  "ESTES EXPRESS LINES #1": {
+    "carrierRate": 246.25,
+    "calculatedRate": "$363.72",
+    "markupAmount": "$18.47",
+    "perPackageCharge": "$93.00",
+    "perShipmentCharge": "$6.00"
+  },
+  "R & L CARRIERS INC. #1": {
+    "carrierRate": 164.26,
+    "calculatedRate": "$275.58",
+    "markupAmount": "$12.32",
+    "perPackageCharge": "$93.00",
+    "perShipmentCharge": "$6.00"
+  },
+  "TFORCE FREIGHT #1": {
+    "carrierRate": 233.3,
+    "calculatedRate": "$349.80",
+    "markupAmount": "$17.50",
+    "perPackageCharge": "$93.00",
+    "perShipmentCharge": "$6.00"
+  },
+  "XPO LOGISTICS FREIGHT INC. (LTL) #1": {
+    "carrierRate": 227.26,
+    "calculatedRate": "$343.30",
+    "markupAmount": "$17.04",
+    "perPackageCharge": "$93.00",
+    "perShipmentCharge": "$6.00"
+  }
+}

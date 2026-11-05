@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Per-environment connection strings carry credentials
+ConnectionStrings.Sandbox.config
+ConnectionStrings.Production.config
+
+# ASP.NET Core app: per-environment connection strings, never committed
+FreightEstimator.Web/ConnectionStrings.Sandbox.json
+FreightEstimator.Web/ConnectionStrings.Production.json

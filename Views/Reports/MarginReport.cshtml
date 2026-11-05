@@ -1,0 +1,89 @@
+﻿@model List<AuthenticationServer.Models.Invoice>
+@using AuthenticationServer.Models
+
+<script>
+    function exportToExcel() {
+        let table = document.querySelector('table'); // Assuming your grid is in a <table> element
+        let csvData = [];
+        let rows = table.querySelectorAll('tr');
+
+        for (let i = 0; i < rows.length; i++) {
+            let rowData = [];
+            let cells = rows[i].querySelectorAll('td, th');
+            for (let j = 0; j < cells.length; j++) {
+                let cellValue = cells[j].innerText;
+                // Enclose cell value in double quotes if it contains a comma
+                if (cellValue.includes(',')) {
+                    rowData.push(`"${cellValue}"`);
+                } else {
+                    rowData.push(cellValue);
+                }
+            }
+            csvData.push(rowData.join(','));
+        }
+
+        let csvString = csvData.join('\n');
+        let filename = 'export.csv';
+        let mimeType = 'text/csv;charset=utf-8;';
+        let blob = new Blob([csvString], { type: mimeType });
+
+        let link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+    <div class="container mt-4">
+        <h2>Margin Report</h2><button onclick="exportToExcel()">Download</button>
+        <table class="table table-striped table-bordered table-hover">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Type</th>
+                    <th>Year</th>
+                    <th>Month</th>
+                    <th>Day</th>
+                    <th>Plant</th>
+                    <th>Sold Customer#</th>
+                    <th>Sold Customer Name</th>
+                    <th>Invoice</th>
+                    <th>Air Bill / Pro Number</th>
+                    <th>Invoice Frt Billed</th>
+                    <th>Total Cost</th>
+                    <th>Frt Margin$</th>
+                    <th>Frt Markup %</th>
+                    <th>Ground Commercial</th>
+                    <th>Fuel Surcharge</th>
+                    <th>Accessorial 1</th>
+                    <th>Accessorial 2</th>
+                    <th>Accessorial 3</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var invoice in Model)
+                {
+                    <tr>
+                        <td>LTL</td>
+                        <td>@invoice.Date.Year</td>
+                        <td>@invoice.Date.Month</td>
+                        <td>@invoice.Date.Day</td>
+                        <td>@invoice.Plant.Id</td>
+                        <td>@invoice.SoldCustomerNumber</td>
+                        <td>@invoice.SoldCustomerName</td>
+                        <td>@invoice.InvoiceNumber</td>
+                        <td>@invoice.AirBillProNumber</td>
+                        <td>@invoice.InvoiceFreightBilled</td>
+                        <td>@invoice.TotalCost</td>
+                        <td>@invoice.FreightMargin</td>
+                        <td>@invoice.FreightMarkupPercentage</td>
+                        <td>@invoice.GroundCommercial</td>
+                        <td>@invoice.FuelSurcharge</td>
+                        <td>@invoice.Accessorial1</td>
+                        <td>@invoice.Accessorial2</td>
+                        <td>@invoice.Accessorial3</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>

@@ -1,0 +1,30 @@
+{
+  "ESTES EXPRESS LINES #1": {
+    "carrierRate": 616.1,
+    "calculatedRate": "$758.31",
+    "markupAmount": "$46.21",
+    "perPackageCharge": "$90.00",
+    "perShipmentCharge": "$6.00"
+  },
+  "R & L CARRIERS INC. #1": {
+    "carrierRate": 483.78,
+    "calculatedRate": "$616.06",
+    "markupAmount": "$36.28",
+    "perPackageCharge": "$90.00",
+    "perShipmentCharge": "$6.00"
+  },
+  "TFORCE FREIGHT #1": {
+    "carrierRate": 366.36,
+    "calculatedRate": "$489.84",
+    "markupAmount": "$27.48",
+    "perPackageCharge": "$90.00",
+    "perShipmentCharge": "$6.00"
+  },
+  "XPO LOGISTICS FREIGHT INC. (LTL) #1": {
+    "carrierRate": 432.47,
+    "calculatedRate": "$560.91",
+    "markupAmount": "$32.44",
+    "perPackageCharge": "$90.00",
+    "perShipmentCharge": "$6.00"
+  }
+}

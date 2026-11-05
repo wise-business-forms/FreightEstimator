@@ -1,0 +1,1940 @@
+{
+ "requestId": 444614,
+ "plant": "ALP",
+ "kind": "parcel",
+ "packages": 3,
+ "packageWeight": 19.0,
+ "lastPackageWeight": 11.0,
+ "shipToState": "NC",
+ "shipToZip": "28139",
+ "response": {
+  "RateResponse": {
+   "Response": {
+    "ResponseStatus": {
+     "Code": "1",
+     "Description": "Success"
+    },
+    "Alert": [
+     {
+      "Code": "112081",
+      "Description": "A Delivery Area surcharge has been added to the service cost."
+     },
+     {
+      "Code": "110971",
+      "Description": "Your invoice may vary from the displayed reference rates"
+     }
+    ],
+    "TransactionReference": {
+     "CustomerContext": "CustomerContext"
+    }
+   },
+   "RatedShipment": [
+    {
+     "Service": {
+      "Code": "01",
+      "Description": ""
+     },
+     "RatedShipmentAlert": [
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "110971",
+       "Description": "Your invoice may vary from the displayed reference rates"
+      }
+     ],
+     "BillingWeight": {
+      "UnitOfMeasurement": {
+       "Code": "LBS",
+       "Description": "Pounds"
+      },
+      "Weight": "49.0"
+     },
+     "TransportationCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "516.38"
+     },
+     "BaseServiceCharge": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "0.00"
+     },
+     "ServiceOptionsCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "0.00"
+     },
+     "TotalCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "516.38"
+     },
+     "NegotiatedRateCharges": {
+      "BaseServiceCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "0.00"
+      },
+      "TotalCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "149.63"
+      }
+     },
+     "GuaranteedDelivery": {
+      "BusinessDaysInTransit": "1",
+      "DeliveryByTime": "12:00 Noon"
+     },
+     "RatedPackage": [
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "182.28"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "130.84"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "45.74"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "182.28"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "36.64"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "52.72"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "52.72"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "13.23"
+         }
+        ]
+       },
+       "Weight": "19.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "19.0"
+       }
+      },
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "182.28"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "130.84"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "45.74"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "182.28"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "36.64"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "52.72"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "52.72"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "13.23"
+         }
+        ]
+       },
+       "Weight": "19.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "19.0"
+       }
+      },
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "151.82"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "108.02"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "38.10"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "151.82"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "30.25"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "44.19"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "44.19"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "11.09"
+         }
+        ]
+       },
+       "Weight": "11.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "11.0"
+       }
+      }
+     ]
+    },
+    {
+     "Service": {
+      "Code": "14",
+      "Description": ""
+     },
+     "RatedShipmentAlert": [
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "110971",
+       "Description": "Your invoice may vary from the displayed reference rates"
+      }
+     ],
+     "BillingWeight": {
+      "UnitOfMeasurement": {
+       "Code": "LBS",
+       "Description": "Pounds"
+      },
+      "Weight": "49.0"
+     },
+     "TransportationCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "636.53"
+     },
+     "BaseServiceCharge": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "0.00"
+     },
+     "ServiceOptionsCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "0.00"
+     },
+     "TotalCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "636.53"
+     },
+     "NegotiatedRateCharges": {
+      "BaseServiceCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "0.00"
+      },
+      "TotalCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "625.13"
+      }
+     },
+     "GuaranteedDelivery": {
+      "BusinessDaysInTransit": "1",
+      "DeliveryByTime": "10:00 A.M."
+     },
+     "RatedPackage": [
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "222.33"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "160.84"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "55.79"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "222.33"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "160.84"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "218.53"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "218.53"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "54.84"
+         }
+        ]
+       },
+       "Weight": "19.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "19.0"
+       }
+      },
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "222.33"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "160.84"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "55.79"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "222.33"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "160.84"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "218.53"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "218.53"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "54.84"
+         }
+        ]
+       },
+       "Weight": "19.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "19.0"
+       }
+      },
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "191.87"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "138.02"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "48.15"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "191.87"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "138.02"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "188.07"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "188.07"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "47.20"
+         }
+        ]
+       },
+       "Weight": "11.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "11.0"
+       }
+      }
+     ]
+    },
+    {
+     "Service": {
+      "Code": "13",
+      "Description": ""
+     },
+     "RatedShipmentAlert": [
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "110971",
+       "Description": "Your invoice may vary from the displayed reference rates"
+      }
+     ],
+     "BillingWeight": {
+      "UnitOfMeasurement": {
+       "Code": "LBS",
+       "Description": "Pounds"
+      },
+      "Weight": "49.0"
+     },
+     "TransportationCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "472.65"
+     },
+     "BaseServiceCharge": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "0.00"
+     },
+     "ServiceOptionsCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "0.00"
+     },
+     "TotalCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "472.65"
+     },
+     "NegotiatedRateCharges": {
+      "BaseServiceCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "0.00"
+      },
+      "TotalCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "137.37"
+      }
+     },
+     "GuaranteedDelivery": {
+      "BusinessDaysInTransit": "1",
+      "DeliveryByTime": "4:30 P.M."
+     },
+     "RatedPackage": [
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "170.19"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "121.78"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "42.71"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "170.19"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "34.10"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "49.33"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "49.33"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "12.38"
+         }
+        ]
+       },
+       "Weight": "19.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "19.0"
+       }
+      },
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "170.19"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "121.78"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "42.71"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "170.19"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "34.10"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "49.33"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "49.33"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "12.38"
+         }
+        ]
+       },
+       "Weight": "19.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "19.0"
+       }
+      },
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "132.27"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "93.38"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "33.19"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "132.27"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "26.15"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "38.71"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "38.71"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "9.71"
+         }
+        ]
+       },
+       "Weight": "11.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "11.0"
+       }
+      }
+     ]
+    },
+    {
+     "Service": {
+      "Code": "02",
+      "Description": ""
+     },
+     "RatedShipmentAlert": [
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "110971",
+       "Description": "Your invoice may vary from the displayed reference rates"
+      }
+     ],
+     "BillingWeight": {
+      "UnitOfMeasurement": {
+       "Code": "LBS",
+       "Description": "Pounds"
+      },
+      "Weight": "49.0"
+     },
+     "TransportationCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "254.58"
+     },
+     "BaseServiceCharge": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "0.00"
+     },
+     "ServiceOptionsCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "0.00"
+     },
+     "TotalCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "254.58"
+     },
+     "NegotiatedRateCharges": {
+      "BaseServiceCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "0.00"
+      },
+      "TotalCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "97.16"
+      }
+     },
+     "GuaranteedDelivery": {
+      "BusinessDaysInTransit": "2"
+     },
+     "RatedPackage": [
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "92.22"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "63.38"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "23.14"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "92.22"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "23.45"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "35.11"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "35.11"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "8.81"
+         }
+        ]
+       },
+       "Weight": "19.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "19.0"
+       }
+      },
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "92.22"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "63.38"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "23.14"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "92.22"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "23.45"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "35.11"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "35.11"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "8.81"
+         }
+        ]
+       },
+       "Weight": "19.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "19.0"
+       }
+      },
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "70.14"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "46.84"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "17.60"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "70.14"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "17.33"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "26.94"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "26.94"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "6.76"
+         }
+        ]
+       },
+       "Weight": "11.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "11.0"
+       }
+      }
+     ]
+    },
+    {
+     "Service": {
+      "Code": "59",
+      "Description": ""
+     },
+     "RatedShipmentAlert": [
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "110971",
+       "Description": "Your invoice may vary from the displayed reference rates"
+      }
+     ],
+     "BillingWeight": {
+      "UnitOfMeasurement": {
+       "Code": "LBS",
+       "Description": "Pounds"
+      },
+      "Weight": "49.0"
+     },
+     "TransportationCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "292.16"
+     },
+     "BaseServiceCharge": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "0.00"
+     },
+     "ServiceOptionsCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "0.00"
+     },
+     "TotalCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "292.16"
+     },
+     "NegotiatedRateCharges": {
+      "BaseServiceCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "0.00"
+      },
+      "TotalCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "111.08"
+      }
+     },
+     "GuaranteedDelivery": {
+      "BusinessDaysInTransit": "2",
+      "DeliveryByTime": "12:00 Noon"
+     },
+     "RatedPackage": [
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "107.21"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "74.61"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "26.90"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "107.21"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "27.61"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "40.66"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "40.66"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "10.20"
+         }
+        ]
+       },
+       "Weight": "19.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "19.0"
+       }
+      },
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "107.21"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "74.61"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "26.90"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "107.21"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "27.61"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "40.66"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "40.66"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "10.20"
+         }
+        ]
+       },
+       "Weight": "19.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "19.0"
+       }
+      },
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "77.74"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "52.53"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "19.51"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "77.74"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "19.44"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "29.76"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "29.76"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "7.47"
+         }
+        ]
+       },
+       "Weight": "11.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "11.0"
+       }
+      }
+     ]
+    },
+    {
+     "Service": {
+      "Code": "12",
+      "Description": ""
+     },
+     "RatedShipmentAlert": [
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "110971",
+       "Description": "Your invoice may vary from the displayed reference rates"
+      }
+     ],
+     "BillingWeight": {
+      "UnitOfMeasurement": {
+       "Code": "LBS",
+       "Description": "Pounds"
+      },
+      "Weight": "49.0"
+     },
+     "TransportationCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "199.38"
+     },
+     "BaseServiceCharge": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "0.00"
+     },
+     "ServiceOptionsCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "0.00"
+     },
+     "TotalCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "199.38"
+     },
+     "NegotiatedRateCharges": {
+      "BaseServiceCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "0.00"
+      },
+      "TotalCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "90.85"
+      }
+     },
+     "GuaranteedDelivery": {
+      "BusinessDaysInTransit": "3"
+     },
+     "RatedPackage": [
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "71.76"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "48.05"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "18.01"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "71.76"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "21.62"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "32.67"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "32.67"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "8.20"
+         }
+        ]
+       },
+       "Weight": "19.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "19.0"
+       }
+      },
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "71.76"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "48.05"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "18.01"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "71.76"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "21.62"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "32.67"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "32.67"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "8.20"
+         }
+        ]
+       },
+       "Weight": "19.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "19.0"
+       }
+      },
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "55.86"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "36.14"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "14.02"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "55.86"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "16.26"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "25.51"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "25.51"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "6.40"
+         }
+        ]
+       },
+       "Weight": "11.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "11.0"
+       }
+      }
+     ]
+    },
+    {
+     "Service": {
+      "Code": "03",
+      "Description": ""
+     },
+     "RatedShipmentAlert": [
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "112081",
+       "Description": "A Delivery Area Surcharge has been added to the service cost."
+      },
+      {
+       "Code": "110971",
+       "Description": "Your invoice may vary from the displayed reference rates"
+      }
+     ],
+     "BillingWeight": {
+      "UnitOfMeasurement": {
+       "Code": "LBS",
+       "Description": "Pounds"
+      },
+      "Weight": "49.0"
+     },
+     "TransportationCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "101.02"
+     },
+     "BaseServiceCharge": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "0.00"
+     },
+     "ServiceOptionsCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "0.00"
+     },
+     "TotalCharges": {
+      "CurrencyCode": "USD",
+      "MonetaryValue": "101.02"
+     },
+     "NegotiatedRateCharges": {
+      "BaseServiceCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "0.00"
+      },
+      "TotalCharge": {
+       "CurrencyCode": "USD",
+       "MonetaryValue": "46.57"
+      }
+     },
+     "RatedPackage": [
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "35.38"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "21.46"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "8.22"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "35.38"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "10.21"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "15.82"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "15.82"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.76"
+         }
+        ]
+       },
+       "Weight": "19.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "19.0"
+       }
+      },
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "35.38"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "21.46"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "8.22"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "35.38"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "10.21"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "15.82"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "15.82"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.76"
+         }
+        ]
+       },
+       "Weight": "19.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "19.0"
+       }
+      },
+      {
+       "TransportationCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "30.26"
+       },
+       "BaseServiceCharge": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "17.53"
+       },
+       "ServiceOptionsCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "0.00"
+       },
+       "ItemizedCharges": [
+        {
+         "Code": "376",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "5.70",
+         "SubType": "Rural Extended"
+        },
+        {
+         "Code": "375",
+         "CurrencyCode": "USD",
+         "MonetaryValue": "7.03"
+        }
+       ],
+       "TotalCharges": {
+        "CurrencyCode": "USD",
+        "MonetaryValue": "30.26"
+       },
+       "NegotiatedCharges": {
+        "BaseServiceCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "9.47"
+        },
+        "TransportationCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "14.93"
+        },
+        "ServiceOptionsCharges": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "0.00"
+        },
+        "TotalCharge": {
+         "CurrencyCode": "USD",
+         "MonetaryValue": "14.93"
+        },
+        "ItemizedCharges": [
+         {
+          "Code": "376",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.85",
+          "SubType": "Rural Extended"
+         },
+         {
+          "Code": "375",
+          "CurrencyCode": "USD",
+          "MonetaryValue": "2.61"
+         }
+        ]
+       },
+       "Weight": "11.0",
+       "BillingWeight": {
+        "UnitOfMeasurement": {
+         "Code": "LBS",
+         "Description": "Pounds"
+        },
+        "Weight": "11.0"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ }
+}
