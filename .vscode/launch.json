@@ -1,0 +1,31 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        // Launches IIS Express directly using the site config Visual Studio already
+        // generated for this project (.vs/FreightEstimator/config/applicationhost.config,
+        // site "FreightEstimator"). Once it's running, open https://localhost:44384/ in a browser.
+        {
+            "name": "IIS Express (Launch)",
+            "type": "clr",
+            "request": "launch",
+            "program": "C:/Program Files/IIS Express/iisexpress.exe",
+            "args": [
+                "/config:${workspaceFolder}/.vs/FreightEstimator/config/applicationhost.config",
+                "/site:FreightEstimator",
+                "/trace:info"
+            ],
+            "cwd": "${workspaceFolder}",
+            "stopAtEntry": false
+        },
+        // For ASP.NET web apps already running (e.g. started from Visual Studio), use Attach to IIS/IIS Express
+        {
+            "name": ".NET Framework Attach",
+            "type": "clr",
+            "request": "attach",
+            "processId": "${command:pickProcess}"
+        }
+    ]
+}

@@ -36,7 +36,16 @@
     }
 </script>
     <div class="container mt-4">
-        <h2>Margin Report</h2><button onclick="exportToExcel()">Download</button>
+        <h2>Margin Report</h2>
+        @if (ViewBag.DataUnavailable == true)
+        {
+            <div class="alert alert-warning">
+                Margin data is temporarily unavailable. Please try again later.
+            </div>
+        }
+        else
+        {
+        <button onclick="exportToExcel()">Download</button>
         <table class="table table-striped table-bordered table-hover">
             <thead class="thead-dark">
                 <tr>
@@ -86,4 +95,5 @@
                 }
             </tbody>
         </table>
+        }
     </div>

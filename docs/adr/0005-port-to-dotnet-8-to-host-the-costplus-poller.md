@@ -1,0 +1,75 @@
+# Port the app to .NET 8 so the CostPlus poller can run in-process
+
+**Status:** accepted. Open questions below are tracked as tickets under #12.
+
+CostPlus (FileMaker) writes request parameters to a database table and waits for a result row. A console app polls that table, calls UPS directly, and writes the result back. We want that logic gone from the console app, so the Consumer's request is answered by the same Quote path as every other Consumer (ADR 0004), with the same Plant Charges, Quote ID and logging.
+
+This app is .NET Framework 4.7.2 (MVC, Web API 2 on System.Web, EF6, ASP.NET Identity 2, `Global.asax`). It has no `BackgroundService`, so a poller hosted inside it would have to be a hand-rolled thread under IIS, which stops whenever the app pool idles or recycles. CostPlus just waits silently when that happens. We will port the whole app to .NET 8, then host the poller as a `BackgroundService` calling the estimation service in-process, with the app running as a Windows Service.
+
+The poller is a thin adapter at the edge. FileMaker's table schema stays inside it and out of the domain code, so it can be deleted if CostPlus moves to REST. It claims rows atomically so a request is never processed twice, even with more than one instance. It logs failures and exposes a health check, because a stalled poller is otherwise invisible.
+
+## Considered options
+
+- **Keep the console app and have it call the Quote API over HTTP.** Not chosen: it leaves a second deployable to run and monitor, and it is still the thing that fails silently.
+- **Hand-rolled background thread in the .NET Framework app.** Rejected: it depends on IIS never idling or recycling the app pool.
+- **Port only the estimation core (multi-targeted library) and host the poller in a small .NET 8 worker.** Raised and not chosen: the whole app is ported instead. This leaves the Plant page, Admin area and Quote API on the same runtime as the poller. It is the larger and riskier option, and the cost is accepted.
+- **A separate new Quote service.** Rejected in ADR 0004, and nothing here changes that.
+
+## Decisions
+
+- **Hosting: IIS.** Supersedes the earlier Windows Service decision: Kestrel self-hosting is ruled out, and IIS may have to stay for the web app. The app pool must have Start Mode AlwaysRunning, Idle Timeout 0 and Preload Enabled, or the poller stops when the app idles. IIS still recycles the pool (and briefly runs the old and new process side by side during an overlapped recycle), so a stopped or doubled poller is expected sometimes, not an edge case. That is why the atomic claim, the lease and the stall alert below are requirements, not extras. Running the poller as a separate Windows Service remains open as the fallback if IIS proves unreliable for it.
+- **CostPlus is a Consumer with a fixed identity set by the poller, not an API key.** The poller is in-process, so a key would be ceremony. The FileMaker requester is recorded separately if the table carries one.
+- **The poller does not get a Reference Number exemption.** ADR 0004 requires one on every Quote. CostPlus must supply it, so a request-table field for it is a prerequisite that the CostPlus owners have to deliver. A Quote without one can never be matched to an Invoice (ADR 0001).
+- **Cutover waits on Service Availability.** The poller replaces the console app only once every Service CostPlus uses is available through the unified module (ADR 0003, ADR 0004). Until then CostPlus would lose numbers it gets today.
+- **Errors keep their current shape.** Failures and unavailable Services are written to the result row in whatever form the console app uses today, so FileMaker's scripts don't change.
+- **Sequencing:** extract the estimation service and make Services available (#16-17, #19-21) on .NET Framework, guarded by the #15 characterization tests. Then port, with the same tests running on both targets. The poller comes last.
+- **Several poller instances are allowed.** A claim is taken with one atomic `UPDATE ... OUTPUT` that sets a status and claim time. A claim older than about 2 minutes (UPS's slowest call plus margin) can be taken again, and the result write is idempotent on the request ID.
+- **A stall must reach a person.** The health endpoint reports the age of the oldest unclaimed request and the time of the last successful poll. A scheduled check alerts when either passes a threshold, for example 60 seconds.
+
+- **Fallback trigger for IIS.** The poller has failed under IIS if it cannot poll the table and return a result on demand within 10 seconds three times in a row. It then moves to a Windows Service, which shares the estimation library and is a second deployable. Recorded 10-second timings for reference: UPS parcel averaged 1.8 s (max 3.3 s) and the Logistics Partner averaged 4.2 s (max 5.3 s) in `CarrierApiCall`, from a very small sample, so a request asking for both leaves little slack. How "on demand" is measured (probably a synthetic probe request) is not yet decided.
+
+- **No changes to CostPlus in this phase.** This supersedes two earlier decisions, which are deferred rather than dropped: CostPlus adding a plant-code column, and CostPlus adding a Reference Number column. Both reappear as open questions below, because the console app's behaviour (see Observed behaviour) conflicts with the domain rules.
+- **The claim is a new data structure in `UpsRate`, not a change to CostPlus's table.** The poller keeps reading and writing `FreightRequests` through the linked server, as the console app does. The claim table lives in `UpsRate` and its unique key is the guard. What identifies a request (see Observed behaviour: `LoginId` plus `QtyNumber`) and what a resubmission looks like are still to be confirmed.
+- **Every estimate is logged to `UpsRate.dbo.Requests_Rate`**, from CostPlus and every other Consumer. That table is the raw UPS request and response log (Quote History), with no Consumer, Plant, Markup or timing columns, so those attach to the Quote through the existing additive tables keyed by Quote ID (ADR 0002), as for the Plant page.
+- **The 10-second rule is measured on real requests**, from `DateRequested` to `DateRated`, plus a probe request during quiet hours so the rule can fire when nobody is asking. Probes carry an `IsTest` marker and never reach UPS billing or reporting.
+
+- **Plant comes from an explicit state mapping in the poller's adapter.** It carries the console app's current table (GA to ALP, PA to BUT, IN to FTW, SC to PDT, ME to POR) as a reviewed, versioned mapping, and rejects any other from-state with a clear error. The domain still requires a named Plant on every Estimate request; only the CostPlus adapter supplies it. **This is a knowing exception to "don't infer the Plant"**, accepted because CostPlus can't change this phase. It goes away when CostPlus sends a plant code.
+- **The Reference Number is a generated integer for CostPlus requests.** The poller generates it, and records it with the Quote against `LoginId`/`QtyNumber`. Consequence to accept: ADR 0001 wants a number that also appears on the ERP invoice, and a generated number does not, so CostPlus Quotes cannot be matched to Invoices and Rate Variance will not cover them until CostPlus supplies a real Reference Number.
+- **This phase the poller serves UPS-only rows.** It claims only rows with `RequestUPS` set and `RequestLTL` unset. The console app keeps every row that requests LTL until the LTL phase, so after cutover it must be changed to skip UPS-only rows. It is our code, not CostPlus's. Until then the poller only observes (shadow mode, no claim), so the two never race.
+- **The claim key includes `DateRequested`:** `LoginId`, `QtyNumber` and `DateRequested`, so a resubmission with a new `DateRequested` is a new request. Provisional until it is confirmed that FileMaker sets a new `DateRequested` on resubmission.
+- **The console app is a fifth call site for `docs/issues/0001`.** The poller cuts over only after a shadow run shows every divergence between the console app's numbers and `CalculatedRate.Apply` is explained, as for the other four.
+
+- **New failure conditions reuse `GENERAL`.** An unmapped from-state, a Service not yet available and a missing Plant Charges row are written as `GENERAL` with a specific `ErrorDesc01` (for example "Service not available: UPS Ground"). New codes wait until someone has checked how FileMaker handles unknown ones.
+- **The poller copies the console app's result shaping exactly**, inside the CostPlus adapter: UPS lines sorted by price, methods named `XX` dropped, the per-Plant filters for ALP and FTW, and the address classification digit in `Note`. FileMaker's reading of the row does not change this phase.
+- **Stall alerts go to pmenefee@wbf.com.** Thresholds: oldest unclaimed request older than 30 seconds, or no successful poll for 60 seconds, plus the 10-second, three-in-a-row rule above.
+
+## Observed behaviour of the console app
+
+Source: `wise-business-forms/FreightEstimator-Console` (`FreightEstApp35`, now .NET 10). The poller must reproduce or deliberately change each of these.
+
+- **Plant is inferred, not named.** The console app derives the Plant from the from-address state: GA to ALP, PA to BUT, IN to FTW, SC to PDT, ME to POR. Any other state leaves the Plant unset. This contradicts "a Plant must be named explicitly on every request".
+- **Row identity is `LoginId` plus `QtyNumber`.** Results are written back with `WHERE LoginId = ... AND QtyNumber = ...`, and `source-uniqueId` (the same two values) is the correlation id for the carrier calls. `NumPackages` is the package count (the weight check is `(NumPackages - 1) * PkgWeight + LastPkgWeight`), so `QtyNumber` is not a package count.
+- **There is no claim.** One loop fetches the oldest row with `DateProcessed IS NULL OR DateRated IS NULL` and sleeps 250 ms when none is found. A row is only "done" when the final write sets `DateProcessed` and `DateRated`, so a crash or a failed write means the same row is fetched again.
+- **UPS and LTL results share the same slots.** LTL lines come first, then UPS services, up to 15 `Carrier`/`Service`/`Rate`/`Note` slots. The code caps at 20 (a GUI limit) against 15 columns.
+- **Outcomes are written back.** `ClassifiedResidential`, `SubstitutedZip`, and `ErrorCode01/ErrorDesc01` (codes seen: `WEIGHT`, `ADDRESS`, `GENERAL`) are set. The result SQL is built by string concatenation with `LoginId` inline.
+- **The console app has its own markup logic.** `RateCalulations.cs` applies markup, per-package and per-shipment charges, with CWT variants, per Plant: a copy of the divergence described in `docs/issues/0001`.
+
+## Consequences
+
+- **This contradicts no ADR, but it sits across ADR 0004's rule that the extraction is behaviour-preserving.** The port must also show the same Plant page numbers before and after, guarded by the characterization tests (#15), which must run on both targets or be ported with it.
+- **The brief's "Markup per Plant per Service" is Plant Charges here** (ADR 0003): the poller and the REST path both get Calculated Rates from the same module, and a Service with no Plant Charges is reported as not available, never as a raw Carrier Rate.
+
+## Open questions
+
+- The live CostPlus table is `ALPBCS06.CostPlus.dbo.FreightRequests`, reached from `UpsRate` through a linked server (`UpsRate.dbo.getNextRequestFromQueue`). It has not been read yet, and the console app source is not in the repo. The `FreightRequests_ALPERP`, `_PLANTROLBASE` and `_SANDBOX` tables in `UpsRate` are empty and have the same 121-column layout, so they are presumably the same shape. What that layout shows:
+  - **One row holds both the request and the result.** Request columns (`LoginId`, `QtyNumber`, `To*`/`From*` address, `NumPackages`, `PkgWeight`, `LastPkgWeight`, `RequestUPS`, `RequestLTL`, accessorial flags), then up to 15 result slots (`Carrier01..15`, `Service01..15`, `ServiceCode01..15`, `Rate01..15`) and `ErrorCode01..03`/`ErrorDesc01..03`.
+  - **There is no claim.** The legacy fetch is `SELECT TOP 1 ... WHERE DateProcessed IS NULL OR DateRated IS NULL`, oldest first. Two pollers would take the same row, so the atomic claim needs a new column or table on the CostPlus side, which CostPlus's owners control.
+  - **No Plant is named.** A request carries a from-address (`FromAddress/City/State/Zip`), not a Plant. Resolved above: CostPlus adds a plant-code column.
+  - **CostPlus also requests LTL** (`RequestLTL`), so cutover also needs the Logistics Partner path available (#21).
+  - **No Reference Number column.** Resolved above: CostPlus adds one.
+- Whether FileMaker sets a new `DateRequested` when it resubmits the same `LoginId` and `QtyNumber`, which the claim key assumes.
+- What `QtyNumber` means in CostPlus, and whether it could replace the generated Reference Number.
+- How UPS-only results and LTL results share the 15 slots once the LTL phase starts. The console app writes both; "slots are LTL only" does not match the code.
+- Whether IIS can keep the poller alive in practice, or the poller should be a separate Windows Service. The fallback test is below.
+- Whether the port is one change or staged (SDK-style project, then runtime, then MVC to ASP.NET Core).
+- Parallel run: who claims rows while the console app and the poller coexist.

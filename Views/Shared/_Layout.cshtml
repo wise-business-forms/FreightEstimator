@@ -12,6 +12,18 @@
     
         @Html.Partial("_DevBanner")
 
+        <nav class="navbar navbar-default" style="background-color: #f5f5f5; border-bottom: 1px solid #ddd; margin-bottom: 0;">
+            <div class="container-fluid">
+                <div class="navbar-header">
+                    <span class="navbar-brand" style="font-size: 14px; padding: 10px 15px;">WAFE</span>
+                </div>
+                <ul class="nav navbar-nav">
+                    <li>@Html.ActionLink("Reports", "Index", "Reports")</li>
+                    <li>@Html.ActionLink("Rates", "Index", "Rates")</li>
+                </ul>
+            </div>
+        </nav>
+
         @RenderBody()
         <hr />
         <footer>

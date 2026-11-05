@@ -69,7 +69,8 @@ namespace AuthenticationServer.Controllers
             }
             catch (Exception ex)
             {
-                throw; // Propagate the exception for the caller to handle.
+                System.Diagnostics.Trace.TraceWarning("MarginReport query failed: " + ex.Message);
+                ViewBag.DataUnavailable = true;
             }
 
             //try

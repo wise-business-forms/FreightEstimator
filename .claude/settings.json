@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -viE '^\\(bin|obj|packages\\)/|/bin/|/obj/|\\\\.\\(png|jpg|gif|ico|woff2?|ttf|eot|svg|min\\\\.js|min\\\\.css|map\\)$')"
+    ]
+  }
+}
