@@ -1,7 +1,12 @@
 using System.Net;
 using System.Net.Http;
 using System.Text;
+#if NET8_0_OR_GREATER
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+#else
 using System.Web.Http;
+#endif
 using AuthenticationServer.Models.Services;
 using FreightEstimator.Tests.Fakes;
 using Newtonsoft.Json.Linq;
@@ -19,6 +24,9 @@ namespace FreightEstimator.QuoteTests
         private FakeCarrierHttp _carriers;
         private IDisposable _carrierScope;
         private HttpClient _client;
+#if NET8_0_OR_GREATER
+        private WebApplicationFactory<Program> _factory;
+#endif
 
         [SetUp]
         public void SetUp()
@@ -27,16 +35,26 @@ namespace FreightEstimator.QuoteTests
             _carriers = new FakeCarrierHttp();   // no responses set up: any carrier call throws
             _carrierScope = _carriers.Install();
 
+#if NET8_0_OR_GREATER
+            // The ASP.NET Core app (port stage 3, #30), hosted in memory: the same requests, the same assertions.
+            _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(b => b.UseEnvironment("Development"));
+            _client = _factory.CreateClient();
+#else
             var config = new HttpConfiguration();
             AuthenticationServer.WebApiConfig.Register(config);
             config.EnsureInitialized();
             _client = new HttpClient(new HttpServer(config)) { BaseAddress = new Uri("http://localhost/") };
+#endif
         }
 
         [TearDown]
         public void TearDown()
         {
             _client.Dispose();
+#if NET8_0_OR_GREATER
+            _factory.Dispose();
+            AuthenticationServer.Models.Configuration.ConnectionStringSource = null;   // the app sets it at startup; a later test must not see a disposed host's
+#endif
             _carrierScope.Dispose();
             _consumer.Dispose();
         }

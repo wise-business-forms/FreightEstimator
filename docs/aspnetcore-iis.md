@@ -15,7 +15,7 @@ For Debug on a developer machine, copy `ConnectionStrings.Sandbox.json.example` 
 
 Safeguards: a Development run refuses to start unless the `UpsRate` server's name contains "sandbox" (or is named in `FREIGHTESTIMATOR_SANDBOX_SERVER`), whatever supplied the string. Nothing stops a `dotnet run` with no launch profile from running as Production, and reading `ConnectionStrings.Production.json` if one is on the machine, so do not keep that file on a developer machine. Standard ASP.NET Core overrides apply: an environment variable such as `ConnectionStrings__UpsRate` beats the JSON file. `dotnet publish` copies any local `ConnectionStrings.*.json` into the output, so publish from a clean checkout. `wwwroot` holds its own copy of the Bootstrap, jQuery, Modernizr and image files the Framework app serves from `Content` and `Scripts`.
 
-The Plant page is at `/Plant/Index?loc=ALP`. The plant picker (Home), Reports, Rates, Admin and the Quote API are not in this app yet; the "[change plant]" link on the Plant page goes nowhere until the picker is ported.
+The Plant page is at `/Plant/Index?loc=ALP`. The plant picker (Home), Reports, Rates and Admin are not in this app yet. The Quote API (`POST /api/v1/quotes`, `GET /api/v1/plants`, `X-Api-Key` header) is, since port stage 3's first slice (#30); the "[change plant]" link on the Plant page goes nowhere until the picker is ported.
 
 ## Checking it
 

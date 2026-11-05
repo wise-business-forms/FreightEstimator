@@ -42,10 +42,9 @@
     <ProjectReference Include="..\FreightEstimator.csproj" />
   </ItemGroup>
 
-  <!-- net8.0: the ASP.NET Core app (port stage 2, #29). The Quote API tests drive the Web API 2 pipeline, so they stay net472 only. -->
+  <!-- net8.0: the ASP.NET Core app (port stages 2 and 3, #29, #30). The Quote API tests run against both hosts. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <ProjectReference Include="..\FreightEstimator.Web\FreightEstimator.Web.csproj" />
-    <Compile Remove="QuoteApiTests.cs" />
     <!-- The test host on .NET reads testhost.dll.config, not the test assembly's own, so the connection strings need to be there. -->
     <None Include="app.config" Link="testhost.dll.config" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.1" />
