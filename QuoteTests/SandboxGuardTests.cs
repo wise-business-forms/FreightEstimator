@@ -3,9 +3,9 @@ namespace FreightEstimator.QuoteTests
     public class SandboxGuardTests
     {
         [Test]
-        public void TheConfiguredUpsRateDatabaseIsSandbox()
+        public void TheConfiguredDatabaseIsTheFreightEstimatorTestDatabase()
         {
-            // Passes only when ConnectionStrings.Sandbox.config names a non-production server and database UpsRate.
+            // Passes only when ConnectionStrings.Sandbox.config names the test server and database FreightEstimator.
             SandboxGuard.Require();
         }
     }

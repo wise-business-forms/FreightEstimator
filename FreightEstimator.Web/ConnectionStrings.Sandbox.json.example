@@ -1,7 +1,7 @@
 {
-  "_comment": "Copy to ConnectionStrings.Sandbox.json and fill in. That copy is gitignored; never commit credentials. Development (Debug) runs read this file. The UpsRate database MUST be named UpsRate: some stored procedures write to [UpsRate].[dbo].[...].",
+  "_comment": "Copy to ConnectionStrings.Sandbox.json and fill in. That copy is gitignored; never commit credentials. Development (Debug) runs read this file. The test database is FreightEstimator on AZUREDB01\\AZUREDB01 (see Database/FreightEstimator.sql). The connection string key stays UpsRate. Never point this at the UPSRate database: a Development run refuses to start unless the database is FreightEstimator.",
   "ConnectionStrings": {
-    "UpsRate": "Server=SANDBOX_SERVER;Initial Catalog=UpsRate;uid=USER;pwd=PASSWORD;",
+    "UpsRate": "Server=AZUREDB01\\AZUREDB01;Initial Catalog=FreightEstimator;uid=USER;pwd=PASSWORD;",
     "Datawarehouse": "Server=SANDBOX_SERVER;Initial Catalog=Datawarehouse;uid=USER;pwd=PASSWORD;",
     "WiseLink": "Server=SANDBOX_SERVER;Initial Catalog=WBFDOTCOM;uid=USER;pwd=PASSWORD;"
   }

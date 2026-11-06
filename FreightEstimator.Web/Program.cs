@@ -18,6 +18,9 @@ builder.Configuration.AddJsonFile(connectionStringsFile, optional: true, reloadO
 
 builder.Services.AddControllersWithViews();
 
+// The CostPlus poller (ADR 0005): a background service in this app, off unless CostPlus:Poller:Enabled is true.
+builder.Services.AddHostedService<AuthenticationServer.CostPlus.CostPlusPollerService>();
+
 WebApplication app = builder.Build();
 
 IConfiguration configuration = app.Configuration;
@@ -25,15 +28,19 @@ Configuration.ConnectionStringSource = name => configuration.GetConnectionString
 
 if (app.Environment.IsDevelopment())
 {
-    // A Development (Debug) run must be on SANDBOX. Whatever file or setting supplied the strings, refuse to start
-    // unless the UpsRate server is recognisably SANDBOX: its name contains "sandbox", or it is the one named in
-    // FREIGHTESTIMATOR_SANDBOX_SERVER (or QUOTETESTS_SANDBOX_SERVER, which the tests use).
-    string server = new System.Data.SqlClient.SqlConnectionStringBuilder(Configuration.UpsRateSqlConnection).DataSource;
+    // A Development (Debug) run must be on the test database. Whatever file or setting supplied the strings, refuse to
+    // start unless the server is recognisably SANDBOX (its name contains "sandbox", or it is the one named in
+    // FREIGHTESTIMATOR_SANDBOX_SERVER, or QUOTETESTS_SANDBOX_SERVER, which the tests use) and the database is
+    // FreightEstimator. UpsRate is never allowed, even on an allowed server.
+    var connection = new System.Data.SqlClient.SqlConnectionStringBuilder(Configuration.UpsRateSqlConnection);
+    string server = connection.DataSource;
     string allowed = Environment.GetEnvironmentVariable("FREIGHTESTIMATOR_SANDBOX_SERVER") ?? Environment.GetEnvironmentVariable("QUOTETESTS_SANDBOX_SERVER");
     bool sandbox = server.IndexOf("sandbox", StringComparison.OrdinalIgnoreCase) >= 0
         || (!string.IsNullOrEmpty(allowed) && string.Equals(server, allowed, StringComparison.OrdinalIgnoreCase));
     if (!sandbox)
         throw new InvalidOperationException("Refusing to start in Development: the UpsRate server '" + server + "' is not recognisably SANDBOX. Name it so, or set FREIGHTESTIMATOR_SANDBOX_SERVER to its exact name.");
+    if (!string.Equals(connection.InitialCatalog, "FreightEstimator", StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("Refusing to start in Development: the database is '" + connection.InitialCatalog + "', not FreightEstimator. UpsRate is never a development target.");
 }
 else
 {
