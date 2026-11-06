@@ -17,17 +17,16 @@
 --   * Requests_Rate, Log_LTL, GetPlantCharges, LogRequest_Rate, LogResultsLTL, QuoteServiceCalculation,
 --     CalculatedRateShadowLog, RateRequestPlant, RateRequestMatchKey, RateRequestServiceRate, Consumer, Quote:
 --     the existing scripts Database/000 to 005, consolidated, with the three-part names removed.
---   * Plants and PlantCarrierCharges2017: INFERRED from the columns the app and QuoteTests read and write
---     (Plant.cs, PlantDirectory.cs, SandboxPlantCharges.cs). Production's exact types and keys were not read.
---     Run Database/schema-fingerprint.sql against both and correct this file if they differ.
+--   * Plants and PlantCarrierCharges2017: column names and types read from UPSRate (schema only). Their keys
+--     and indexes were not read. Rows for both come from Database/FreightEstimator_seed.sql and a one-off copy.
 --   * FreightRequests: the CostPlus request/result layout, column names and types read from
 --     UPSRate.dbo.FreightRequests_SANDBOX (schema only; nothing there was changed). Not read: its primary key
 --     columns and the precision of the Rate columns.
 --   * CostPlusRequestClaim, CostPlusReferenceNumber and the "CostPlus" Consumer: new, for the CostPlus poller
 --     (#31, ADR 0005).
 --
--- Loads no data except the "CostPlus" Consumer row. Plants and PlantCarrierCharges2017 rows must be loaded
--- separately before the app or the tests can quote.
+-- Loads no data except the "CostPlus" Consumer row. Plants and PlantCarrierCharges2017 rows are loaded
+-- separately (Database/FreightEstimator_seed.sql) before the app or the tests can quote.
 -- =====================================================================================================
 
 SET NOCOUNT ON;
@@ -52,21 +51,22 @@ END
 GO
 
 -- -----------------------------------------------------------------------------------------------------
--- Part 2: reference tables (INFERRED from the code; see the header)
+-- Part 2: reference tables. Column names and types as read from UPSRate (schema only; nothing there was
+-- changed). Not read: their keys and indexes, so the indexes below are this script's own choice.
 -- -----------------------------------------------------------------------------------------------------
 IF OBJECT_ID('dbo.Plants', 'U') IS NULL
 CREATE TABLE dbo.Plants
 (
-    PlantCode          VARCHAR(10)   NOT NULL,
-    PlantName          VARCHAR(100)  NULL,
-    Address            VARCHAR(200)  NULL,
+    PlantCode          CHAR(3)       NOT NULL,
+    PlantName          VARCHAR(50)   NULL,
+    Address            VARCHAR(100)  NULL,
     City               VARCHAR(100)  NULL,
     State              VARCHAR(50)   NULL,
-    Zip                VARCHAR(20)   NULL,
-    Country            VARCHAR(2)    NULL,
-    Active             CHAR(1)       NULL,        -- 'Y' = quotable
+    Zip                VARCHAR(50)   NULL,
+    Country            CHAR(2)       NULL,
+    Active             VARCHAR(1)    NULL,        -- 'Y' = quotable
+    GLCode             INT           NOT NULL,    -- no code reads it
     UpsShippingNumber  NCHAR(10)     NULL,        -- the plant queries filter on NOT NULL
-    GLCode             INT           NOT NULL     CONSTRAINT DF_Plants_GLCode DEFAULT (0),   -- no code reads it
     INDEX IX_Plants_PlantCode (PlantCode)
 );
 GO
@@ -76,20 +76,21 @@ IF OBJECT_ID('dbo.PlantCarrierCharges2017', 'U') IS NULL
 CREATE TABLE dbo.PlantCarrierCharges2017
 (
     CarrierPlantChargesId  INT            NOT NULL,
-    CarrierId              VARCHAR(20)    NOT NULL,
-    PlantCode              VARCHAR(10)    NOT NULL,
-    PerPackageCharge       DECIMAL(18,2)  NOT NULL,
-    PerShipmentCharge      DECIMAL(18,2)  NOT NULL,
-    NextDayAir             DECIMAL(9,4)   NOT NULL,
-    SecondDayAir           DECIMAL(9,4)   NOT NULL,
-    Ground                 DECIMAL(9,4)   NOT NULL,
-    ThreeDaySelect         DECIMAL(9,4)   NOT NULL,
-    NextDayAirSaver        DECIMAL(9,4)   NOT NULL,
-    NextDayAirEarlyAM      DECIMAL(9,4)   NOT NULL,
-    SecondDayAirAM         DECIMAL(9,4)   NOT NULL,
-    Saver                  DECIMAL(9,4)   NOT NULL,
-    Active                 CHAR(1)        NULL,
-    CONSTRAINT PK_PlantCarrierCharges2017 PRIMARY KEY (CarrierPlantChargesId),
+    CarrierId              VARCHAR(50)    NOT NULL,
+    PlantCode              CHAR(3)        NOT NULL,
+    PerPackageCharge       MONEY          NULL,
+    PerShipmentCharge      MONEY          NULL,
+    NextDayAir             NUMERIC(18,4)  NULL,
+    SecondDayAir           NUMERIC(18,4)  NULL,
+    Ground                 NUMERIC(18,4)  NULL,
+    ThreeDaySelect         NUMERIC(18,4)  NULL,
+    NextDayAirSaver        NUMERIC(18,4)  NULL,
+    NextDayAirEarlyAM      NUMERIC(18,4)  NULL,
+    SecondDayAirAM         NUMERIC(18,4)  NULL,
+    Saver                  NUMERIC(18,4)  NULL,
+    Active                 VARCHAR(1)     NULL,
+    -- No primary key: UPSRate holds rows that share a CarrierPlantChargesId (44 appears more than once).
+    INDEX IX_PlantCarrierCharges2017_Id (CarrierPlantChargesId),
     INDEX IX_PlantCarrierCharges2017_Plant (PlantCode, CarrierId)
 );
 GO
