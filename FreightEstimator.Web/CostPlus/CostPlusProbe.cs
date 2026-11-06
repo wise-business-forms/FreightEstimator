@@ -26,14 +26,14 @@ namespace AuthenticationServer.CostPlus
         public static bool IsQuietHour(TimeSpan timeOfDay, TimeSpan start, TimeSpan end) =>
             start <= end ? timeOfDay >= start && timeOfDay < end : timeOfDay >= start || timeOfDay < end;
 
-        /// <summary>Puts one probe request in the table (database clock) and removes probes answered over an hour ago.</summary>
+        /// <summary>Puts one probe request in the table (database clock) and removes probes over an hour old, answered or not, so a long stall cannot pile them up.</summary>
         public static void Insert()
         {
             using (var conn = new SqlConnection(Configuration.UpsRateSqlConnection))
             {
                 conn.Open();
                 using (var cmd = new SqlCommand(
-                    "DELETE f FROM dbo.FreightRequests f WHERE f.LoginId LIKE @prefix + '%' AND f.DateRated < DATEADD(HOUR, -1, GETDATE()); " +
+                    "DELETE f FROM dbo.FreightRequests f WHERE f.LoginId LIKE @prefix + '%' AND ISNULL(f.DateRated, f.DateRequested) < DATEADD(HOUR, -1, GETDATE()); " +
                     "INSERT dbo.FreightRequests (LoginId, QtyNumber, FromState, RequestUPS, RequestLTL, NumPackages, PkgWeight, LastPkgWeight, DateRequested) " +
                     "VALUES (@prefix + CONVERT(VARCHAR(36), NEWID()), 1, 'GA', 1, 0, 1, 1, 1, GETDATE())", conn))
                 {
