@@ -152,7 +152,7 @@ namespace AuthenticationServer.CostPlus
         /// </summary>
         private static bool Answer(SqlConnection conn, Request request)
         {
-            var noRates = new List<UpsParcelServiceEstimate>();
+            var noRates = new CostPlusResultShape.Shaped();
 
             if (!CostPlusPlantMapping.TryPlantFor(request.FromState, out string plantCode, out string mappingProblem))
             {
@@ -225,8 +225,8 @@ namespace AuthenticationServer.CostPlus
                 return WriteResult(conn, request, quoteId, noRates, General, "Error processing request: " + estimate.Message);
             }
 
-            List<UpsParcelServiceEstimate> cheapestFirst = estimate.Services.OrderBy(s => s.CalculatedRate.RoundedAmount).Take(15).ToList();
-            return WriteResult(conn, request, quoteId, cheapestFirst, notAvailableError == null ? null : General, notAvailableError);
+            CostPlusResultShape.Shaped shaped = CostPlusResultShape.Shape(plantCode, estimate.Services, estimate.AddressClassification, request.ToZip);
+            return WriteResult(conn, request, quoteId, shaped, notAvailableError == null ? null : General, notAvailableError);
         }
 
         /// <summary>
@@ -235,22 +235,32 @@ namespace AuthenticationServer.CostPlus
         /// Returns whether this instance's answer was the one written. An error, if any, goes in the first error slot and
         /// clears the others, as the console app does.
         /// </summary>
-        private static bool WriteResult(SqlConnection conn, Request request, Guid? quoteId, List<UpsParcelServiceEstimate> services, string errorCode, string errorDescription)
+        private static bool WriteResult(SqlConnection conn, Request request, Guid? quoteId, CostPlusResultShape.Shaped shaped, string errorCode, string errorDescription)
         {
             using (SqlTransaction tx = conn.BeginTransaction())
             {
                 using (SqlCommand cmd = new SqlCommand(null, conn, tx))
                 {
                     var assignments = new List<string> { "DateProcessed = GETDATE()", "DateRated = GETDATE()" };
+                    List<CostPlusResultShape.Slot> services = shaped.Slots;
                     for (int i = 0; i < services.Count; i++)
                     {
                         string n = (i + 1).ToString("00");
                         assignments.Add("Carrier" + n + " = @c" + i);
                         assignments.Add("Service" + n + " = @s" + i);
                         assignments.Add("Rate" + n + " = @r" + i);
+                        assignments.Add("Note" + n + " = @n" + i);
                         cmd.Parameters.Add("@c" + i, SqlDbType.VarChar, 50).Value = ServiceCatalog.Ups;
                         cmd.Parameters.Add("@s" + i, SqlDbType.VarChar, 50).Value = services[i].ServiceName;
-                        cmd.Parameters.Add("@r" + i, SqlDbType.Decimal).Value = services[i].CalculatedRate.RoundedAmount;
+                        cmd.Parameters.Add("@n" + i, SqlDbType.VarChar, 200).Value = services[i].Note.ToString();
+                        cmd.Parameters.Add("@r" + i, SqlDbType.Decimal).Value = services[i].Rate;
+                    }
+                    if (services.Count > 0)
+                    {
+                        assignments.Add("ClassifiedResidential = @cr");
+                        assignments.Add("SubstitutedZip = @sz");
+                        cmd.Parameters.Add("@cr", SqlDbType.Bit).Value = shaped.ClassifiedResidential;
+                        cmd.Parameters.Add("@sz", SqlDbType.VarChar, 50).Value = (object)shaped.SubstitutedZip ?? DBNull.Value;
                     }
                     if (errorCode != null)
                     {

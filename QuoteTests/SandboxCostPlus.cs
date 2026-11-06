@@ -114,13 +114,15 @@ namespace FreightEstimator.QuoteTests
         {
             public DateTime? DateProcessed, DateRated;
             public string ErrorCode01, ErrorDesc01;
+            public bool? ClassifiedResidential;
+            public string SubstitutedZip;
             /// <summary>The filled result slots, in slot order.</summary>
             public List<Slot> Slots = new List<Slot>();
         }
 
         public class Slot
         {
-            public string Carrier, Service;
+            public string Carrier, Service, Note;
             public decimal Rate;
         }
 
@@ -139,11 +141,13 @@ namespace FreightEstimator.QuoteTests
                         result.DateRated = r["DateRated"] as DateTime?;
                         result.ErrorCode01 = r["ErrorCode01"] as string;
                         result.ErrorDesc01 = r["ErrorDesc01"] as string;
+                        result.ClassifiedResidential = r["ClassifiedResidential"] as bool?;
+                        result.SubstitutedZip = r["SubstitutedZip"] as string;
                         for (int i = 1; i <= 15; i++)
                         {
                             string n = i.ToString("00");
                             if (r["Carrier" + n] is DBNull && r["Service" + n] is DBNull && r["Rate" + n] is DBNull) continue;
-                            result.Slots.Add(new Slot { Carrier = r["Carrier" + n] as string, Service = r["Service" + n] as string, Rate = r["Rate" + n] is DBNull ? 0m : (decimal)r["Rate" + n] });
+                            result.Slots.Add(new Slot { Carrier = r["Carrier" + n] as string, Service = r["Service" + n] as string, Note = r["Note" + n] as string, Rate = r["Rate" + n] is DBNull ? 0m : (decimal)r["Rate" + n] });
                         }
                     }
                 }
