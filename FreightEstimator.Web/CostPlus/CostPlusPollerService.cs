@@ -23,9 +23,11 @@ namespace AuthenticationServer.CostPlus
 
         private readonly bool _enabled;
         private readonly ILogger<CostPlusPollerService> _logger;
+        private readonly CostPlusPollerHealth _health;
 
-        public CostPlusPollerService(IConfiguration configuration, ILogger<CostPlusPollerService> logger)
+        public CostPlusPollerService(IConfiguration configuration, ILogger<CostPlusPollerService> logger, CostPlusPollerHealth health)
         {
+            _health = health;
             _enabled = configuration.GetValue<bool>("CostPlus:Poller:Enabled");
             _logger = logger;
         }
@@ -47,7 +49,8 @@ namespace AuthenticationServer.CostPlus
                 TimeSpan pause = TimeSpan.Zero;
                 try
                 {
-                    int answered = new CostPlusPollCycle().RunOnce();
+                    int answered = new CostPlusPollCycle(_logger).RunOnce();
+                    _health.RecordSuccessfulPoll();   // the heartbeat: the poller reached the table, whether or not anything was waiting
                     if (answered == 0) pause = IdlePause;
                 }
                 catch (Exception ex)

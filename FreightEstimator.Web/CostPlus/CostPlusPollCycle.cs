@@ -5,6 +5,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using AuthenticationServer.Models;
 using AuthenticationServer.Models.Services;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace AuthenticationServer.CostPlus
@@ -38,7 +39,28 @@ namespace AuthenticationServer.CostPlus
         /// </summary>
         private const int ClaimLeaseMinutes = 2;   // the tests use claims 180 s old (expired) and 30 s old (live)
 
+        /// <summary>
+        /// Which requests are waiting for this poller: UPS and not LTL (the console app keeps every LTL row), not answered, and
+        /// with no live claim (none, or one past its lease that was never completed). Needs an @lease parameter (minutes). The
+        /// lease test here and in <see cref="RetakeExpiredClaim"/> are complements: change them together. The health check
+        /// (<see cref="CostPlusQueue"/>) uses the same text, so "unclaimed" means one thing.
+        /// </summary>
+        internal const string WaitingWhere =
+            "f.RequestUPS = 1 AND ISNULL(f.RequestLTL, 0) = 0 " +
+            "  AND (f.DateProcessed IS NULL OR f.DateRated IS NULL) " +
+            "  AND f.DateRequested IS NOT NULL " +
+            "  AND NOT EXISTS (SELECT 1 FROM dbo.CostPlusRequestClaim c WHERE c.LoginId = f.LoginId AND c.QtyNumber = f.QtyNumber AND c.DateRequested = f.DateRequested " +
+            "                  AND (c.CompletedAt IS NOT NULL OR c.ClaimedAt >= DATEADD(MINUTE, -@lease, SYSDATETIME()))) ";
+
+        internal static int LeaseMinutes => ClaimLeaseMinutes;
+
         private readonly string _instance = Environment.MachineName + ":" + Environment.ProcessId;
+        private readonly ILogger _logger;
+
+        public CostPlusPollCycle(ILogger logger = null)
+        {
+            _logger = logger;
+        }
 
         /// <summary>Runs one cycle. Returns how many requests it answered (0 or 1).</summary>
         public int RunOnce()
@@ -51,7 +73,15 @@ namespace AuthenticationServer.CostPlus
                 if (request == null) return 0;
                 if (!TryClaim(conn, request)) return 0;
 
-                return Answer(conn, request) ? 1 : 0;
+                try
+                {
+                    return Answer(conn, request) ? 1 : 0;
+                }
+                catch (Exception ex)
+                {
+                    Log(LogLevel.Error, request, "CostPlus request {LoginId}/{QtyNumber} failed: {Message}", ex);
+                    throw;
+                }
             }
         }
 
@@ -66,9 +96,7 @@ namespace AuthenticationServer.CostPlus
         }
 
         /// <summary>
-        /// The oldest request that asks for UPS and not LTL (the console app keeps every LTL row), has not been answered,
-        /// and has no live claim (none, or one past its lease that was never completed). The
-        /// lease test here and in <see cref="RetakeExpiredClaim"/> are complements: change them together.
+        /// The oldest request that is waiting for this poller (<see cref="WaitingWhere"/>).
         /// </summary>
         private static Request FindNext(SqlConnection conn)
         {
@@ -79,11 +107,7 @@ namespace AuthenticationServer.CostPlus
                     "SELECT TOP 1 f.LoginId, f.QtyNumber, f.DateRequested, f.ToAddress, f.ToCity, f.ToState, f.ToZip, f.ToCountry, f.FromState, " +
                     "       f.NumPackages, f.PkgWeight, f.LastPkgWeight " +
                     "FROM dbo.FreightRequests f " +
-                    "WHERE f.RequestUPS = 1 AND ISNULL(f.RequestLTL, 0) = 0 " +
-                    "  AND (f.DateProcessed IS NULL OR f.DateRated IS NULL) " +
-                    "  AND f.DateRequested IS NOT NULL " +
-                    "  AND NOT EXISTS (SELECT 1 FROM dbo.CostPlusRequestClaim c WHERE c.LoginId = f.LoginId AND c.QtyNumber = f.QtyNumber AND c.DateRequested = f.DateRequested " +
-                    "                  AND (c.CompletedAt IS NOT NULL OR c.ClaimedAt >= DATEADD(MINUTE, -@lease, SYSDATETIME()))) " +
+                    "WHERE " + WaitingWhere +
                     "ORDER BY f.DateRequested, f.LoginId, f.QtyNumber";
 
                 using (SqlDataReader r = cmd.ExecuteReader())
@@ -150,9 +174,13 @@ namespace AuthenticationServer.CostPlus
         /// Answers the request: a rate, or an error in the request's row (ErrorCode01 and ErrorDesc01, the console app's way) for
         /// whatever cannot be answered. Returns whether this instance's answer was the one written.
         /// </summary>
-        private static bool Answer(SqlConnection conn, Request request)
+        private bool Answer(SqlConnection conn, Request request)
         {
             var noRates = new CostPlusResultShape.Shaped();
+
+            // A probe (#35) only tests that the poller can claim a row and write its result back: no Plant, no Quote, no UPS call,
+            // so nothing it does can reach UPS or reporting.
+            if (CostPlusProbe.IsProbe(request.LoginId)) return WriteResult(conn, request, null, noRates, null, null);
 
             if (!CostPlusPlantMapping.TryPlantFor(request.FromState, out string plantCode, out string mappingProblem))
             {
@@ -221,7 +249,6 @@ namespace AuthenticationServer.CostPlus
 
             if (estimate.Status != CarrierStatus.Ok)
             {
-                System.Diagnostics.Trace.TraceWarning("CostPlus request " + request.LoginId + "/" + request.QtyNumber + " was not answered: " + estimate.Message);
                 return WriteResult(conn, request, quoteId, noRates, General, "Error processing request: " + estimate.Message);
             }
 
@@ -235,8 +262,11 @@ namespace AuthenticationServer.CostPlus
         /// Returns whether this instance's answer was the one written. An error, if any, goes in the first error slot and
         /// clears the others, as the console app does.
         /// </summary>
-        private static bool WriteResult(SqlConnection conn, Request request, Guid? quoteId, CostPlusResultShape.Shaped shaped, string errorCode, string errorDescription)
+        private bool WriteResult(SqlConnection conn, Request request, Guid? quoteId, CostPlusResultShape.Shaped shaped, string errorCode, string errorDescription)
         {
+            if (errorCode != null)
+                Log(LogLevel.Warning, request, "CostPlus request {LoginId}/{QtyNumber} was answered with " + errorCode + ": {Message}", errorDescription);
+
             using (SqlTransaction tx = conn.BeginTransaction())
             {
                 using (SqlCommand cmd = new SqlCommand(null, conn, tx))
@@ -291,6 +321,15 @@ namespace AuthenticationServer.CostPlus
                 tx.Commit();
                 return true;
             }
+        }
+
+        /// <summary>Logs a failure with the request's LoginId and QtyNumber (the row's identity, ADR 0005).</summary>
+        private void Log(LogLevel level, Request request, string template, object detail)
+        {
+            if (_logger != null)
+                _logger.Log(level, detail as Exception, template, request.LoginId, request.QtyNumber, (detail as Exception)?.Message ?? detail);
+            else
+                System.Diagnostics.Trace.TraceWarning(string.Format(template.Replace("{LoginId}", "{0}").Replace("{QtyNumber}", "{1}").Replace("{Message}", "{2}"), request.LoginId, request.QtyNumber, (detail as Exception)?.Message ?? detail));
         }
 
         private static void AddKey(SqlCommand cmd, Request request)

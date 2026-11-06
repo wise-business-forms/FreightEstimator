@@ -19,7 +19,12 @@ builder.Configuration.AddJsonFile(connectionStringsFile, optional: true, reloadO
 builder.Services.AddControllersWithViews();
 
 // The CostPlus poller (ADR 0005): a background service in this app, off unless CostPlus:Poller:Enabled is true.
+builder.Services.AddSingleton<AuthenticationServer.CostPlus.CostPlusPollerHealth>();
+builder.Services.AddSingleton<AuthenticationServer.CostPlus.CostPlusHealthCheck>();
+builder.Services.AddSingleton<AuthenticationServer.CostPlus.IStallAlertSender, AuthenticationServer.CostPlus.SmtpStallAlertSender>();
 builder.Services.AddHostedService<AuthenticationServer.CostPlus.CostPlusPollerService>();
+builder.Services.AddHostedService<AuthenticationServer.CostPlus.CostPlusStallMonitor>();   // alerts on a stall (#35)
+builder.Services.AddHostedService<AuthenticationServer.CostPlus.CostPlusProbeService>();   // quiet-hours probe request (#35)
 
 WebApplication app = builder.Build();
 
@@ -58,6 +63,9 @@ app.UseRouting();
 app.MapControllerRoute(
     name: "Default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// Health of the CostPlus poller (#35): 503 past the stall thresholds, for a scheduled check or monitor to call.
+app.MapGet("/health/costplus-poller", AuthenticationServer.CostPlus.CostPlusHealthCheck.Handle);
 
 app.Run();
 
