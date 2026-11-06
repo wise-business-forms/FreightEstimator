@@ -5,11 +5,7 @@ using FreightEstimator.Tests.Fakes;
 using Newtonsoft.Json.Linq;
 using System.Globalization;
 using System.Net;
-#if NET8_0_OR_GREATER
 using Microsoft.AspNetCore.Mvc;
-#else
-using System.Web.Mvc;
-#endif
 
 namespace FreightEstimator.QuoteTests
 {
@@ -65,7 +61,7 @@ namespace FreightEstimator.QuoteTests
             // The LTL total is shown as a currency string; fix the culture so it reads the same on every machine.
             CultureInfo previousCulture = Thread.CurrentThread.CurrentCulture;
             Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
-            object result;   // ActionResult on .NET Framework, IActionResult on ASP.NET Core
+            IActionResult result;
             try
             {
                 using (new SandboxPlantCharges(c.Plant, schedule ?? SandboxPlantCharges.KnownSchedule()))

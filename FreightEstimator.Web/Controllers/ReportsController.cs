@@ -8,7 +8,7 @@ using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace AuthenticationServer.Controllers
 {
@@ -269,7 +269,7 @@ namespace AuthenticationServer.Controllers
                 conn.Open();
                 RateChangeData.CatchUp(conn);
                 var group = RateChangeData.LoadCompare(conn, id);
-                if (group == null) return HttpNotFound("Quote " + id + " can't be matched to other Quotes.");
+                if (group == null) return NotFound("Quote " + id + " can't be matched to other Quotes.");
 
                 ViewBag.RequestId = id;
                 ViewBag.Plant = Plant.Plants().FirstOrDefault(p => string.Equals(p.Id, group.Key.PlantCode, StringComparison.OrdinalIgnoreCase));

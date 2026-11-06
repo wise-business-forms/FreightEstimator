@@ -30,7 +30,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FreightEstimator.Core\FreightEstimator.Core.csproj" />
-    <ProjectReference Include="..\FreightEstimator.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -50,7 +50,7 @@ app.UseRouting();
 
 app.MapControllerRoute(
     name: "Default",
-    pattern: "{controller=Plant}/{action=Index}/{id?}");
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
 

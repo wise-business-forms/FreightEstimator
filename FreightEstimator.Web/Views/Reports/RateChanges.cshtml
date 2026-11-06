@@ -55,10 +55,10 @@
           style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
         <label for="plant-filter">Plant</label>
         <select id="plant-filter" name="plant" class="form-control">
-            <option value="" @(noPlant ? "selected" : "")></option>
+            <option value="" selected="@(noPlant)"></option>
             @foreach (var p in plants)
             {
-                <option value="@p.Id" @(string.Equals(p.Id, selectedPlant, StringComparison.OrdinalIgnoreCase) ? "selected" : "")>@p.Id &ndash; @p.Name</option>
+                <option value="@p.Id" selected="@(string.Equals(p.Id, selectedPlant, StringComparison.OrdinalIgnoreCase))">@p.Id &ndash; @p.Name</option>
             }
         </select>
         <label for="from">From</label>

@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <!--
-    Port stage 2 (ADR 0005, #29): the Plant page on ASP.NET Core, hosted by IIS (in-process, via the ASP.NET Core
-    Module; the app is never self-hosted on Kestrel). It sits beside the .NET Framework web app, which stays as it is
-    until the Plant page has been checked under IIS. The estimation core is the same FreightEstimator.Core assembly.
+    The ASP.NET Core web app (ADR 0005, port stages 2 and 3; #29, #30): the Plant page, the plant picker, Reports and the
+    Quote API, hosted by IIS (in-process, via the ASP.NET Core Module; the app is never self-hosted on Kestrel). It replaced
+    the .NET Framework (System.Web) host. The estimation core is the FreightEstimator.Core assembly.
   -->
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>

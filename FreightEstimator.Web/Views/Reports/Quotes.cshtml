@@ -37,7 +37,7 @@
         <h2 style="margin: 0;">Past Quotes</h2>
         @if (!noSelection)
         {
-            <span class="text-muted">@totalCount total records &mdash; showing page @page of @totalPages</span>
+            <span class="text-muted">@totalCount total records &mdash; showing page @(page) of @totalPages</span>
         }
         <a href="@Url.Action("Index", "Reports")" class="btn btn-sm btn-outline-secondary" style="margin-left: auto;">&#8592; Reports</a>
     </div>
@@ -70,11 +70,11 @@
             <input type="hidden" name="search" value="@searchTerm" />
             <label for="plant-filter" style="margin-right: 8px;">Plant</label>
             <select id="plant-filter" name="plant" class="form-control">
-                <option value="" @(string.IsNullOrEmpty(selectedPlant) ? "selected" : "")></option>
-                <option value="@AuthenticationServer.Controllers.ReportsController.AllPlants" @(selectedPlant == AuthenticationServer.Controllers.ReportsController.AllPlants ? "selected" : "")>All plants</option>
+                <option value="" selected="@(string.IsNullOrEmpty(selectedPlant))"></option>
+                <option value="@AuthenticationServer.Controllers.ReportsController.AllPlants" selected="@(selectedPlant == AuthenticationServer.Controllers.ReportsController.AllPlants)">All plants</option>
                 @foreach (var p in plants)
                 {
-                    <option value="@p.Id" @(string.Equals(p.Id, selectedPlant, StringComparison.OrdinalIgnoreCase) ? "selected" : "")>@p.Id &ndash; @p.Name</option>
+                    <option value="@p.Id" selected="@(string.Equals(p.Id, selectedPlant, StringComparison.OrdinalIgnoreCase))">@p.Id &ndash; @p.Name</option>
                 }
             </select>
             <span id="quotes-loading" class="text-muted" style="display: none; margin-left: 12px;">

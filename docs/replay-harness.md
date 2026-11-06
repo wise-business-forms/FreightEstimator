@@ -32,7 +32,7 @@ Adding a new known cause means a decision on record (an issue or ADR) and a new 
    ```
    set QUOTETESTS_REPLAY_SAMPLE=500
    set QUOTETESTS_REPLAY_REPORT=C:\path\to\replay-report.md
-   dotnet test QuoteTests\bin\Debug\net472\FreightEstimator.QuoteTests.dll --filter "Name=ReplayStoredResponsesAndWriteTheReport"
+   dotnet test QuoteTests\bin\Debug\net8.0\FreightEstimator.QuoteTests.dll --filter "Name=ReplayStoredResponsesAndWriteTheReport"
    ```
 
    `QUOTETESTS_REPLAY_SAMPLE` is how many stored calls of each kind to read, newest first (default 500). Without `QUOTETESTS_REPLAY_REPORT` the report goes to the test's output.

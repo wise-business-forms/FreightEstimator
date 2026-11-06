@@ -1,4 +1,3 @@
-#if NET8_0_OR_GREATER
 using AuthenticationServer.Models;
 using FreightEstimator.Tests.Fakes;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -118,4 +117,3 @@ namespace FreightEstimator.QuoteTests
         }
     }
 }
-#endif
