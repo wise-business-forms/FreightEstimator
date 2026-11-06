@@ -38,11 +38,11 @@ namespace FreightEstimator.QuoteTests
         }
 
         [TestCase("ALP"), TestCase("FTW")]
-        public void AlpAndFtwKeepUpsServicesButNotGroundFreight(string plant)
+        public void AlpAndFtwPutUpsGroundFreightFirstThenTheRestByPrice(string plant)
         {
-            var shaped = CostPlusResultShape.Shape(plant, new[] { Service("UPSGroundFreight", 5m), Service("UPSGround", 10m) }, "Commercial", "02379");
+            var shaped = CostPlusResultShape.Shape(plant, new[] { Service("UPSGround", 10m), Service("UPSGroundFreight", 50m), Service("UPS3DaySelect", 5m) }, "Commercial", "02379");
 
-            Assert.That(shaped.Slots.Select(s => s.ServiceName), Is.EqualTo(new[] { "UPSGround" }));
+            Assert.That(shaped.Slots.Select(s => s.ServiceName), Is.EqualTo(new[] { "UPSGroundFreight", "UPS3DaySelect", "UPSGround" }));
         }
 
         [Test]

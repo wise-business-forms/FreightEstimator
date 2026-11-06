@@ -242,8 +242,8 @@ namespace AuthenticationServer.CostPlus
                 using (SqlCommand cmd = new SqlCommand(null, conn, tx))
                 {
                     var assignments = new List<string> { "DateProcessed = GETDATE()", "DateRated = GETDATE()" };
-                    List<CostPlusResultShape.Slot> services = shaped.Slots;
-                    for (int i = 0; i < services.Count; i++)
+                    List<CostPlusResultShape.Slot> slots = shaped.Slots;
+                    for (int i = 0; i < slots.Count; i++)
                     {
                         string n = (i + 1).ToString("00");
                         assignments.Add("Carrier" + n + " = @c" + i);
@@ -251,11 +251,11 @@ namespace AuthenticationServer.CostPlus
                         assignments.Add("Rate" + n + " = @r" + i);
                         assignments.Add("Note" + n + " = @n" + i);
                         cmd.Parameters.Add("@c" + i, SqlDbType.VarChar, 50).Value = ServiceCatalog.Ups;
-                        cmd.Parameters.Add("@s" + i, SqlDbType.VarChar, 50).Value = services[i].ServiceName;
-                        cmd.Parameters.Add("@n" + i, SqlDbType.VarChar, 200).Value = services[i].Note.ToString();
-                        cmd.Parameters.Add("@r" + i, SqlDbType.Decimal).Value = services[i].Rate;
+                        cmd.Parameters.Add("@s" + i, SqlDbType.VarChar, 50).Value = slots[i].ServiceName;
+                        cmd.Parameters.Add("@n" + i, SqlDbType.VarChar, 200).Value = slots[i].Note.ToString();
+                        cmd.Parameters.Add("@r" + i, SqlDbType.Decimal).Value = slots[i].Rate;
                     }
-                    if (services.Count > 0)
+                    if (slots.Count > 0)
                     {
                         assignments.Add("ClassifiedResidential = @cr");
                         assignments.Add("SubstitutedZip = @sz");

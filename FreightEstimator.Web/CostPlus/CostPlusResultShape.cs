@@ -39,16 +39,20 @@ namespace AuthenticationServer.CostPlus
 
             IEnumerable<UpsParcelServiceEstimate> kept = services.Where(s => s.ServiceName != DroppedMethod);
 
-            // The console app's ALP and FTW branches keep UPS services other than UPSGroundFreight (the LTL carriers they also
-            // list are not part of this phase); every other plant keeps everything. UPS-only, so the filter drops that one name.
+            IEnumerable<UpsParcelServiceEstimate> ordered = kept.OrderBy(s => s.CalculatedRate.RoundedAmount);
+
+            // The console app's ALP and FTW branches put UPSGroundFreight first, then the other UPS services by price (the LTL
+            // carriers they also list are not part of this phase). UPS-only parcel quotes carry no UPSGroundFreight yet, so today
+            // this changes nothing; it keeps the order right when it appears.
             if (plantCode == "ALP" || plantCode == "FTW")
             {
-                kept = kept.Where(s => s.ServiceName != RateCalculationsChargeSchedule.GroundFreightServiceName);
+                string groundFreight = RateCalculationsChargeSchedule.GroundFreightServiceName;
+                ordered = ordered.Where(s => s.ServiceName == groundFreight).Concat(ordered.Where(s => s.ServiceName != groundFreight));
             }
 
             var shaped = new Shaped
             {
-                Slots = kept.OrderBy(s => s.CalculatedRate.RoundedAmount)
+                Slots = ordered
                             .Take(MaxSlots)
                             .Select(s => new Slot { ServiceName = s.ServiceName, Rate = s.CalculatedRate.RoundedAmount, Note = note })
                             .ToList(),
