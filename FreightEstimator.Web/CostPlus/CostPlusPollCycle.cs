@@ -19,18 +19,18 @@ namespace AuthenticationServer.CostPlus
     {
         public const string ConsumerName = "CostPlus";
 
+        /// <summary>The error code for anything the poller cannot answer that is not a WEIGHT or ADDRESS problem, as in the console app.</summary>
+        private const string General = "GENERAL";
+
+        /// <summary>The other two codes the console app writes (ErrorCode01).</summary>
+        private const string WeightError = "WEIGHT";
+        private const string AddressError = "ADDRESS";
+
+        /// <summary>The console app refuses a shipment heavier than this, in pounds.</summary>
+        private const int MaxShipmentWeightLb = 19999;
+
         /// <summary>How long UPS gets to answer, so the 10 second promise to CostPlus holds (ADR 0005).</summary>
         private const int UpsTimeoutMs = 10000;
-
-        /// <summary>
-        /// The Plant a request ships from, by its from-address state: the console app's table, carried over as a knowing
-        /// exception to "don't infer the Plant" until CostPlus sends a plant code (ADR 0005). A request from any other
-        /// state is left alone for now (rejecting it comes with the Plant mapping ticket, #33).
-        /// </summary>
-        private static readonly Dictionary<string, string> PlantByState = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["GA"] = "ALP", ["PA"] = "BUT", ["IN"] = "FTW", ["SC"] = "PDT", ["ME"] = "POR"
-        };
 
         /// <summary>
         /// How long a claim is live. UPS's slowest call plus margin (ADR 0005): a claim older than this that was never
@@ -63,25 +63,17 @@ namespace AuthenticationServer.CostPlus
             public string ToAddress, ToCity, ToState, ToZip, ToCountry;
             public string FromState;
             public int NumPackages, PkgWeight, LastPkgWeight;
-            public string PlantCode;
         }
 
         /// <summary>
         /// The oldest request that asks for UPS and not LTL (the console app keeps every LTL row), has not been answered,
-        /// has no live claim (none, or one past its lease that was never completed), and ships from a mapped state. The
+        /// and has no live claim (none, or one past its lease that was never completed). The
         /// lease test here and in <see cref="RetakeExpiredClaim"/> are complements: change them together.
         /// </summary>
         private static Request FindNext(SqlConnection conn)
         {
-            string[] states = PlantByState.Keys.ToArray();
             using (SqlCommand cmd = new SqlCommand(null, conn))
             {
-                var stateParameters = new List<string>();
-                for (int i = 0; i < states.Length; i++)
-                {
-                    cmd.Parameters.Add("@s" + i, SqlDbType.VarChar, 50).Value = states[i];
-                    stateParameters.Add("@s" + i);
-                }
                 cmd.Parameters.Add("@lease", SqlDbType.Int).Value = ClaimLeaseMinutes;
                 cmd.CommandText =
                     "SELECT TOP 1 f.LoginId, f.QtyNumber, f.DateRequested, f.ToAddress, f.ToCity, f.ToState, f.ToZip, f.ToCountry, f.FromState, " +
@@ -90,7 +82,6 @@ namespace AuthenticationServer.CostPlus
                     "WHERE f.RequestUPS = 1 AND ISNULL(f.RequestLTL, 0) = 0 " +
                     "  AND (f.DateProcessed IS NULL OR f.DateRated IS NULL) " +
                     "  AND f.DateRequested IS NOT NULL " +
-                    "  AND f.FromState IN (" + string.Join(", ", stateParameters) + ") " +
                     "  AND NOT EXISTS (SELECT 1 FROM dbo.CostPlusRequestClaim c WHERE c.LoginId = f.LoginId AND c.QtyNumber = f.QtyNumber AND c.DateRequested = f.DateRequested " +
                     "                  AND (c.CompletedAt IS NOT NULL OR c.ClaimedAt >= DATEADD(MINUTE, -@lease, SYSDATETIME()))) " +
                     "ORDER BY f.DateRequested, f.LoginId, f.QtyNumber";
@@ -98,7 +89,6 @@ namespace AuthenticationServer.CostPlus
                 using (SqlDataReader r = cmd.ExecuteReader())
                 {
                     if (!r.Read()) return null;
-                    string fromState = r.IsDBNull(8) ? null : r.GetString(8);
                     return new Request
                     {
                         LoginId = r.GetString(0),
@@ -109,11 +99,10 @@ namespace AuthenticationServer.CostPlus
                         ToState = r.IsDBNull(5) ? null : r.GetString(5),
                         ToZip = r.IsDBNull(6) ? null : r.GetString(6),
                         ToCountry = r.IsDBNull(7) ? null : r.GetString(7),
-                        FromState = fromState,
+                        FromState = r.IsDBNull(8) ? null : r.GetString(8),
                         NumPackages = r.IsDBNull(9) ? 0 : r.GetInt32(9),
                         PkgWeight = r.IsDBNull(10) ? 0 : r.GetInt32(10),
-                        LastPkgWeight = r.IsDBNull(11) ? 0 : r.GetInt32(11),
-                        PlantCode = PlantByState[fromState.Trim()]
+                        LastPkgWeight = r.IsDBNull(11) ? 0 : r.GetInt32(11)
                     };
                 }
             }
@@ -157,16 +146,55 @@ namespace AuthenticationServer.CostPlus
             }
         }
 
+        /// <summary>
+        /// Answers the request: a rate, or an error in the request's row (ErrorCode01 and ErrorDesc01, the console app's way) for
+        /// whatever cannot be answered. Returns whether this instance's answer was the one written.
+        /// </summary>
         private static bool Answer(SqlConnection conn, Request request)
         {
+            var noRates = new List<UpsParcelServiceEstimate>();
+
+            if (!CostPlusPlantMapping.TryPlantFor(request.FromState, out string plantCode, out string mappingProblem))
+            {
+                return WriteResult(conn, request, null, noRates, General, mappingProblem);
+            }
+            if (!PlantDirectory.ValidCodes().Contains(plantCode))
+            {
+                return WriteResult(conn, request, null, noRates, General, "Plant " + plantCode + " is not available for quotes");
+            }
+
             int consumerId = ConsumerId(conn);
             int referenceNumber = NextReferenceNumber(conn);
             Guid quoteId = Guid.NewGuid();
-            QuoteLog.Record(quoteId, consumerId, referenceNumber.ToString(), request.PlantCode, JsonConvert.SerializeObject(request));
+            QuoteLog.Record(quoteId, consumerId, referenceNumber.ToString(), plantCode, JsonConvert.SerializeObject(request));
+
+            // The console app's weight rule, word for word: (packages - 1) x package weight + last package weight, over 19,999.
+            if (((long)(request.NumPackages - 1) * request.PkgWeight) + request.LastPkgWeight > MaxShipmentWeightLb)
+            {
+                return WriteResult(conn, request, quoteId, noRates, WeightError, "Weight Exceeds Limit – Call");
+            }
+
+            // Without a Plant Charges row the unified module would price a service at its raw Carrier Rate. Never return that.
+            List<string> carriersWithoutCharges = CarriersWithoutPlantCharges(plantCode);
+            if (carriersWithoutCharges.Count > 0)
+            {
+                return WriteResult(conn, request, quoteId, noRates, General,
+                    "Plant Charges are missing for plant " + plantCode + " (" + string.Join(", ", carriersWithoutCharges) + ")");
+            }
+
+            // Only Services that are available are quoted; the others are named in the error (CONTEXT.md: Service Availability).
+            var parcelServices = ServiceCatalog.All.Where(s => s.Carrier == ServiceCatalog.Ups && s.Name != RateCalculationsChargeSchedule.GroundFreightServiceName).ToList();
+            List<string> available = parcelServices.Where(ServiceCatalog.IsAvailable).Select(s => s.Name).ToList();
+            string notAvailable = string.Join(", ", parcelServices.Select(s => s.Name).Except(available));
+            string notAvailableError = notAvailable.Length == 0 ? null : "Service not available: " + notAvailable;
+            if (available.Count == 0)
+            {
+                return WriteResult(conn, request, quoteId, noRates, General, notAvailableError);
+            }
 
             UpsParcelEstimate estimate = new UpsEstimationService().EstimateParcel(new UpsQuoteRequest
             {
-                PlantCode = request.PlantCode,
+                PlantCode = plantCode,
                 QuoteId = quoteId,
                 ReferenceNumber = referenceNumber.ToString(),
                 Consumer = ConsumerName,
@@ -180,26 +208,34 @@ namespace AuthenticationServer.CostPlus
                 NumberOfPackages = request.NumPackages,
                 PackageWeight = request.PkgWeight,
                 LastPackageWeight = request.LastPkgWeight,
+                ParcelServiceNames = available,
                 TimeoutMs = UpsTimeoutMs
             });
 
+            // The console app validates the address first and gives up when UPS returns more than one candidate.
+            // (UPS has already been asked to rate it by now: the estimator checks the address and rates in one call. One discarded call.)
+            if (estimate.AddressCandidateCount > 1)
+            {
+                return WriteResult(conn, request, quoteId, noRates, AddressError, "Invalid address -- unable to validate");
+            }
+
             if (estimate.Status != CarrierStatus.Ok)
             {
-                // Writing an error back is the error-mapping ticket's job (#33); until then the request stays claimed and unanswered.
                 System.Diagnostics.Trace.TraceWarning("CostPlus request " + request.LoginId + "/" + request.QtyNumber + " was not answered: " + estimate.Message);
-                return false;
+                return WriteResult(conn, request, quoteId, noRates, General, "Error processing request: " + estimate.Message);
             }
 
             List<UpsParcelServiceEstimate> cheapestFirst = estimate.Services.OrderBy(s => s.CalculatedRate.RoundedAmount).Take(15).ToList();
-            return WriteResult(conn, request, quoteId, cheapestFirst);
+            return WriteResult(conn, request, quoteId, cheapestFirst, notAvailableError == null ? null : General, notAvailableError);
         }
 
         /// <summary>
         /// Writes the answer and completes the claim together. If the request was answered meanwhile (this instance stalled past
         /// its lease and another retook the claim and answered), nothing is written and the claim is left as the other left it.
-        /// Returns whether this instance's answer was the one written.
+        /// Returns whether this instance's answer was the one written. An error, if any, goes in the first error slot and
+        /// clears the others, as the console app does.
         /// </summary>
-        private static bool WriteResult(SqlConnection conn, Request request, Guid quoteId, List<UpsParcelServiceEstimate> services)
+        private static bool WriteResult(SqlConnection conn, Request request, Guid? quoteId, List<UpsParcelServiceEstimate> services, string errorCode, string errorDescription)
         {
             using (SqlTransaction tx = conn.BeginTransaction())
             {
@@ -216,6 +252,14 @@ namespace AuthenticationServer.CostPlus
                         cmd.Parameters.Add("@s" + i, SqlDbType.VarChar, 50).Value = services[i].ServiceName;
                         cmd.Parameters.Add("@r" + i, SqlDbType.Decimal).Value = services[i].CalculatedRate.RoundedAmount;
                     }
+                    if (errorCode != null)
+                    {
+                        assignments.Add("ErrorCode01 = @ec");
+                        assignments.Add("ErrorDesc01 = @ed");
+                        assignments.Add("ErrorCode02 = NULL, ErrorDesc02 = NULL, ErrorCode03 = NULL, ErrorDesc03 = NULL");
+                        cmd.Parameters.Add("@ec", SqlDbType.VarChar, 10).Value = errorCode;
+                        cmd.Parameters.Add("@ed", SqlDbType.VarChar, 1000).Value = errorDescription;
+                    }
                     cmd.CommandText = "UPDATE dbo.FreightRequests SET " + string.Join(", ", assignments) +
                         " WHERE LoginId = @l AND QtyNumber = @q AND DateRequested = @d AND (DateProcessed IS NULL OR DateRated IS NULL)";   // the same "not done yet" rule FindNext uses
                     AddKey(cmd, request);
@@ -230,7 +274,7 @@ namespace AuthenticationServer.CostPlus
                     "UPDATE dbo.CostPlusRequestClaim SET CompletedAt = SYSDATETIME(), QuoteId = @quote WHERE LoginId = @l AND QtyNumber = @q AND DateRequested = @d", conn, tx))
                 {
                     AddKey(cmd, request);
-                    cmd.Parameters.Add("@quote", SqlDbType.UniqueIdentifier).Value = quoteId;
+                    cmd.Parameters.Add("@quote", SqlDbType.UniqueIdentifier).Value = (object)quoteId ?? DBNull.Value;
                     cmd.ExecuteNonQuery();
                 }
 
@@ -244,6 +288,15 @@ namespace AuthenticationServer.CostPlus
             cmd.Parameters.Add("@l", SqlDbType.VarChar, 50).Value = request.LoginId;
             cmd.Parameters.Add("@q", SqlDbType.TinyInt).Value = request.QtyNumber;
             cmd.Parameters.Add("@d", SqlDbType.DateTime).Value = request.DateRequested;
+        }
+
+        /// <summary>The carriers whose Plant Charges the plant lacks: UPS for non-CWT services, UPSCWT for CWT ones (see RateCalculationsChargeSchedule).</summary>
+        private static List<string> CarriersWithoutPlantCharges(string plantCode)
+        {
+            var missing = new List<string>();
+            if (!new RateCalculations(0, RateCalculations.Carriers.UPS).PerPackageCharge.ContainsKey(plantCode)) missing.Add("UPS");
+            if (!new RateCalculations(0, RateCalculations.Carriers.UPSCWT).PerPackageChargeCWT.ContainsKey(plantCode)) missing.Add("UPSCWT");
+            return missing;
         }
 
         private static int ConsumerId(SqlConnection conn)

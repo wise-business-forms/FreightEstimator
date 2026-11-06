@@ -1,4 +1,5 @@
 using AuthenticationServer.Models;
+using AuthenticationServer.Models.Services;
 using FreightEstimator.Tests.Fakes;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -53,6 +54,7 @@ namespace FreightEstimator.QuoteTests
             FakeCarrierHttp fake = QuoteFlow.FakeFor(c);
 
             using (new SandboxPlantCharges("ALP", SandboxPlantCharges.KnownSchedule()))
+            using (ServiceCatalog.Use(CostPlusCycle.ParcelServices))
             using (fake.Install())
             using (WebApplicationFactory<Program> app = App(pollerEnabled: true))
             {

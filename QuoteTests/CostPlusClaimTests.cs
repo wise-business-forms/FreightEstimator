@@ -1,4 +1,5 @@
 using AuthenticationServer.CostPlus;
+using AuthenticationServer.Models.Services;
 using FreightEstimator.Tests.Fakes;
 
 namespace FreightEstimator.QuoteTests
@@ -20,14 +21,7 @@ namespace FreightEstimator.QuoteTests
 
         private static QuoteCase Case => QuoteCase.All("parcel").Single(c => c.CaseId == "444347");
 
-        private static int RunOneCycle(FakeCarrierHttp fake)
-        {
-            using (new SandboxPlantCharges("ALP", SandboxPlantCharges.KnownSchedule()))
-            using (fake.Install())
-            {
-                return new CostPlusPollCycle().RunOnce();
-            }
-        }
+        private static int RunOneCycle(FakeCarrierHttp fake) => CostPlusCycle.Run(fake);
 
         private static int ShopCalls(FakeCarrierHttp fake) => fake.Requests.Count(r => r.Url.Contains("rating/v2403/Shop"));
 
@@ -59,6 +53,7 @@ namespace FreightEstimator.QuoteTests
             FakeCarrierHttp fake = QuoteFlow.FakeFor(Case);
 
             using (new SandboxPlantCharges("ALP", SandboxPlantCharges.KnownSchedule()))
+            using (ServiceCatalog.Use(CostPlusCycle.ParcelServices))
             using (fake.Install())
             {
                 Task[] pollers = Enumerable.Range(0, 4).Select(_ => Task.Run(() =>
@@ -141,6 +136,7 @@ namespace FreightEstimator.QuoteTests
             FakeCarrierHttp fake = QuoteFlow.FakeFor(Case);
 
             using (new SandboxPlantCharges("ALP", SandboxPlantCharges.KnownSchedule()))
+            using (ServiceCatalog.Use(CostPlusCycle.ParcelServices))
             using (fake.Install())
             {
                 // Four pollers share the table and keep cycling until none finds anything to do.

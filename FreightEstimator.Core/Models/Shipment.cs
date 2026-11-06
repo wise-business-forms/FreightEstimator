@@ -59,6 +59,9 @@ namespace AuthenticationServer.Models
         public string Corrected_Country { get; set; }
         public string Address_Classification { get; set; }
 
+        /// <summary>How many address candidates UPS's address check returned: 0 when it found none, 1 when it settled on one, more when it could not. Set by the UPS request.</summary>
+        public int AddressCandidateCount { get; set; }
+
         /// <summary>
         /// GRID 1 - All service rates for plant.
         /// </summary>

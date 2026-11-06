@@ -127,6 +127,9 @@ namespace AuthenticationServer.Models.Services
 
         /// <summary>UPS's Address Classification of the destination (CONTEXT.md), when its address check answered.</summary>
         public string AddressClassification { get; set; }
+
+        /// <summary>How many address candidates UPS's address check returned. More than one means UPS could not settle on the address.</summary>
+        public int AddressCandidateCount { get; set; }
     }
 
     public class UpsQuoteResult
@@ -338,11 +341,11 @@ namespace AuthenticationServer.Models.Services
                 return FailedParcel(CarrierStatus.Error, "UPS returned no usable rate.", shipment);
             }
 
-            return new UpsParcelEstimate { Status = CarrierStatus.Ok, Services = estimates, AddressClassification = shipment.Address_Classification };
+            return new UpsParcelEstimate { Status = CarrierStatus.Ok, Services = estimates, AddressClassification = shipment.Address_Classification, AddressCandidateCount = shipment.AddressCandidateCount };
         }
 
         private static UpsParcelEstimate FailedParcel(CarrierStatus status, string message, Shipment shipment) =>
-            new UpsParcelEstimate { Status = status, Message = message, AddressClassification = shipment.Address_Classification };
+            new UpsParcelEstimate { Status = status, Message = message, AddressClassification = shipment.Address_Classification, AddressCandidateCount = shipment.AddressCandidateCount };
 
         private static UpsGroundFreightEstimate Failed(CarrierStatus status, string message, Shipment shipment) =>
             new UpsGroundFreightEstimate { Status = status, Message = message, AddressClassification = shipment.Address_Classification };

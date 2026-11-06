@@ -81,6 +81,11 @@ namespace AuthenticationServer.Models.Services
 
 
 
+                JToken candidates = addressValidationResponse["XAVResponse"]?["Candidate"];
+                if (candidates == null) shipment.AddressCandidateCount = 0;
+                else if (candidates is JArray candidateList) shipment.AddressCandidateCount = candidateList.Count;
+                else shipment.AddressCandidateCount = 1;
+
                 var addressLine = addressValidationResponse["XAVResponse"];
                 var city = addressValidationResponse["XAVResponse"];
                 var state = addressValidationResponse["XAVResponse"];

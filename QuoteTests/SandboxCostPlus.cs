@@ -6,26 +6,58 @@ namespace FreightEstimator.QuoteTests
     /// <summary>
     /// CostPlus requests in the FreightEstimator test database, in CostPlus's own layout (dbo.FreightRequests), for the poll
     /// cycle tests (#31). Each request gets a unique LoginId, so tests never meet each other's rows, and Dispose removes the
-    /// requests, their claims and the Quotes made for them. Adds the ALP plant (Georgia) if the database has none, and
-    /// removes it again only if it was added here. Refuses to run against anything but the test database (SandboxGuard).
+    /// requests, their claims and the Quotes made for them. Makes the ALP plant quotable, and puts any plant it changes
+    /// (see <see cref="SetPlantQuotable"/>) back as it found it. Refuses to run against anything but the test database
+    /// (SandboxGuard).
     /// </summary>
     public sealed class SandboxCostPlus : IDisposable
     {
         private readonly List<string> _loginIds = new List<string>();
-        private readonly bool _addedPlant;
+        private readonly Dictionary<string, (bool Existed, string Active, string UpsShippingNumber)> _plantsChanged =
+            new Dictionary<string, (bool, string, string)>();
 
         public SandboxCostPlus()
         {
             SandboxGuard.Require();
             RequireSchema();
+            SetPlantQuotable("ALP", true);
+        }
 
+        /// <summary>
+        /// Makes a plant quotable (active, with a UPS shipping number) or not, adding the plant if the database has none. Dispose
+        /// puts the plant back exactly as it was, and removes it if it was added here.
+        /// </summary>
+        public void SetPlantQuotable(string plantCode, bool quotable)
+        {
             using (var conn = Open())
-            using (var cmd = new SqlCommand(
-                "IF NOT EXISTS (SELECT 1 FROM dbo.Plants WHERE PlantCode = 'ALP') " +
-                "BEGIN INSERT dbo.Plants (PlantCode, PlantName, Address, City, State, Zip, Country, Active, UpsShippingNumber) " +
-                "VALUES ('ALP', 'Alpharetta (test)', '1 Test Way', 'Alpharetta', 'GA', '30004', 'US', 'Y', 'TESTPLANT'); SELECT 1; END ELSE SELECT 0", conn))
             {
-                _addedPlant = (int)cmd.ExecuteScalar() == 1;
+                bool existed;
+                string active = null, ship = null;
+                using (var cmd = new SqlCommand("SELECT TOP 1 Active, UpsShippingNumber FROM dbo.Plants WHERE PlantCode = @p", conn))
+                {
+                    cmd.Parameters.AddWithValue("@p", plantCode);
+                    using (var r = cmd.ExecuteReader())
+                    {
+                        existed = r.Read();
+                        if (existed)
+                        {
+                            active = r.IsDBNull(0) ? null : r.GetString(0);
+                            ship = r.IsDBNull(1) ? null : r.GetString(1);
+                        }
+                    }
+                }
+                if (!_plantsChanged.ContainsKey(plantCode)) _plantsChanged[plantCode] = (existed, active, ship);
+
+                string sql = existed
+                    ? "UPDATE dbo.Plants SET Active = @a, UpsShippingNumber = @s WHERE PlantCode = @p"
+                    : "INSERT dbo.Plants (PlantCode, PlantName, Address, City, State, Zip, Country, Active, GLCode, UpsShippingNumber) VALUES (@p, @p + ' (test)', '1 Test Way', 'Testville', 'GA', '30004', 'US', @a, 0, @s)";
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@p", plantCode);
+                    cmd.Parameters.AddWithValue("@a", quotable ? "Y" : "N");
+                    cmd.Parameters.AddWithValue("@s", quotable ? "TESTPLANT" : (object)DBNull.Value);
+                    cmd.ExecuteNonQuery();
+                }
             }
         }
 
@@ -65,7 +97,7 @@ namespace FreightEstimator.QuoteTests
                 cmd.Parameters.AddWithValue("@ts", r.ToState);
                 cmd.Parameters.AddWithValue("@tz", r.ToZip);
                 cmd.Parameters.AddWithValue("@tco", r.ToCountry);
-                cmd.Parameters.AddWithValue("@fs", r.FromState);
+                cmd.Parameters.AddWithValue("@fs", (object)r.FromState ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@n", r.NumPackages);
                 cmd.Parameters.AddWithValue("@pw", r.PkgWeight);
                 cmd.Parameters.AddWithValue("@lw", r.LastPkgWeight);
@@ -246,9 +278,22 @@ namespace FreightEstimator.QuoteTests
                         cmd.ExecuteNonQuery();
                     }
                 }
-                if (_addedPlant)
-                    using (var cmd = new SqlCommand("DELETE FROM dbo.Plants WHERE PlantCode = 'ALP' AND UpsShippingNumber = 'TESTPLANT'", conn))
+                foreach (var changed in _plantsChanged)
+                {
+                    string sql = changed.Value.Existed
+                        ? "UPDATE dbo.Plants SET Active = @a, UpsShippingNumber = @s WHERE PlantCode = @p"
+                        : "DELETE FROM dbo.Plants WHERE PlantCode = @p";
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@p", changed.Key);
+                        if (changed.Value.Existed)
+                        {
+                            cmd.Parameters.AddWithValue("@a", (object)changed.Value.Active ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@s", (object)changed.Value.UpsShippingNumber ?? DBNull.Value);
+                        }
                         cmd.ExecuteNonQuery();
+                    }
+                }
             }
         }
 

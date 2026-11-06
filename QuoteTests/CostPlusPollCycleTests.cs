@@ -22,14 +22,7 @@ namespace FreightEstimator.QuoteTests
         /// <summary>The first recorded UPS parcel case: 6 packages of 19 lb to MA 02379. UPS's recorded answer is plant-independent.</summary>
         private static QuoteCase Case => QuoteCase.All("parcel").Single(c => c.CaseId == "444347");
 
-        private static void RunOneCycle(FakeCarrierHttp fake)
-        {
-            using (new SandboxPlantCharges("ALP", SandboxPlantCharges.KnownSchedule()))
-            using (fake.Install())
-            {
-                new CostPlusPollCycle().RunOnce();
-            }
-        }
+        private static void RunOneCycle(FakeCarrierHttp fake) => CostPlusCycle.Run(fake);
 
         [Test]
         public void AUpsOnlyRequestFromGeorgiaIsAnsweredInItsRowAndItsQuoteIsLogged()
