@@ -32,6 +32,12 @@ namespace AuthenticationServer.CostPlus
             ["GA"] = "ALP", ["PA"] = "BUT", ["IN"] = "FTW", ["SC"] = "PDT", ["ME"] = "POR"
         };
 
+        /// <summary>
+        /// How long a claim is live. UPS's slowest call plus margin (ADR 0005): a claim older than this that was never
+        /// completed belongs to an instance that crashed or stalled, and any instance may retake it.
+        /// </summary>
+        private const int ClaimLeaseMinutes = 2;   // the tests use claims 180 s old (expired) and 30 s old (live)
+
         private readonly string _instance = Environment.MachineName + ":" + Environment.ProcessId;
 
         /// <summary>Runs one cycle. Returns how many requests it answered (0 or 1).</summary>
@@ -62,7 +68,8 @@ namespace AuthenticationServer.CostPlus
 
         /// <summary>
         /// The oldest request that asks for UPS and not LTL (the console app keeps every LTL row), has not been answered,
-        /// is not already claimed, and ships from a mapped state.
+        /// has no live claim (none, or one past its lease that was never completed), and ships from a mapped state. The
+        /// lease test here and in <see cref="RetakeExpiredClaim"/> are complements: change them together.
         /// </summary>
         private static Request FindNext(SqlConnection conn)
         {
@@ -75,6 +82,7 @@ namespace AuthenticationServer.CostPlus
                     cmd.Parameters.Add("@s" + i, SqlDbType.VarChar, 50).Value = states[i];
                     stateParameters.Add("@s" + i);
                 }
+                cmd.Parameters.Add("@lease", SqlDbType.Int).Value = ClaimLeaseMinutes;
                 cmd.CommandText =
                     "SELECT TOP 1 f.LoginId, f.QtyNumber, f.DateRequested, f.ToAddress, f.ToCity, f.ToState, f.ToZip, f.ToCountry, f.FromState, " +
                     "       f.NumPackages, f.PkgWeight, f.LastPkgWeight " +
@@ -83,7 +91,8 @@ namespace AuthenticationServer.CostPlus
                     "  AND (f.DateProcessed IS NULL OR f.DateRated IS NULL) " +
                     "  AND f.DateRequested IS NOT NULL " +
                     "  AND f.FromState IN (" + string.Join(", ", stateParameters) + ") " +
-                    "  AND NOT EXISTS (SELECT 1 FROM dbo.CostPlusRequestClaim c WHERE c.LoginId = f.LoginId AND c.QtyNumber = f.QtyNumber AND c.DateRequested = f.DateRequested) " +
+                    "  AND NOT EXISTS (SELECT 1 FROM dbo.CostPlusRequestClaim c WHERE c.LoginId = f.LoginId AND c.QtyNumber = f.QtyNumber AND c.DateRequested = f.DateRequested " +
+                    "                  AND (c.CompletedAt IS NOT NULL OR c.ClaimedAt >= DATEADD(MINUTE, -@lease, SYSDATETIME()))) " +
                     "ORDER BY f.DateRequested, f.LoginId, f.QtyNumber";
 
                 using (SqlDataReader r = cmd.ExecuteReader())
@@ -112,7 +121,8 @@ namespace AuthenticationServer.CostPlus
 
         /// <summary>
         /// Takes the claim. The unique key on (LoginId, QtyNumber, DateRequested) is the guard: a second cycle that
-        /// reaches the same row inserts nothing and gets false.
+        /// reaches the same row inserts nothing. It may still retake the claim, but only if it is past its lease and was
+        /// never completed, in one UPDATE that matches on exactly that, so two cycles cannot both retake it.
         /// </summary>
         private bool TryClaim(SqlConnection conn, Request request)
         {
@@ -128,8 +138,22 @@ namespace AuthenticationServer.CostPlus
                 }
                 catch (SqlException ex) when (ex.Number == 2627 || ex.Number == 2601)
                 {
-                    return false;   // another cycle holds it
+                    return RetakeExpiredClaim(conn, request);   // somebody has claimed it; unless that claim has expired, it is theirs
                 }
+            }
+        }
+
+        private bool RetakeExpiredClaim(SqlConnection conn, Request request)
+        {
+            using (SqlCommand cmd = new SqlCommand(
+                "UPDATE dbo.CostPlusRequestClaim SET ClaimedBy = @by, ClaimedAt = SYSDATETIME() " +
+                "WHERE LoginId = @l AND QtyNumber = @q AND DateRequested = @d " +
+                "  AND CompletedAt IS NULL AND ClaimedAt < DATEADD(MINUTE, -@lease, SYSDATETIME())", conn))
+            {
+                AddKey(cmd, request);
+                cmd.Parameters.Add("@by", SqlDbType.VarChar, 100).Value = _instance;
+                cmd.Parameters.Add("@lease", SqlDbType.Int).Value = ClaimLeaseMinutes;
+                return cmd.ExecuteNonQuery() == 1;
             }
         }
 
@@ -167,12 +191,15 @@ namespace AuthenticationServer.CostPlus
             }
 
             List<UpsParcelServiceEstimate> cheapestFirst = estimate.Services.OrderBy(s => s.CalculatedRate.RoundedAmount).Take(15).ToList();
-            WriteResult(conn, request, quoteId, cheapestFirst);
-            return true;
+            return WriteResult(conn, request, quoteId, cheapestFirst);
         }
 
-        /// <summary>Writes the answer and completes the claim together, so a retry after a crash cannot answer twice.</summary>
-        private static void WriteResult(SqlConnection conn, Request request, Guid quoteId, List<UpsParcelServiceEstimate> services)
+        /// <summary>
+        /// Writes the answer and completes the claim together. If the request was answered meanwhile (this instance stalled past
+        /// its lease and another retook the claim and answered), nothing is written and the claim is left as the other left it.
+        /// Returns whether this instance's answer was the one written.
+        /// </summary>
+        private static bool WriteResult(SqlConnection conn, Request request, Guid quoteId, List<UpsParcelServiceEstimate> services)
         {
             using (SqlTransaction tx = conn.BeginTransaction())
             {
@@ -190,9 +217,13 @@ namespace AuthenticationServer.CostPlus
                         cmd.Parameters.Add("@r" + i, SqlDbType.Decimal).Value = services[i].CalculatedRate.RoundedAmount;
                     }
                     cmd.CommandText = "UPDATE dbo.FreightRequests SET " + string.Join(", ", assignments) +
-                        " WHERE LoginId = @l AND QtyNumber = @q AND DateRequested = @d AND DateRated IS NULL";
+                        " WHERE LoginId = @l AND QtyNumber = @q AND DateRequested = @d AND (DateProcessed IS NULL OR DateRated IS NULL)";   // the same "not done yet" rule FindNext uses
                     AddKey(cmd, request);
-                    cmd.ExecuteNonQuery();
+                    if (cmd.ExecuteNonQuery() == 0)
+                    {
+                        tx.Rollback();
+                        return false;
+                    }
                 }
 
                 using (SqlCommand cmd = new SqlCommand(
@@ -204,6 +235,7 @@ namespace AuthenticationServer.CostPlus
                 }
 
                 tx.Commit();
+                return true;
             }
         }
 

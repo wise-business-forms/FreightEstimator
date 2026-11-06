@@ -47,10 +47,12 @@ namespace FreightEstimator.QuoteTests
             NumPackages = c.Packages, PkgWeight = (int)c.PackageWeight, LastPkgWeight = (int)c.LastPackageWeight
         };
 
-        public string Add(Request r)
+        public string Add(Request r) => Add(r, "QT-" + Guid.NewGuid().ToString("N").Substring(0, 20));
+
+        /// <summary>Adds a request for a LoginId that may already have one (a resubmission: same LoginId, QtyNumber 1, a new DateRequested).</summary>
+        public string Add(Request r, string loginId)
         {
-            string loginId = "QT-" + Guid.NewGuid().ToString("N").Substring(0, 20);
-            _loginIds.Add(loginId);
+            if (!_loginIds.Contains(loginId)) _loginIds.Add(loginId);
             using (var conn = Open())
             using (var cmd = new SqlCommand(
                 "INSERT dbo.FreightRequests (LoginId, QtyNumber, ToAddress, ToCity, ToState, ToZip, ToCountry, FromAddress, FromCity, FromState, FromZip, FromCountry, " +
@@ -129,6 +131,74 @@ namespace FreightEstimator.QuoteTests
                     if (!r.Read()) return null;
                     return new Claim { ClaimedAt = r.GetDateTime(0), CompletedAt = r.IsDBNull(1) ? (DateTime?)null : r.GetDateTime(1), QuoteId = r.IsDBNull(2) ? (Guid?)null : r.GetGuid(2) };
                 }
+            }
+        }
+
+        public int ClaimCount(string loginId) => Count("SELECT COUNT(*) FROM dbo.CostPlusRequestClaim WHERE LoginId = @p", loginId);
+
+        /// <summary>How many Quotes were logged for this LoginId's requests (the Quote's request JSON carries the LoginId).</summary>
+        public int QuoteCount(string loginId) =>
+            Count("SELECT COUNT(*) FROM dbo.Quote q JOIN dbo.Consumer c ON c.ConsumerId = q.ConsumerId WHERE c.Name = 'CostPlus' AND q.RequestJson LIKE @p",
+                "%\"LoginId\":\"" + loginId + "\"%");
+
+        private static int Count(string sql, string parameter)
+        {
+            using (var conn = Open())
+            using (var cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@p", parameter);
+                return (int)cmd.ExecuteScalar();
+            }
+        }
+
+        /// <summary>
+        /// Puts an unfinished claim on the request as another poller instance would have: taken <paramref name="ageSeconds"/> ago
+        /// by the database's clock. One older than the lease is a crashed instance's.
+        /// </summary>
+        public void AddClaim(string loginId, int ageSeconds)
+        {
+            using (var conn = Open())
+            using (var cmd = new SqlCommand(
+                "INSERT dbo.CostPlusRequestClaim (LoginId, QtyNumber, DateRequested, ClaimedBy, ClaimedAt, CompletedAt) " +
+                "SELECT LoginId, QtyNumber, DateRequested, 'another-instance', DATEADD(SECOND, -@age, SYSDATETIME()), NULL " +
+                "FROM dbo.FreightRequests WHERE LoginId = @l", conn))
+            {
+                cmd.Parameters.AddWithValue("@l", loginId);
+                cmd.Parameters.AddWithValue("@age", ageSeconds);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        /// <summary>
+        /// Answers the request and finishes its claim as another poller instance would: one UPS slot at <paramref name="rate"/>,
+        /// and the claim pointing at <paramref name="quoteId"/>. Needs the claim to exist already.
+        /// </summary>
+        public void AnswerAsAnotherInstance(string loginId, Guid quoteId, decimal rate)
+        {
+            using (var conn = Open())
+            using (var cmd = new SqlCommand(
+                "UPDATE dbo.FreightRequests SET Carrier01 = 'UPS', Service01 = 'OtherInstance', Rate01 = @r, DateProcessed = GETDATE(), DateRated = GETDATE() WHERE LoginId = @l; " +
+                "UPDATE dbo.CostPlusRequestClaim SET CompletedAt = SYSDATETIME(), QuoteId = @q WHERE LoginId = @l;", conn))
+            {
+                cmd.Parameters.AddWithValue("@l", loginId);
+                cmd.Parameters.AddWithValue("@r", rate);
+                cmd.Parameters.AddWithValue("@q", quoteId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        /// <summary>How many of this LoginId's request rows have been answered (rated and processed).</summary>
+        public int AnsweredRowCount(string loginId) =>
+            Count("SELECT COUNT(*) FROM dbo.FreightRequests WHERE LoginId = @p AND DateRated IS NOT NULL AND DateProcessed IS NOT NULL", loginId);
+
+        /// <summary>Leaves the request half finished, as an earlier writer might: rated, but never marked processed.</summary>
+        public void MarkRatedButNotProcessed(string loginId)
+        {
+            using (var conn = Open())
+            using (var cmd = new SqlCommand("UPDATE dbo.FreightRequests SET DateRated = GETDATE() WHERE LoginId = @l", conn))
+            {
+                cmd.Parameters.AddWithValue("@l", loginId);
+                cmd.ExecuteNonQuery();
             }
         }
 

@@ -15,6 +15,9 @@ namespace FreightEstimator.Tests.Fakes
 
         public List<CarrierHttpRequest> Requests { get; } = new();
 
+        /// <summary>Runs just before each request is answered, on the calling thread: lets a test change the world while a call is in flight.</summary>
+        public Action<CarrierHttpRequest> Before { get; set; }
+
         /// <summary>Answers requests whose URL contains the text with the contents of a file under Tests/Recorded.</summary>
         public FakeCarrierHttp Replay(string urlContains, string recordedFile, HttpStatusCode status = HttpStatusCode.OK)
         {
@@ -43,7 +46,8 @@ namespace FreightEstimator.Tests.Fakes
 
         public CarrierHttpResponse Post(CarrierHttpRequest request)
         {
-            Requests.Add(request);
+            lock (Requests) Requests.Add(request);   // quotes can run on several threads at once
+            Before?.Invoke(request);
             foreach (var (urlContains, reply) in _rules)
             {
                 if (request.Url.Contains(urlContains)) return reply();
