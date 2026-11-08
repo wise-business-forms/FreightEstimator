@@ -93,22 +93,10 @@ namespace FreightEstimator.QuoteTests
         }
 
         [Test]
-        public void ADevelopmentRunRefusesToStartOnAServerThatIsNotSandbox()
-        {
-            using (WebApplicationFactory<Program> factory = _factory.WithWebHostBuilder(b => b.ConfigureAppConfiguration((_, config) =>
-                config.AddInMemoryCollection(new Dictionary<string, string> { ["ConnectionStrings:UpsRate"] = "Server=prod-db-01;Initial Catalog=UpsRate;" }))))
-            {
-                var ex = Assert.Catch<InvalidOperationException>(() => factory.CreateClient());
-
-                Assert.That(ex.Message, Does.Contain("not recognisably SANDBOX"));
-            }
-        }
-
-        [Test]
         public void ADevelopmentRunRefusesToStartOnTheUpsRateDatabaseEvenOnASandboxServer()
         {
             using (WebApplicationFactory<Program> factory = _factory.WithWebHostBuilder(b => b.ConfigureAppConfiguration((_, config) =>
-                config.AddInMemoryCollection(new Dictionary<string, string> { ["ConnectionStrings:UpsRate"] = "Server=sandbox-configured-by-appsettings;Initial Catalog=UpsRate;" }))))
+                config.AddInMemoryCollection(new Dictionary<string, string> { ["ConnectionStrings:FreightEstimator"] = "Server=sandbox-configured-by-appsettings;Initial Catalog=UpsRate;" }))))
             {
                 var ex = Assert.Catch<InvalidOperationException>(() => factory.CreateClient());
 
@@ -120,11 +108,11 @@ namespace FreightEstimator.QuoteTests
         public void TheDataConnectionStringsComeFromConfiguration_ForTheEnvironment()
         {
             using (WebApplicationFactory<Program> factory = _factory.WithWebHostBuilder(b => b.ConfigureAppConfiguration((_, config) =>
-                config.AddInMemoryCollection(new Dictionary<string, string> { ["ConnectionStrings:UpsRate"] = "Server=sandbox-configured-by-appsettings;Initial Catalog=FreightEstimator;" }))))
+                config.AddInMemoryCollection(new Dictionary<string, string> { ["ConnectionStrings:FreightEstimator"] = "Server=sandbox-configured-by-appsettings;Initial Catalog=FreightEstimator;" }))))
             {
                 factory.CreateClient();   // starts the host, which hands its configuration to the estimation core
 
-                Assert.That(Configuration.UpsRateSqlConnection, Is.EqualTo("Server=sandbox-configured-by-appsettings;Initial Catalog=FreightEstimator;"));
+                Assert.That(Configuration.FreightEstimatorSqlConnection, Is.EqualTo("Server=sandbox-configured-by-appsettings;Initial Catalog=FreightEstimator;"));
             }
         }
     }

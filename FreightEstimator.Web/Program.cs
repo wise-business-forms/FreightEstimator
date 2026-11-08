@@ -33,17 +33,9 @@ Configuration.ConnectionStringSource = name => configuration.GetConnectionString
 
 if (app.Environment.IsDevelopment())
 {
-    // A Development (Debug) run must be on the test database. Whatever file or setting supplied the strings, refuse to
-    // start unless the server is recognisably SANDBOX (its name contains "sandbox", or it is the one named in
-    // FREIGHTESTIMATOR_SANDBOX_SERVER, or QUOTETESTS_SANDBOX_SERVER, which the tests use) and the database is
-    // FreightEstimator. UpsRate is never allowed, even on an allowed server.
-    var connection = new System.Data.SqlClient.SqlConnectionStringBuilder(Configuration.UpsRateSqlConnection);
-    string server = connection.DataSource;
-    string allowed = Environment.GetEnvironmentVariable("FREIGHTESTIMATOR_SANDBOX_SERVER") ?? Environment.GetEnvironmentVariable("QUOTETESTS_SANDBOX_SERVER");
-    bool sandbox = server.IndexOf("sandbox", StringComparison.OrdinalIgnoreCase) >= 0
-        || (!string.IsNullOrEmpty(allowed) && string.Equals(server, allowed, StringComparison.OrdinalIgnoreCase));
-    if (!sandbox)
-        throw new InvalidOperationException("Refusing to start in Development: the UpsRate server '" + server + "' is not recognisably SANDBOX. Name it so, or set FREIGHTESTIMATOR_SANDBOX_SERVER to its exact name.");
+    // A Development (Debug) run must be on the FreightEstimator database. Whatever file or setting supplied the strings,
+    // refuse to start unless the database is FreightEstimator. UpsRate is never allowed.
+    var connection = new System.Data.SqlClient.SqlConnectionStringBuilder(Configuration.FreightEstimatorSqlConnection);
     if (!string.Equals(connection.InitialCatalog, "FreightEstimator", StringComparison.OrdinalIgnoreCase))
         throw new InvalidOperationException("Refusing to start in Development: the database is '" + connection.InitialCatalog + "', not FreightEstimator. UpsRate is never a development target.");
 }

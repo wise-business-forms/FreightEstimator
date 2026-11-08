@@ -29,7 +29,7 @@ namespace AuthenticationServer.CostPlus
         /// <summary>Puts one probe request in the table (database clock) and removes probes over an hour old, answered or not, so a long stall cannot pile them up.</summary>
         public static void Insert()
         {
-            using (var conn = new SqlConnection(Configuration.UpsRateSqlConnection))
+            using (var conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
             {
                 conn.Open();
                 using (var cmd = new SqlCommand(

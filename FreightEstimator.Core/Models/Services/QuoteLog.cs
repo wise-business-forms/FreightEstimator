@@ -13,7 +13,7 @@ namespace AuthenticationServer.Models.Services
     {
         public static void Record(Guid quoteId, int consumerId, string referenceNumber, string plantCode, string requestJson)
         {
-            using (SqlConnection conn = new SqlConnection(Configuration.UpsRateSqlConnection))
+            using (SqlConnection conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
             using (SqlCommand cmd = new SqlCommand("LogQuote", conn) { CommandType = CommandType.StoredProcedure })
             {
                 cmd.Parameters.Add("@QuoteId", SqlDbType.UniqueIdentifier).Value = quoteId;

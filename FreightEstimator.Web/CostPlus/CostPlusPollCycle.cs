@@ -65,7 +65,7 @@ namespace AuthenticationServer.CostPlus
         /// <summary>Runs one cycle. Returns how many requests it answered (0 or 1).</summary>
         public int RunOnce()
         {
-            using (SqlConnection conn = new SqlConnection(Configuration.UpsRateSqlConnection))
+            using (SqlConnection conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
             {
                 conn.Open();
 

@@ -123,7 +123,7 @@ namespace FreightEstimator.QuoteTests
 
         private static long ReferenceSequenceValue()
         {
-            using (var conn = new System.Data.SqlClient.SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["UpsRate"].ConnectionString))
+            using (var conn = new System.Data.SqlClient.SqlConnection(System.Configuration.ConfigurationManager.ConnectionStrings["FreightEstimator"].ConnectionString))
             {
                 conn.Open();
                 using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT CONVERT(BIGINT, current_value) FROM sys.sequences WHERE name = 'CostPlusReferenceNumber'", conn))
@@ -154,7 +154,7 @@ namespace FreightEstimator.QuoteTests
             Assert.That(CostPlusPollerMode.IsShadow(Config("Shadow")), Is.True);
             Assert.That(CostPlusPollerMode.IsShadow(Config("shadow")), Is.True);
             Assert.That(CostPlusPollerMode.IsShadow(Config("Live")), Is.False);
-            Assert.That(CostPlusPollerMode.IsShadow(Config(null)), Is.False, "live is the default");
+            Assert.That(CostPlusPollerMode.IsShadow(Config(null)), Is.True, "shadow is the default: only an explicit Live claims requests");
         }
 
         private static IConfiguration Config(string mode) =>

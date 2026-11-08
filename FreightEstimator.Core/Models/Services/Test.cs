@@ -18,7 +18,7 @@ namespace AuthenticationServer.Models.Services
 
         public static void processNextRequest() {
 
-            SqlConnection conn = new SqlConnection(Configuration.UpsRateSqlConnection);
+            SqlConnection conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection);
             conn.Open();
 
             SqlCommand cmd = conn.CreateCommand();

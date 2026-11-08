@@ -231,7 +231,7 @@ namespace FreightEstimator.QuoteTests.Replay
 
             private static SqlConnection Open()
             {
-                var conn = new SqlConnection(ConfigurationManager.ConnectionStrings["UpsRate"].ConnectionString);
+                var conn = new SqlConnection(ConfigurationManager.ConnectionStrings["FreightEstimator"].ConnectionString);
                 conn.Open();
                 return conn;
             }

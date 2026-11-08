@@ -23,7 +23,7 @@ namespace AuthenticationServer.CostPlus
         /// <summary>Compares one more answered request. Returns how many it compared (0 or 1).</summary>
         public int RunShadowOnce()
         {
-            using (SqlConnection conn = new SqlConnection(AuthenticationServer.Models.Configuration.UpsRateSqlConnection))
+            using (SqlConnection conn = new SqlConnection(AuthenticationServer.Models.Configuration.FreightEstimatorSqlConnection))
             {
                 conn.Open();
 

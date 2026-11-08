@@ -1,7 +1,7 @@
 {
-  "_comment": "Copy to ConnectionStrings.Production.json on the server and fill in. That copy is gitignored; never commit credentials. Every environment except Development reads this file (IIS runs as Production unless ASPNETCORE_ENVIRONMENT says otherwise). The UpsRate database MUST be named UpsRate.",
+  "_comment": "Copy to ConnectionStrings.Production.json on the server and fill in. That copy is gitignored; never commit credentials. Every environment except Development reads this file (IIS runs as Production unless ASPNETCORE_ENVIRONMENT says otherwise). The database is FreightEstimator; production does not use UPSRate.",
   "ConnectionStrings": {
-    "UpsRate": "Server=PRODUCTION_SERVER;Initial Catalog=UpsRate;uid=USER;pwd=PASSWORD;",
+    "FreightEstimator": "Server=PRODUCTION_SERVER;Initial Catalog=FreightEstimator;uid=USER;pwd=PASSWORD;",
     "Datawarehouse": "Server=PRODUCTION_SERVER;Initial Catalog=Datawarehouse;uid=USER;pwd=PASSWORD;",
     "WiseLink": "Server=PRODUCTION_SERVER;Initial Catalog=WBFDOTCOM;uid=USER;pwd=PASSWORD;"
   }

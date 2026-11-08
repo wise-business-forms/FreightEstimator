@@ -11,7 +11,7 @@ namespace AuthenticationServer.CostPlus
         /// <summary>How long the oldest request waiting for the poller has waited (database clock), or null if none is.</summary>
         public static TimeSpan? OldestUnclaimedAge()
         {
-            using (var conn = new SqlConnection(Configuration.UpsRateSqlConnection))
+            using (var conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
             {
                 conn.Open();
                 using (var cmd = new SqlCommand(

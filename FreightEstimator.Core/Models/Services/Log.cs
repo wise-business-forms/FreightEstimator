@@ -35,7 +35,7 @@ namespace AuthenticationServer.Models.Services
 
         public static void LogRequest_Rate(RateResponse request)
         {
-            //SqlConnection connLog = new SqlConnection(Configuration.UpsRateSqlConnection);
+            //SqlConnection connLog = new SqlConnection(Configuration.FreightEstimatorSqlConnection);
             //connLog.Open();
 
             //SqlCommand cmdLog = new SqlCommand();
@@ -286,7 +286,7 @@ namespace AuthenticationServer.Models.Services
         public static void LogRequest_Rate(string username, string address, string city, string state, string zip, string country, string request, string response, string direction)
         {
             if (WritesSuppressed) return;
-            SqlConnection connLog = new SqlConnection(Configuration.UpsRateSqlConnection);
+            SqlConnection connLog = new SqlConnection(Configuration.FreightEstimatorSqlConnection);
             connLog.Open();
 
             SqlCommand cmdLog = new SqlCommand();
@@ -348,7 +348,7 @@ namespace AuthenticationServer.Models.Services
 
             try
             {
-                using (var connLog = new SqlConnection(Configuration.UpsRateSqlConnection))
+                using (var connLog = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
                 {
                     connLog.Open();
 

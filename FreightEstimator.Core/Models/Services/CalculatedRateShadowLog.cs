@@ -20,7 +20,7 @@ namespace AuthenticationServer.Models.Services
 
             try
             {
-                using (var connection = new SqlConnection(Configuration.UpsRateSqlConnection))
+                using (var connection = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
                 {
                     connection.Open();
 

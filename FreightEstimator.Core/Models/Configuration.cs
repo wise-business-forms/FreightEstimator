@@ -213,9 +213,9 @@ namespace AuthenticationServer.Models
         {
             get { return _UPSShopRatesURL; }
         }
-        public static string UpsRateSqlConnection
+        public static string FreightEstimatorSqlConnection
         {
-            get { return ConnectionString("UpsRate"); }
+            get { return ConnectionString("FreightEstimator"); }
         }
         public static string WiseLinkSqlConnection
         {

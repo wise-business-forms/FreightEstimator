@@ -72,7 +72,7 @@ namespace AuthenticationServer.Models.Services
         {
             try
             {
-                SqlConnection sqlConnection = new SqlConnection(Configuration.UpsRateSqlConnection);
+                SqlConnection sqlConnection = new SqlConnection(Configuration.FreightEstimatorSqlConnection);
                 sqlConnection.Open();
 
                 SqlCommand sqlCommand = sqlConnection.CreateCommand();

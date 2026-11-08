@@ -12,7 +12,7 @@ namespace AuthenticationServer.Models.Data
         {
             try
             {
-                using (SqlConnection connection = new SqlConnection(Configuration.UpsRateSqlConnection))
+                using (SqlConnection connection = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
                 {
                     connection.Open();
                     using (SqlCommand command = new SqlCommand("GetEmployeeById", connection))

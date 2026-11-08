@@ -149,7 +149,7 @@ namespace AuthenticationServer.Controllers
 
             var selectedPlant = plants.FirstOrDefault(p => string.Equals(p.Id, plant, StringComparison.OrdinalIgnoreCase));
 
-            using (var conn = new SqlConnection(Configuration.UpsRateSqlConnection))
+            using (var conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
             {
                 conn.Open();
 
@@ -264,7 +264,7 @@ namespace AuthenticationServer.Controllers
         // GET: Reports/Compare/5
         public ActionResult Compare(int id)
         {
-            using (var conn = new SqlConnection(Configuration.UpsRateSqlConnection))
+            using (var conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
             {
                 conn.Open();
                 RateChangeData.CatchUp(conn);
@@ -296,7 +296,7 @@ namespace AuthenticationServer.Controllers
             var selectedPlant = plants.FirstOrDefault(p => string.Equals(p.Id, plant, StringComparison.OrdinalIgnoreCase));
             if (selectedPlant != null)
             {
-                using (var conn = new SqlConnection(Configuration.UpsRateSqlConnection))
+                using (var conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
                 {
                     conn.Open();
                     RateChangeData.CatchUp(conn);

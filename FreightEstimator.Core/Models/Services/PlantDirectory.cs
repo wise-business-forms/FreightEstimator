@@ -13,7 +13,7 @@ namespace AuthenticationServer.Models.Services
         public static List<string> ValidCodes()
         {
             var codes = new List<string>();
-            using (SqlConnection conn = new SqlConnection(Configuration.UpsRateSqlConnection))
+            using (SqlConnection conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
             using (SqlCommand cmd = new SqlCommand("SELECT DISTINCT PlantCode FROM Plants WHERE Active = 'Y' AND upsShippingNumber IS NOT NULL ORDER BY PlantCode", conn))
             {
                 conn.Open();

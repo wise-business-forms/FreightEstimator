@@ -32,7 +32,7 @@ namespace FreightEstimator.QuoteTests
             {
                 b.UseEnvironment("Development");
                 b.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(
-                    new Dictionary<string, string> { ["CostPlus:Poller:Enabled"] = pollerEnabled ? "true" : "false" }));
+                    new Dictionary<string, string> { ["CostPlus:Poller:Enabled"] = pollerEnabled ? "true" : "false", ["CostPlus:Poller:Mode"] = "Live" }));
             });
 
         private static bool WaitUntil(Func<bool> condition, TimeSpan timeout)

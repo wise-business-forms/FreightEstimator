@@ -24,7 +24,7 @@ namespace AuthenticationServer.Models
 
         public Plant(string PlantCode)
         {
-            SqlConnection conn = new SqlConnection(Configuration.UpsRateSqlConnection);
+            SqlConnection conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection);
             conn.Open();
 
             SqlCommand cmd = new SqlCommand();
@@ -55,7 +55,7 @@ namespace AuthenticationServer.Models
             List<Plant> plants = new List<Plant>();
             
 
-            SqlConnection conn = new SqlConnection(Configuration.UpsRateSqlConnection);
+            SqlConnection conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection);
             conn.Open();
 
             SqlCommand cmd = new SqlCommand();
@@ -91,7 +91,7 @@ namespace AuthenticationServer.Models
         public static List<PlantCharges> Charges(string plantID)
         {
             List<PlantCharges> charges = new List<PlantCharges>();
-            SqlConnection conn = new SqlConnection(Configuration.UpsRateSqlConnection);
+            SqlConnection conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection);
             conn.Open();
 
             SqlCommand cmd = new SqlCommand();

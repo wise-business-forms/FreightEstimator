@@ -282,7 +282,7 @@ namespace AuthenticationServer.Models.Services
                 Dictionary<string, double> dPerShipmentChargeLTL = new Dictionary<string, double>();
                 Dictionary<string, double> dUpchargeLTL = new Dictionary<string, double>();
 
-                SqlConnection sqlConnection = new SqlConnection(Configuration.UpsRateSqlConnection);
+                SqlConnection sqlConnection = new SqlConnection(Configuration.FreightEstimatorSqlConnection);
                 sqlConnection.Open();
 
                 SqlCommand cmdCharges = sqlConnection.CreateCommand();
@@ -369,7 +369,7 @@ namespace AuthenticationServer.Models.Services
                     string shipFromZip = "";
                     string shipFromCountry = "";
 
-                    SqlConnection conn = new SqlConnection(Configuration.UpsRateSqlConnection);
+                    SqlConnection conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection);
                     conn.Open();
 
                     SqlCommand sqlCommand = conn.CreateCommand();
@@ -657,7 +657,7 @@ namespace AuthenticationServer.Models.Services
                     // LogResultsLTL's @UserName holds 10 characters.
                     string UserName = options?.UserName == null ? "TBD" : options.UserName.Length > 10 ? options.UserName.Substring(0, 10) : options.UserName;
 
-                    SqlConnection conlog = new SqlConnection(Configuration.UpsRateSqlConnection);
+                    SqlConnection conlog = new SqlConnection(Configuration.FreightEstimatorSqlConnection);
                     conlog.Open();
 
                     SqlCommand cmdLog = new SqlCommand();
@@ -722,7 +722,7 @@ namespace AuthenticationServer.Models.Services
                 accountNumber = Int32.Parse(shipment.AcctNum);
             }
             Dictionary<string, string> PerPackageCharge = new Dictionary<string, string>();
-            SqlConnection sqlConnection = new SqlConnection(Configuration.UpsRateSqlConnection);
+            SqlConnection sqlConnection = new SqlConnection(Configuration.FreightEstimatorSqlConnection);
             sqlConnection.Open();
 
             SqlCommand sqlCommand = sqlConnection.CreateCommand();

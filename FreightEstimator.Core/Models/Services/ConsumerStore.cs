@@ -23,7 +23,7 @@ namespace AuthenticationServer.Models.Services
         {
             if (string.IsNullOrEmpty(apiKey)) return null;
 
-            using (SqlConnection conn = new SqlConnection(Configuration.UpsRateSqlConnection))
+            using (SqlConnection conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
             using (SqlCommand cmd = new SqlCommand("SELECT ConsumerId, Name FROM dbo.Consumer WHERE ApiKeyHash = @hash AND IsActive = 1", conn))
             {
                 cmd.Parameters.Add("@hash", SqlDbType.VarBinary, 32).Value = Hash(apiKey);
