@@ -17,13 +17,20 @@ namespace FreightEstimator.QuoteTests
         /// <param name="plant">The plant whose Plant Charges are set up.</param>
         /// <param name="schedule">Its Plant Charges; the known schedule by default. An empty array leaves the plant with none.</param>
         /// <param name="available">The services switched on; every UPS parcel service by default.</param>
-        public static int Run(FakeCarrierHttp fake, string plant = "ALP", SandboxPlantCharges.Row[] schedule = null, string[] available = null)
+        public static int Run(FakeCarrierHttp fake, string plant = "ALP", SandboxPlantCharges.Row[] schedule = null, string[] available = null) =>
+            Run(c => c.RunOnce(), fake, plant, schedule, available);
+
+        /// <summary>One cycle of the observe-only shadow run (#36), set up the same way.</summary>
+        public static int RunShadow(FakeCarrierHttp fake, string plant = "ALP", SandboxPlantCharges.Row[] schedule = null, string[] available = null) =>
+            Run(c => c.RunShadowOnce(), fake, plant, schedule, available);
+
+        private static int Run(Func<CostPlusPollCycle, int> cycle, FakeCarrierHttp fake, string plant, SandboxPlantCharges.Row[] schedule, string[] available)
         {
             using (new SandboxPlantCharges(plant, schedule ?? SandboxPlantCharges.KnownSchedule()))
             using (ServiceCatalog.Use(available ?? ParcelServices))
             using (fake.Install())
             {
-                return new CostPlusPollCycle().RunOnce();
+                return cycle(new CostPlusPollCycle());
             }
         }
     }

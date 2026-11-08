@@ -14,7 +14,10 @@ namespace AuthenticationServer.CostPlus
         private readonly Func<TimeSpan?> _oldestUnclaimedAge;
 
         public CostPlusHealthCheck(CostPlusPollerHealth health, IConfiguration configuration)
-            : this(health, CostPlusQueue.OldestUnclaimedAge, configuration.GetValue<bool>("CostPlus:Poller:Enabled")) { }
+            : this(health,
+                  // In shadow mode the console app owns the queue, so how long a request has waited says nothing about the poller.
+                  CostPlusPollerMode.IsShadow(configuration) ? (Func<TimeSpan?>)(() => null) : CostPlusQueue.OldestUnclaimedAge,
+                  configuration.GetValue<bool>("CostPlus:Poller:Enabled")) { }
 
         public CostPlusHealthCheck(CostPlusPollerHealth health, Func<TimeSpan?> oldestUnclaimedAge, bool pollerEnabled)
         {

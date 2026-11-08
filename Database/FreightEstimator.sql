@@ -22,7 +22,7 @@
 --   * FreightRequests: the CostPlus request/result layout, column names and types read from
 --     UPSRate.dbo.FreightRequests_SANDBOX (schema only; nothing there was changed). Not read: its primary key
 --     columns and the precision of the Rate columns.
---   * CostPlusRequestClaim, CostPlusReferenceNumber and the "CostPlus" Consumer: new, for the CostPlus poller
+--   * CostPlusRequestClaim, CostPlusReferenceNumber, CostPlusShadowResult (#36) and the "CostPlus" Consumer: new, for the CostPlus poller
 --     (#31, ADR 0005).
 --
 -- Loads no data except the "CostPlus" Consumer row. Plants and PlantCarrierCharges2017 rows are loaded
@@ -906,6 +906,28 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Consumer WHERE Name = 'CostPlus')
     VALUES ('CostPlus', HASHBYTES('SHA2_256', CONVERT(VARCHAR(36), NEWID()) + CONVERT(VARCHAR(36), NEWID())));
 GO
 
+-- The observe-only shadow run (#36, ADR 0005): for each request the console app answered, the poller's own result next to
+-- the console app's, both as JSON in the shape FileMaker reads (CostPlusShadowComparison). Explanation is filled in by a
+-- person: a divergence with none is Unexplained and still needs looking at.
+IF OBJECT_ID('dbo.CostPlusShadowResult', 'U') IS NULL
+CREATE TABLE dbo.CostPlusShadowResult
+(
+    ShadowResultId  INT IDENTITY(1,1)  NOT NULL,
+    LoginId         VARCHAR(50)        NOT NULL,
+    QtyNumber       TINYINT            NOT NULL,
+    DateRequested   DATETIME           NOT NULL,
+    ComparedAt      DATETIME2(3)       NOT NULL    CONSTRAINT DF_CostPlusShadowResult_ComparedAt DEFAULT (SYSDATETIME()),
+    ConsoleResult   NVARCHAR(MAX)      NOT NULL,   -- what the console app wrote to the request's row
+    PollerResult    NVARCHAR(MAX)      NOT NULL,   -- what the poller would have written
+    Diverged        BIT                NOT NULL,
+    Differences     NVARCHAR(MAX)      NULL,       -- one line per difference; NULL when they agree
+    Explanation     NVARCHAR(1000)     NULL,       -- why a divergence is expected (set by hand)
+    Status AS (CASE WHEN Diverged = 0 THEN 'Match' WHEN Explanation IS NULL THEN 'Unexplained' ELSE 'Explained' END),
+    CONSTRAINT PK_CostPlusShadowResult PRIMARY KEY (ShadowResultId),
+    CONSTRAINT UQ_CostPlusShadowResult_Request UNIQUE (LoginId, QtyNumber, DateRequested)
+);
+GO
+
 SET NOEXEC OFF;
 GO
 
@@ -917,6 +939,6 @@ FROM (VALUES ('Plants'), ('PlantCarrierCharges2017'), ('Requests_Rate'), ('Log_L
              ('CalculatedRateShadowLog'), ('LogCalculatedRateShadowComparison'),
              ('RateRequestPlant'), ('RecordRateRequestPlants'), ('RateRequestMatchKey'), ('RateRequestServiceRate'), ('RecordRateRequestMatchKeys'),
              ('Consumer'), ('Quote'), ('LogQuote'),
-             ('FreightRequests'), ('CostPlusRequestClaim'), ('CostPlusReferenceNumber')) o(name)
+             ('FreightRequests'), ('CostPlusRequestClaim'), ('CostPlusReferenceNumber'), ('CostPlusShadowResult')) o(name)
 LEFT JOIN sys.objects x ON x.name = o.name AND x.schema_id = SCHEMA_ID('dbo');
 GO

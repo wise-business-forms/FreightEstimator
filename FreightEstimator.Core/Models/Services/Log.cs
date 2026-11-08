@@ -10,6 +10,29 @@ namespace AuthenticationServer.Models.Services
 {
     public class Log
     {
+        private static readonly System.Threading.AsyncLocal<bool> _writesSuppressed = new System.Threading.AsyncLocal<bool>();
+
+        /// <summary>
+        /// Until the returned scope is disposed, the request log (Requests_Rate) and the Calculated Rate log
+        /// (QuoteServiceCalculation) write nothing on this thread / async flow. For the CostPlus shadow run (#36), which asks UPS
+        /// for a rate it compares but must leave nothing for reporting to see. Off by default: no live path uses it.
+        /// </summary>
+        public static IDisposable SuppressWrites()
+        {
+            bool previous = _writesSuppressed.Value;
+            _writesSuppressed.Value = true;
+            return new Restore(previous);
+        }
+
+        internal static bool WritesSuppressed => _writesSuppressed.Value;
+
+        private sealed class Restore : IDisposable
+        {
+            private readonly bool _previous;
+            public Restore(bool previous) { _previous = previous; }
+            public void Dispose() { _writesSuppressed.Value = _previous; }
+        }
+
         public static void LogRequest_Rate(RateResponse request)
         {
             //SqlConnection connLog = new SqlConnection(Configuration.UpsRateSqlConnection);
@@ -262,6 +285,7 @@ namespace AuthenticationServer.Models.Services
 
         public static void LogRequest_Rate(string username, string address, string city, string state, string zip, string country, string request, string response, string direction)
         {
+            if (WritesSuppressed) return;
             SqlConnection connLog = new SqlConnection(Configuration.UpsRateSqlConnection);
             connLog.Open();
 
@@ -320,7 +344,7 @@ namespace AuthenticationServer.Models.Services
         /// </summary>
         public static void LogQuoteServiceCalculation(QuoteServiceCalculation calculation)
         {
-            if (calculation == null) return;
+            if (calculation == null || WritesSuppressed) return;
 
             try
             {

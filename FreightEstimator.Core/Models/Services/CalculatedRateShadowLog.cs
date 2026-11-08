@@ -16,7 +16,7 @@ namespace AuthenticationServer.Models.Services
     {
         public static void Record(CalculatedRateShadowComparison comparison)
         {
-            if (comparison == null) return;
+            if (comparison == null || Log.WritesSuppressed) return;
 
             try
             {

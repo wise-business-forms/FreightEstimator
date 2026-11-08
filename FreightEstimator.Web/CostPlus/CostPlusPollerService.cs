@@ -22,6 +22,7 @@ namespace AuthenticationServer.CostPlus
         private static readonly TimeSpan FailurePause = TimeSpan.FromSeconds(5);
 
         private readonly bool _enabled;
+        private readonly bool _shadow;
         private readonly ILogger<CostPlusPollerService> _logger;
         private readonly CostPlusPollerHealth _health;
 
@@ -29,6 +30,7 @@ namespace AuthenticationServer.CostPlus
         {
             _health = health;
             _enabled = configuration.GetValue<bool>("CostPlus:Poller:Enabled");
+            _shadow = CostPlusPollerMode.IsShadow(configuration);
             _logger = logger;
         }
 
@@ -40,7 +42,9 @@ namespace AuthenticationServer.CostPlus
                 return;
             }
 
-            _logger.LogInformation("The CostPlus poller has started.");
+            _logger.LogInformation(_shadow
+                ? "The CostPlus poller has started in SHADOW mode: it claims nothing and writes no result rows (#36)."
+                : "The CostPlus poller has started.");
             // Task.Yield: BackgroundService runs this synchronously up to the first await, which would hold up host startup.
             await Task.Yield();
 
@@ -49,7 +53,8 @@ namespace AuthenticationServer.CostPlus
                 TimeSpan pause = TimeSpan.Zero;
                 try
                 {
-                    int answered = new CostPlusPollCycle(_logger).RunOnce();
+                    var cycle = new CostPlusPollCycle(_logger);
+                    int answered = _shadow ? cycle.RunShadowOnce() : cycle.RunOnce();
                     _health.RecordSuccessfulPoll();   // the heartbeat: the poller reached the table, whether or not anything was waiting
                     if (answered == 0) pause = IdlePause;
                 }

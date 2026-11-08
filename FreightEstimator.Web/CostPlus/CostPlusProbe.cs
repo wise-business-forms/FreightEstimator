@@ -56,7 +56,9 @@ namespace AuthenticationServer.CostPlus
 
         public CostPlusProbeService(IConfiguration configuration, ILogger<CostPlusProbeService> logger)
         {
-            _enabled = configuration.GetValue<bool>("CostPlus:Poller:Enabled") && configuration.GetValue("CostPlus:Probe:Enabled", true);
+            _enabled = configuration.GetValue<bool>("CostPlus:Poller:Enabled") && configuration.GetValue("CostPlus:Probe:Enabled", true)
+                // In shadow mode the console app would answer a probe, and rate it through UPS.
+                && !CostPlusPollerMode.IsShadow(configuration);
             _interval = TimeSpan.FromMinutes(configuration.GetValue("CostPlus:Probe:IntervalMinutes", 5));
             _quietStart = TimeSpan.Parse(configuration["CostPlus:Probe:QuietStart"] ?? "22:00");
             _quietEnd = TimeSpan.Parse(configuration["CostPlus:Probe:QuietEnd"] ?? "05:00");

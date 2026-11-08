@@ -238,6 +238,61 @@ namespace FreightEstimator.QuoteTests
             }
         }
 
+        /// <summary>The shadow run's comparison for the request (#36), or null if it made none.</summary>
+        public ShadowRow ShadowOf(string loginId)
+        {
+            using (var conn = Open())
+            using (var cmd = new SqlCommand("SELECT Diverged, Differences, Explanation, Status, ConsoleResult, PollerResult FROM dbo.CostPlusShadowResult WHERE LoginId = @l", conn))
+            {
+                cmd.Parameters.AddWithValue("@l", loginId);
+                using (var r = cmd.ExecuteReader())
+                {
+                    if (!r.Read()) return null;
+                    return new ShadowRow
+                    {
+                        Diverged = r.GetBoolean(0), Differences = r.IsDBNull(1) ? null : r.GetString(1), Explanation = r.IsDBNull(2) ? null : r.GetString(2),
+                        Status = r.GetString(3), ConsoleResult = r.GetString(4), PollerResult = r.GetString(5)
+                    };
+                }
+            }
+        }
+
+        public class ShadowRow
+        {
+            public bool Diverged;
+            public string Differences, Explanation, Status, ConsoleResult, PollerResult;
+        }
+
+        public void Explain(string loginId, string explanation) =>
+            Execute("UPDATE dbo.CostPlusShadowResult SET Explanation = @p WHERE LoginId = @l", loginId, explanation);
+
+        /// <summary>Changes what the console app "wrote" for the first service, so the poller's own result differs.</summary>
+        public void ChangeConsoleRate(string loginId, decimal delta) =>
+            Execute("UPDATE dbo.FreightRequests SET Rate01 = Rate01 + @p WHERE LoginId = @l", loginId, delta);
+
+        /// <summary>Marks the request answered, as the console app would (no result slots).</summary>
+        public void MarkAnswered(string loginId) =>
+            Execute("UPDATE dbo.FreightRequests SET DateProcessed = GETDATE(), DateRated = GETDATE() WHERE LoginId = @l AND 1 = @p", loginId, 1);
+
+        private static void Execute(string sql, string loginId, object parameter)
+        {
+            using (var conn = Open())
+            using (var cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@l", loginId);
+                cmd.Parameters.AddWithValue("@p", parameter);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        /// <summary>Rows in a table, for "nothing was logged" checks (the test database is used by one test at a time).</summary>
+        public static int RowCount(string table)
+        {
+            using (var conn = Open())
+            using (var cmd = new SqlCommand("SELECT COUNT(*) FROM " + table, conn))
+                return (int)cmd.ExecuteScalar();
+        }
+
         public class Claim
         {
             public DateTime ClaimedAt;
@@ -275,6 +330,7 @@ namespace FreightEstimator.QuoteTests
                         "INSERT @q SELECT QuoteId FROM dbo.CostPlusRequestClaim WHERE LoginId = @l AND QuoteId IS NOT NULL; " +
                         "DELETE FROM dbo.QuoteServiceCalculation WHERE QuoteId IN (SELECT QuoteId FROM @q); " +
                         "DELETE FROM dbo.Quote WHERE QuoteId IN (SELECT QuoteId FROM @q); " +
+                        "DELETE FROM dbo.CostPlusShadowResult WHERE LoginId = @l; " +
                         "DELETE FROM dbo.CostPlusRequestClaim WHERE LoginId = @l; " +
                         "DELETE FROM dbo.FreightRequests WHERE LoginId = @l;", conn))
                     {
@@ -306,7 +362,7 @@ namespace FreightEstimator.QuoteTests
             using (var conn = Open())
             using (var cmd = new SqlCommand(
                 "SELECT CASE WHEN OBJECT_ID('dbo.FreightRequests', 'U') IS NOT NULL AND OBJECT_ID('dbo.CostPlusRequestClaim', 'U') IS NOT NULL " +
-                "AND OBJECT_ID('dbo.CostPlusReferenceNumber', 'SO') IS NOT NULL AND EXISTS (SELECT 1 FROM dbo.Consumer WHERE Name = 'CostPlus') THEN 1 ELSE 0 END", conn))
+                "AND OBJECT_ID('dbo.CostPlusReferenceNumber', 'SO') IS NOT NULL AND OBJECT_ID('dbo.CostPlusShadowResult', 'U') IS NOT NULL AND EXISTS (SELECT 1 FROM dbo.Consumer WHERE Name = 'CostPlus') THEN 1 ELSE 0 END", conn))
             {
                 if ((int)cmd.ExecuteScalar() != 1)
                     Assert.Fail("The FreightEstimator test database has no CostPlus objects yet. Run Database/FreightEstimator.sql against it.");

@@ -16,7 +16,7 @@ namespace AuthenticationServer.CostPlus
     /// Quote API, writes the answer into the request's own row, and logs the Quote against the fixed "CostPlus" Consumer.
     /// FileMaker's table layout stays in this adapter; the estimation service never sees it.
     /// </summary>
-    internal class CostPlusPollCycle
+    internal partial class CostPlusPollCycle
     {
         public const string ConsumerName = "CostPlus";
 
@@ -95,6 +95,30 @@ namespace AuthenticationServer.CostPlus
             public int NumPackages, PkgWeight, LastPkgWeight;
         }
 
+        /// <summary>The columns <see cref="ReadRequest"/> reads, in order.</summary>
+        internal const string RequestColumns =
+            "f.LoginId, f.QtyNumber, f.DateRequested, f.ToAddress, f.ToCity, f.ToState, f.ToZip, f.ToCountry, f.FromState, " +
+            "f.NumPackages, f.PkgWeight, f.LastPkgWeight ";
+
+        private static Request ReadRequest(SqlDataReader r)
+        {
+            return new Request
+            {
+                LoginId = r.GetString(0),
+                QtyNumber = r.GetByte(1),
+                DateRequested = r.GetDateTime(2),
+                ToAddress = r.IsDBNull(3) ? null : r.GetString(3),
+                ToCity = r.IsDBNull(4) ? null : r.GetString(4),
+                ToState = r.IsDBNull(5) ? null : r.GetString(5),
+                ToZip = r.IsDBNull(6) ? null : r.GetString(6),
+                ToCountry = r.IsDBNull(7) ? null : r.GetString(7),
+                FromState = r.IsDBNull(8) ? null : r.GetString(8),
+                NumPackages = r.IsDBNull(9) ? 0 : r.GetInt32(9),
+                PkgWeight = r.IsDBNull(10) ? 0 : r.GetInt32(10),
+                LastPkgWeight = r.IsDBNull(11) ? 0 : r.GetInt32(11)
+            };
+        }
+
         /// <summary>
         /// The oldest request that is waiting for this poller (<see cref="WaitingWhere"/>).
         /// </summary>
@@ -104,8 +128,7 @@ namespace AuthenticationServer.CostPlus
             {
                 cmd.Parameters.Add("@lease", SqlDbType.Int).Value = ClaimLeaseMinutes;
                 cmd.CommandText =
-                    "SELECT TOP 1 f.LoginId, f.QtyNumber, f.DateRequested, f.ToAddress, f.ToCity, f.ToState, f.ToZip, f.ToCountry, f.FromState, " +
-                    "       f.NumPackages, f.PkgWeight, f.LastPkgWeight " +
+                    "SELECT TOP 1 " + RequestColumns +
                     "FROM dbo.FreightRequests f " +
                     "WHERE " + WaitingWhere +
                     "ORDER BY f.DateRequested, f.LoginId, f.QtyNumber";
@@ -113,21 +136,7 @@ namespace AuthenticationServer.CostPlus
                 using (SqlDataReader r = cmd.ExecuteReader())
                 {
                     if (!r.Read()) return null;
-                    return new Request
-                    {
-                        LoginId = r.GetString(0),
-                        QtyNumber = r.GetByte(1),
-                        DateRequested = r.GetDateTime(2),
-                        ToAddress = r.IsDBNull(3) ? null : r.GetString(3),
-                        ToCity = r.IsDBNull(4) ? null : r.GetString(4),
-                        ToState = r.IsDBNull(5) ? null : r.GetString(5),
-                        ToZip = r.IsDBNull(6) ? null : r.GetString(6),
-                        ToCountry = r.IsDBNull(7) ? null : r.GetString(7),
-                        FromState = r.IsDBNull(8) ? null : r.GetString(8),
-                        NumPackages = r.IsDBNull(9) ? 0 : r.GetInt32(9),
-                        PkgWeight = r.IsDBNull(10) ? 0 : r.GetInt32(10),
-                        LastPkgWeight = r.IsDBNull(11) ? 0 : r.GetInt32(11)
-                    };
+                    return ReadRequest(r);
                 }
             }
         }
@@ -170,43 +179,66 @@ namespace AuthenticationServer.CostPlus
             }
         }
 
+        /// <summary>What the poller made of a request: the shaped result, or the error to write instead. Nothing is written yet.</summary>
+        private class Outcome
+        {
+            public Outcome(Guid? quoteId, CostPlusResultShape.Shaped shaped, string errorCode, string errorDescription)
+            {
+                QuoteId = quoteId; Shaped = shaped; ErrorCode = errorCode; ErrorDescription = errorDescription;
+            }
+            public readonly Guid? QuoteId;
+            public readonly CostPlusResultShape.Shaped Shaped;
+            public readonly string ErrorCode, ErrorDescription;
+        }
+
         /// <summary>
         /// Answers the request: a rate, or an error in the request's row (ErrorCode01 and ErrorDesc01, the console app's way) for
         /// whatever cannot be answered. Returns whether this instance's answer was the one written.
         /// </summary>
         private bool Answer(SqlConnection conn, Request request)
         {
+            Outcome o = Compute(conn, request, shadow: false);
+            return WriteResult(conn, request, o.QuoteId, o.Shaped, o.ErrorCode, o.ErrorDescription);
+        }
+
+        private Outcome Compute(SqlConnection conn, Request request, bool shadow)
+        {
             var noRates = new CostPlusResultShape.Shaped();
 
             // A probe (#35) only tests that the poller can claim a row and write its result back: no Plant, no Quote, no UPS call,
             // so nothing it does can reach UPS or reporting.
-            if (CostPlusProbe.IsProbe(request.LoginId)) return WriteResult(conn, request, null, noRates, null, null);
+            if (CostPlusProbe.IsProbe(request.LoginId)) return new Outcome(null, noRates, null, null);
 
             if (!CostPlusPlantMapping.TryPlantFor(request.FromState, out string plantCode, out string mappingProblem))
             {
-                return WriteResult(conn, request, null, noRates, General, mappingProblem);
+                return new Outcome(null, noRates, General, mappingProblem);
             }
             if (!PlantDirectory.ValidCodes().Contains(plantCode))
             {
-                return WriteResult(conn, request, null, noRates, General, "Plant " + plantCode + " is not available for quotes");
+                return new Outcome(null, noRates, General, "Plant " + plantCode + " is not available for quotes");
             }
 
-            int consumerId = ConsumerId(conn);
-            int referenceNumber = NextReferenceNumber(conn);
+            // The shadow run (#36) leaves no Quote and spends no Reference Number; the quote ID only ties the carrier calls together.
+            int referenceNumber = 0;
             Guid quoteId = Guid.NewGuid();
-            QuoteLog.Record(quoteId, consumerId, referenceNumber.ToString(), plantCode, JsonConvert.SerializeObject(request));
+            if (!shadow)
+            {
+                int consumerId = ConsumerId(conn);
+                referenceNumber = NextReferenceNumber(conn);
+                QuoteLog.Record(quoteId, consumerId, referenceNumber.ToString(), plantCode, JsonConvert.SerializeObject(request));
+            }
 
             // The console app's weight rule, word for word: (packages - 1) x package weight + last package weight, over 19,999.
             if (((long)(request.NumPackages - 1) * request.PkgWeight) + request.LastPkgWeight > MaxShipmentWeightLb)
             {
-                return WriteResult(conn, request, quoteId, noRates, WeightError, "Weight Exceeds Limit – Call");
+                return new Outcome(quoteId, noRates, WeightError, "Weight Exceeds Limit – Call");
             }
 
             // Without a Plant Charges row the unified module would price a service at its raw Carrier Rate. Never return that.
             List<string> carriersWithoutCharges = CarriersWithoutPlantCharges(plantCode);
             if (carriersWithoutCharges.Count > 0)
             {
-                return WriteResult(conn, request, quoteId, noRates, General,
+                return new Outcome(quoteId, noRates, General,
                     "Plant Charges are missing for plant " + plantCode + " (" + string.Join(", ", carriersWithoutCharges) + ")");
             }
 
@@ -217,7 +249,7 @@ namespace AuthenticationServer.CostPlus
             string notAvailableError = notAvailable.Length == 0 ? null : "Service not available: " + notAvailable;
             if (available.Count == 0)
             {
-                return WriteResult(conn, request, quoteId, noRates, General, notAvailableError);
+                return new Outcome(quoteId, noRates, General, notAvailableError);
             }
 
             UpsParcelEstimate estimate = new UpsEstimationService().EstimateParcel(new UpsQuoteRequest
@@ -244,16 +276,16 @@ namespace AuthenticationServer.CostPlus
             // (UPS has already been asked to rate it by now: the estimator checks the address and rates in one call. One discarded call.)
             if (estimate.AddressCandidateCount > 1)
             {
-                return WriteResult(conn, request, quoteId, noRates, AddressError, "Invalid address -- unable to validate");
+                return new Outcome(quoteId, noRates, AddressError, "Invalid address -- unable to validate");
             }
 
             if (estimate.Status != CarrierStatus.Ok)
             {
-                return WriteResult(conn, request, quoteId, noRates, General, "Error processing request: " + estimate.Message);
+                return new Outcome(quoteId, noRates, General, "Error processing request: " + estimate.Message);
             }
 
             CostPlusResultShape.Shaped shaped = CostPlusResultShape.Shape(plantCode, estimate.Services, estimate.AddressClassification, request.ToZip);
-            return WriteResult(conn, request, quoteId, shaped, notAvailableError == null ? null : General, notAvailableError);
+            return new Outcome(quoteId, shaped, notAvailableError == null ? null : General, notAvailableError);
         }
 
         /// <summary>
