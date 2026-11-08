@@ -1,0 +1,96 @@
+@using AuthenticationServer.CostPlus
+@model ShadowRunReport.Summary
+
+@{
+    ViewBag.Title = "Poller Shadow Run";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    DateTime from = ViewBag.From;
+    DateTime to = ViewBag.To;
+}
+
+<style>
+    .shadow-table th { background-color: #9ec5fe; white-space: nowrap; }
+    .shadow-table td.unexplained-count { background-color: #f8d7da; }
+    .shadow-table td.num { text-align: right; }
+    .shadow-top { display: flex; gap: 32px; flex-wrap: wrap; margin-bottom: 16px; }
+</style>
+
+<div class="container-fluid" style="margin-top: 20px;">
+    <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 10px;">
+        <h2 style="margin: 0;">Poller Shadow Run</h2>
+        <a href="@Url.Action("Index", "Reports")" class="btn btn-sm btn-outline-secondary" style="margin-left: auto;">&#8592; Reports</a>
+    </div>
+    <hr style="margin-top: 6px;" />
+
+    <div class="shadow-top">
+        <div>
+            <div class="text-muted">Latest Unexplained</div>
+            <strong id="latest-unexplained">@(Model.LatestUnexplainedDate.HasValue ? Model.LatestUnexplainedDate.Value.ToString("yyyy-MM-dd") : "none")</strong>
+        </div>
+        <div>
+            <div class="text-muted">Latest comparison</div>
+            <strong id="latest-compared">@(Model.LatestComparedAt.HasValue ? Model.LatestComparedAt.Value.ToString("yyyy-MM-dd HH:mm:ss") : "none")</strong>
+        </div>
+    </div>
+
+    <form method="get" action="@Url.Action("ShadowRun", "Reports")" class="form-inline"
+          style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
+        <label for="from">From</label>
+        <input type="date" id="from" name="from" class="form-control" value="@from.ToString("yyyy-MM-dd")" />
+        <label for="to">To</label>
+        <input type="date" id="to" name="to" class="form-control" value="@to.ToString("yyyy-MM-dd")" />
+        <button type="submit" class="btn btn-primary">Show</button>
+    </form>
+
+    <table class="table table-bordered table-sm shadow-table">
+        <thead>
+            <tr>
+                <th>Day</th>
+                <th>Compared</th>
+                <th>Match</th>
+                <th>Explained</th>
+                <th>Unexplained</th>
+                <th>Match rate</th>
+                <th>Not compared</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var day in Model.Days)
+            {
+                bool today = day.Date == DateTime.Today;
+                string iso = day.Date.ToString("yyyy-MM-dd");
+                <tr data-day="@iso">
+                    <td>
+                        @if (day.Compared > 0)
+                        {
+                            <a href="@Url.Action("ShadowRunDay", "Reports", new { date = iso })">@iso</a>
+                        }
+                        else
+                        {
+                            @iso
+                        }
+                    </td>
+                    <td class="num" data-col="compared">@day.Compared</td>
+                    <td class="num" data-col="match">@day.Match</td>
+                    <td class="num" data-col="explained">@day.Explained</td>
+                    <td class="num @(day.Unexplained > 0 ? "unexplained-count" : "")" data-col="unexplained">
+                        @if (day.Unexplained > 0)
+                        {
+                            <a href="@Url.Action("ShadowRunDay", "Reports", new { date = iso, status = "Unexplained" })">@day.Unexplained</a>
+                        }
+                        else
+                        {
+                            @day.Unexplained
+                        }
+                    </td>
+                    <td class="num" data-col="rate">@(day.MatchRate.HasValue ? day.MatchRate.Value.ToString("P1") : "—")</td>
+                    <td class="num" data-col="notcompared">@day.NotCompared@(today ? " pending" : "")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <p class="text-muted" style="font-size: 0.85em;">
+        Match rate is Match divided by compared; Explained does not count as a match. Probe requests are left out. Not compared counts UPS-only requests
+        the console app answered that have no Shadow Comparison; for today they are pending, because the poller may not have reached them yet.
+    </p>
+</div>

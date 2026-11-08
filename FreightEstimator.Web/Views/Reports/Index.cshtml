@@ -15,6 +15,10 @@
             <strong>Rate Changes</strong>
             <span class="text-muted" style="margin-left: 10px;">Find where rates changed between matching quotes, and whether UPS or we caused it</span>
         </a>
+        <a href="@Url.Action("ShadowRun", "Reports")" class="list-group-item list-group-item-action">
+            <strong>Poller Shadow Run</strong>
+            <span class="text-muted" style="margin-left: 10px;">Compare the CostPlus poller's answers with the console app's, day by day, ahead of the cutover</span>
+        </a>
         <a href="@Url.Action("MarginReport", "Reports")" class="list-group-item list-group-item-action">
             <strong>Margin Report</strong>
             <span class="text-muted" style="margin-left: 10px;">View freight margin data by invoice</span>

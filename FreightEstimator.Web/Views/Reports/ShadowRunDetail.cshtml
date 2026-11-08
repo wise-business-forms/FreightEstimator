@@ -1,0 +1,150 @@
+@using AuthenticationServer.CostPlus
+@model ShadowRunReport.Detail
+
+@{
+    ViewBag.Title = "Poller Shadow Run";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    string error = ViewBag.Error;
+    string attempted = ViewBag.Attempted;
+    bool canExplain = ViewBag.CanExplain;
+    var console = Model.Console;
+    var poller = Model.Poller;
+    int lineCount = Math.Max(console.Lines.Count, poller.Lines.Count);
+    string day = Model.DateRequested.ToString("yyyy-MM-dd");
+}
+
+@functions {
+    static string Rate(CostPlusShadowComparison.Line line) => line == null ? "" : line.Rate.ToString("0.00####");
+    static string Cell(object value) => value == null ? "(none)" : value.ToString();
+    static string Cls(bool differs) => differs ? "diff" : "";
+}
+
+<style>
+    .compare-table th { background-color: #9ec5fe; white-space: nowrap; }
+    .compare-table td.diff { background-color: #fff3cd; font-weight: bold; }
+    .compare-table .side { border-left: 3px solid #6c757d; }
+</style>
+
+<div class="container-fluid" style="margin-top: 20px;">
+    <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 10px;">
+        <h2 style="margin: 0;">Shadow Comparison</h2>
+        <strong id="status">@Model.Status</strong>
+        <a href="@Url.Action("ShadowRunDay", "Reports", new { date = day })" class="btn btn-sm btn-outline-secondary" style="margin-left: auto;">&#8592; @day</a>
+    </div>
+    <hr style="margin-top: 6px;" />
+
+    <h4>Console app and poller</h4>
+    <table class="table table-bordered table-sm compare-table" id="compare">
+        <thead>
+            <tr>
+                <th rowspan="2">Line</th>
+                <th colspan="3">Console app</th>
+                <th colspan="3" class="side">Poller</th>
+            </tr>
+            <tr>
+                <th>Service</th><th>Rate</th><th>Note</th>
+                <th class="side">Service</th><th>Rate</th><th>Note</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < lineCount; i++)
+            {
+                var c = i < console.Lines.Count ? console.Lines[i] : null;
+                var p = i < poller.Lines.Count ? poller.Lines[i] : null;
+                bool missing = c == null || p == null;
+                <tr data-line="@(i + 1)">
+                    <td>@(i + 1)</td>
+                    <td class="@Cls(missing || c.Service != p.Service)" data-col="console-service">@c?.Service</td>
+                    <td class="@Cls(missing || c.Rate != p.Rate)" data-col="console-rate">@Rate(c)</td>
+                    <td class="@Cls(missing || c.Note != p.Note)" data-col="console-note">@c?.Note</td>
+                    <td class="side @Cls(missing || c.Service != p.Service)" data-col="poller-service">@p?.Service</td>
+                    <td class="@Cls(missing || c.Rate != p.Rate)" data-col="poller-rate">@Rate(p)</td>
+                    <td class="@Cls(missing || c.Note != p.Note)" data-col="poller-note">@p?.Note</td>
+                </tr>
+            }
+            @if (lineCount == 0)
+            {
+                <tr><td colspan="7" class="text-muted">Neither answer has result lines.</td></tr>
+            }
+            <tr data-field="error-code">
+                <td>Error code</td>
+                <td colspan="3" class="@Cls(console.ErrorCode != poller.ErrorCode)">@Cell(console.ErrorCode)</td>
+                <td colspan="3" class="side @Cls(console.ErrorCode != poller.ErrorCode)">@Cell(poller.ErrorCode)</td>
+            </tr>
+            <tr data-field="error-text">
+                <td>Error text</td>
+                <td colspan="3" class="@Cls(console.ErrorDescription != poller.ErrorDescription)">@Cell(console.ErrorDescription)</td>
+                <td colspan="3" class="side @Cls(console.ErrorDescription != poller.ErrorDescription)">@Cell(poller.ErrorDescription)</td>
+            </tr>
+            <tr data-field="classified-residential">
+                <td>ClassifiedResidential</td>
+                <td colspan="3" class="@Cls(console.ClassifiedResidential != poller.ClassifiedResidential)">@Cell(console.ClassifiedResidential)</td>
+                <td colspan="3" class="side @Cls(console.ClassifiedResidential != poller.ClassifiedResidential)">@Cell(poller.ClassifiedResidential)</td>
+            </tr>
+            <tr data-field="substituted-zip">
+                <td>SubstitutedZip</td>
+                <td colspan="3" class="@Cls(console.SubstitutedZip != poller.SubstitutedZip)">@Cell(console.SubstitutedZip)</td>
+                <td colspan="3" class="side @Cls(console.SubstitutedZip != poller.SubstitutedZip)">@Cell(poller.SubstitutedZip)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h4>Differences</h4>
+    @if (Model.Differences.Count == 0)
+    {
+        <p class="text-muted">None: the two answers agree on everything CostPlus reads.</p>
+    }
+    else
+    {
+        <ul id="differences">
+            @foreach (string d in Model.Differences)
+            {
+                <li>@d</li>
+            }
+        </ul>
+    }
+
+    <h4>Request</h4>
+    @if (Model.RequestInputs == null)
+    {
+        <p id="request-purged" class="text-muted">The request row has been purged, so its inputs are no longer available.</p>
+    }
+    else
+    {
+        <table class="table table-bordered table-sm" id="request-inputs" style="width: auto;">
+            <tbody>
+                @foreach (var input in Model.RequestInputs)
+                {
+                    <tr><th>@input.Key</th><td>@input.Value</td></tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    @if (Model.Diverged)
+    {
+        <h4>Explanation</h4>
+        @if (Model.Explanation != null)
+        {
+            <p id="explanation-current">@Model.Explanation</p>
+            <p class="text-muted" id="explained-by">Recorded by @Model.ExplainedBy@(Model.ExplainedAt.HasValue ? " at " + Model.ExplainedAt.Value.ToString("yyyy-MM-dd HH:mm:ss") : "")</p>
+        }
+        @if (error != null)
+        {
+            <div class="alert alert-danger" id="explain-error">@error</div>
+        }
+        @if (canExplain)
+        {
+            <form method="post" asp-controller="Reports" asp-action="ShadowRunExplain" id="explain-form">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <textarea name="explanation" class="form-control" rows="4" style="max-width: 700px;">@(attempted ?? Model.Explanation)</textarea>
+                <p class="text-muted" style="font-size: 0.85em;">Why is this divergence expected? At most @ShadowRunReport.ExplanationMaxLength characters.@(Model.Explanation != null ? " Save it empty to clear the explanation." : "")</p>
+                <button type="submit" class="btn btn-primary">Save explanation</button>
+            </form>
+        }
+        else
+        {
+            <p class="text-muted" id="explain-readonly">Recording an explanation needs a signed-in Windows user.</p>
+        }
+    }
+</div>

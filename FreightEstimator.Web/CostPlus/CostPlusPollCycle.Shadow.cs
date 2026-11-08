@@ -20,6 +20,19 @@ namespace AuthenticationServer.CostPlus
         /// </summary>
         private const int ShadowWindowHours = 24;
 
+        /// <summary>
+        /// Which requests the shadow run compares: UPS-only, answered (processed and rated) by the console app, and not a probe. Needs a
+        /// @probe parameter. The Poller Shadow Run report uses the same text for its not-compared count, so "eligible" means one thing.
+        /// </summary>
+        internal const string ShadowEligibleWhere =
+            "f.RequestUPS = 1 AND ISNULL(f.RequestLTL, 0) = 0 " +
+            "  AND f.DateProcessed IS NOT NULL AND f.DateRated IS NOT NULL " +
+            "  AND f.LoginId NOT LIKE @probe + '%' ";
+
+        /// <summary>The request has no Shadow Comparison yet.</summary>
+        internal const string NotComparedWhere =
+            "NOT EXISTS (SELECT 1 FROM dbo.CostPlusShadowResult s WHERE s.LoginId = f.LoginId AND s.QtyNumber = f.QtyNumber AND s.DateRequested = f.DateRequested) ";
+
         /// <summary>Compares one more answered request. Returns how many it compared (0 or 1).</summary>
         public int RunShadowOnce()
         {
@@ -43,11 +56,9 @@ namespace AuthenticationServer.CostPlus
             using (SqlCommand cmd = new SqlCommand(
                 "SELECT TOP 1 " + RequestColumns +
                 "FROM dbo.FreightRequests f " +
-                "WHERE f.RequestUPS = 1 AND ISNULL(f.RequestLTL, 0) = 0 " +
-                "  AND f.DateProcessed IS NOT NULL AND f.DateRated IS NOT NULL " +
+                "WHERE " + ShadowEligibleWhere +
                 "  AND f.DateRequested >= DATEADD(HOUR, -@hours, GETDATE()) " +
-                "  AND f.LoginId NOT LIKE @probe + '%' " +
-                "  AND NOT EXISTS (SELECT 1 FROM dbo.CostPlusShadowResult s WHERE s.LoginId = f.LoginId AND s.QtyNumber = f.QtyNumber AND s.DateRequested = f.DateRequested) " +
+                "  AND " + NotComparedWhere +
                 "ORDER BY f.DateRequested, f.LoginId, f.QtyNumber", conn))
             {
                 cmd.Parameters.Add("@hours", SqlDbType.Int).Value = ShadowWindowHours;

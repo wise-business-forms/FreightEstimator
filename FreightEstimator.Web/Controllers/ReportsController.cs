@@ -8,7 +8,9 @@ using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using AuthenticationServer.CostPlus;
 
 namespace AuthenticationServer.Controllers
 {
@@ -309,6 +311,83 @@ namespace AuthenticationServer.Controllers
             }
 
             return View(groups);
+        }
+
+        public const int ShadowRunDefaultDays = 14;
+
+        // GET: Reports/ShadowRun: the Poller Shadow Run, a day at a time (#41, #42). Read-only.
+        public ActionResult ShadowRun(DateTime? from = null, DateTime? to = null)
+        {
+            var toDate = (to ?? DateTime.Today).Date;
+            var fromDate = (from ?? toDate.AddDays(-(ShadowRunDefaultDays - 1))).Date;
+            if (fromDate > toDate) { var swap = fromDate; fromDate = toDate; toDate = swap; }
+
+            using (var conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
+            {
+                conn.Open();
+                ViewBag.From = fromDate;
+                ViewBag.To = toDate;
+                return View(ShadowRunReport.LoadSummary(conn, fromDate, toDate));
+            }
+        }
+
+        // GET: Reports/ShadowRunDay: one day's Shadow Comparisons, optionally of one status (#43).
+        public ActionResult ShadowRunDay(DateTime date, string status = null)
+        {
+            string filter = ShadowRunReport.ParseStatus(status);
+            using (var conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
+            {
+                conn.Open();
+                ViewBag.Date = date.Date;
+                ViewBag.Status = filter;
+                return View(ShadowRunReport.LoadDay(conn, date.Date, filter));
+            }
+        }
+
+        // GET: Reports/ShadowRunDetail/5: one Shadow Comparison (#44).
+        public ActionResult ShadowRunDetail(int id) => ShadowRunDetailView(id, null, null, StatusCodes.Status200OK);
+
+        // POST: Reports/ShadowRunExplain: the only write the Reports section makes (#45). Needs an authenticated Windows identity.
+        [HttpPost]
+        [RequireSignedInUser]
+        [ValidateAntiForgeryToken]
+        public ActionResult ShadowRunExplain(int id, string explanation)
+        {
+            string user = User.Identity.Name;
+
+            ShadowRunReport.ExplainOutcome outcome;
+            using (var conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
+            {
+                conn.Open();
+                outcome = ShadowRunReport.Explain(conn, id, explanation, user);
+            }
+
+            switch (outcome)
+            {
+                case ShadowRunReport.ExplainOutcome.NotFound:
+                    return NotFound("Shadow Comparison " + id + " doesn't exist, or it is a Match and has nothing to explain.");
+                case ShadowRunReport.ExplainOutcome.EmptyRejected:
+                    return ShadowRunDetailView(id, "Enter an explanation before saving.", explanation, StatusCodes.Status400BadRequest);
+                case ShadowRunReport.ExplainOutcome.TooLongRejected:
+                    return ShadowRunDetailView(id, "The explanation is too long: at most " + ShadowRunReport.ExplanationMaxLength + " characters.", explanation, StatusCodes.Status400BadRequest);
+                default:
+                    return RedirectToAction("ShadowRunDetail", new { id });
+            }
+        }
+
+        private ActionResult ShadowRunDetailView(int id, string error, string attempted, int statusCode)
+        {
+            using (var conn = new SqlConnection(Configuration.FreightEstimatorSqlConnection))
+            {
+                conn.Open();
+                var detail = ShadowRunReport.LoadDetail(conn, id);
+                if (detail == null) return NotFound("Shadow Comparison " + id + " doesn't exist.");
+                ViewBag.Error = error;
+                ViewBag.Attempted = attempted;
+                ViewBag.CanExplain = User?.Identity?.IsAuthenticated == true && !string.IsNullOrWhiteSpace(User.Identity.Name);
+                Response.StatusCode = statusCode;
+                return View("ShadowRunDetail", detail);
+            }
         }
 
         private static List<ParsedRateService> ParseResponseJson(string json, RateRequestRecord record)

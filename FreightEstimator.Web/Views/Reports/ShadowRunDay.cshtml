@@ -1,0 +1,50 @@
+@using AuthenticationServer.CostPlus
+@model List<ShadowRunReport.ListRow>
+
+@{
+    ViewBag.Title = "Poller Shadow Run";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    DateTime date = ViewBag.Date;
+    string status = ViewBag.Status;
+    string iso = date.ToString("yyyy-MM-dd");
+}
+
+<div class="container-fluid" style="margin-top: 20px;">
+    <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 10px;">
+        <h2 style="margin: 0;">Shadow Comparisons for @iso</h2>
+        <span class="text-muted">@Model.Count shown</span>
+        <a href="@Url.Action("ShadowRun", "Reports", new { from = iso, to = iso })" class="btn btn-sm btn-outline-secondary" style="margin-left: auto;">&#8592; Summary</a>
+    </div>
+    <hr style="margin-top: 6px;" />
+
+    <div id="status-filter" style="display: flex; gap: 8px; margin-bottom: 16px;">
+        <a href="@Url.Action("ShadowRunDay", "Reports", new { date = iso })" class="btn btn-sm @(status == null ? "btn-primary" : "btn-outline-primary")">All</a>
+        <a href="@Url.Action("ShadowRunDay", "Reports", new { date = iso, status = "Unexplained" })" class="btn btn-sm @(status == "Unexplained" ? "btn-danger" : "btn-outline-danger")"><strong>Unexplained</strong></a>
+        <a href="@Url.Action("ShadowRunDay", "Reports", new { date = iso, status = "Explained" })" class="btn btn-sm @(status == "Explained" ? "btn-primary" : "btn-outline-primary")">Explained</a>
+        <a href="@Url.Action("ShadowRunDay", "Reports", new { date = iso, status = "Match" })" class="btn btn-sm @(status == "Match" ? "btn-primary" : "btn-outline-primary")">Match</a>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <p class="text-muted">No Shadow Comparisons@(status != null ? " with status " + status : "") on this day.</p>
+    }
+    else
+    {
+        <table class="table table-bordered table-sm">
+            <thead>
+                <tr><th>Requested</th><th>Requester</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model)
+                {
+                    <tr data-id="@row.Id">
+                        <td style="white-space: nowrap;">@row.DateRequested.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        <td data-col="requester">@row.LoginId</td>
+                        <td data-col="status">@row.Status</td>
+                        <td><a href="@Url.Action("ShadowRunDetail", "Reports", new { id = row.Id })" class="btn btn-sm btn-outline-primary">Detail</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

@@ -928,6 +928,15 @@ CREATE TABLE dbo.CostPlusShadowResult
 );
 GO
 
+-- Who recorded the explanation, and when (#45): the Windows username of the reviewer who saved it. Both are NULL until an
+-- explanation is saved, and cleared with it.
+IF COL_LENGTH('dbo.CostPlusShadowResult', 'ExplainedBy') IS NULL
+    ALTER TABLE dbo.CostPlusShadowResult ADD ExplainedBy NVARCHAR(256) NULL;
+GO
+IF COL_LENGTH('dbo.CostPlusShadowResult', 'ExplainedAt') IS NULL
+    ALTER TABLE dbo.CostPlusShadowResult ADD ExplainedAt DATETIME2(3) NULL;
+GO
+
 SET NOEXEC OFF;
 GO
 

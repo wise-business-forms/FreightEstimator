@@ -263,6 +263,60 @@ namespace FreightEstimator.QuoteTests
             public string Differences, Explanation, Status, ConsoleResult, PollerResult;
         }
 
+        /// <summary>
+        /// Stores a Shadow Comparison for the request, as the poller would have (the request row must exist), and returns its id.
+        /// The two results are JSON in the shape the poller stores (a CostPlusShadowComparison.Result).
+        /// </summary>
+        public int AddShadow(string loginId, bool diverged, object consoleResult = null, object pollerResult = null, string differences = null,
+            string explanation = null, DateTime? comparedAt = null)
+        {
+            using (var conn = Open())
+            using (var cmd = new SqlCommand(
+                "INSERT dbo.CostPlusShadowResult (LoginId, QtyNumber, DateRequested, ComparedAt, ConsoleResult, PollerResult, Diverged, Differences, Explanation) " +
+                "OUTPUT INSERTED.ShadowResultId " +
+                "SELECT LoginId, QtyNumber, DateRequested, ISNULL(@at, SYSDATETIME()), @console, @poller, @diverged, @differences, @explanation " +
+                "FROM dbo.FreightRequests WHERE LoginId = @l", conn))
+            {
+                cmd.Parameters.AddWithValue("@l", loginId);
+                cmd.Parameters.Add("@at", System.Data.SqlDbType.DateTime2).Value = (object)comparedAt ?? DBNull.Value;
+                cmd.Parameters.AddWithValue("@console", Newtonsoft.Json.JsonConvert.SerializeObject(consoleResult ?? new { Lines = new object[0] }));
+                cmd.Parameters.AddWithValue("@poller", Newtonsoft.Json.JsonConvert.SerializeObject(pollerResult ?? new { Lines = new object[0] }));
+                cmd.Parameters.AddWithValue("@diverged", diverged);
+                cmd.Parameters.AddWithValue("@differences", (object)differences ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@explanation", (object)explanation ?? DBNull.Value);
+                return (int)cmd.ExecuteScalar();
+            }
+        }
+
+        /// <summary>Removes the request row, as the table's purge would, leaving its Shadow Comparison.</summary>
+        public void PurgeRequest(string loginId) =>
+            Execute("DELETE FROM dbo.FreightRequests WHERE LoginId = @l AND 1 = @p", loginId, 1);
+
+        /// <summary>Who explained a comparison and when (the columns #45 adds), or null if it has no row.</summary>
+        public ExplainedRow ExplainedOf(string loginId)
+        {
+            using (var conn = Open())
+            using (var cmd = new SqlCommand("SELECT Explanation, Status, ExplainedBy, ExplainedAt FROM dbo.CostPlusShadowResult WHERE LoginId = @l", conn))
+            {
+                cmd.Parameters.AddWithValue("@l", loginId);
+                using (var r = cmd.ExecuteReader())
+                {
+                    if (!r.Read()) return null;
+                    return new ExplainedRow
+                    {
+                        Explanation = r.IsDBNull(0) ? null : r.GetString(0), Status = r.GetString(1),
+                        ExplainedBy = r.IsDBNull(2) ? null : r.GetString(2), ExplainedAt = r.IsDBNull(3) ? (DateTime?)null : r.GetDateTime(3)
+                    };
+                }
+            }
+        }
+
+        public class ExplainedRow
+        {
+            public string Explanation, Status, ExplainedBy;
+            public DateTime? ExplainedAt;
+        }
+
         public void Explain(string loginId, string explanation) =>
             Execute("UPDATE dbo.CostPlusShadowResult SET Explanation = @p WHERE LoginId = @l", loginId, explanation);
 
