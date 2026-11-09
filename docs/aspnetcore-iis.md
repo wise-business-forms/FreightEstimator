@@ -7,7 +7,7 @@ Port stages 2 and 3 (#29, #30, ADR 0005). `FreightEstimator.Web` is the whole we
 On the server:
 
 1. Install the **.NET 8 Hosting Bundle**.
-2. Create the site with an app pool set to **No Managed Code**. Per ADR 0005, give it Start Mode AlwaysRunning, Idle Timeout 0 and Preload Enabled (needed once the poller lives in this app; harmless before).
+2. Create the site with an app pool set to **No Managed Code**. Per ADR 0005, give it Start Mode AlwaysRunning, Idle Timeout 0 and Preload Enabled (needed once the poller lives in this app; harmless before). The commands, the 10-second fallback check and the Windows Service fallback are in `docs/costplus-poller-iis.md`.
 3. Put `ConnectionStrings.Production.json` next to the published files, from `ConnectionStrings.Production.json.example`. It is gitignored and holds the credentials. The app reads it for every environment except Development.
 4. Do not set `ASPNETCORE_ENVIRONMENT` on production. IIS then runs the app as Production.
 
