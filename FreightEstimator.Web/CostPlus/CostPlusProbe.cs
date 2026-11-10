@@ -53,9 +53,11 @@ namespace AuthenticationServer.CostPlus
         private readonly bool _enabled;
         private readonly TimeSpan _interval, _quietStart, _quietEnd;
         private readonly ILogger<CostPlusProbeService> _logger;
+        private readonly CostPlusPollerHealth _health;
 
-        public CostPlusProbeService(IConfiguration configuration, ILogger<CostPlusProbeService> logger)
+        public CostPlusProbeService(IConfiguration configuration, ILogger<CostPlusProbeService> logger, CostPlusPollerHealth health)
         {
+            _health = health;
             _enabled = configuration.GetValue<bool>("CostPlus:Poller:Enabled") && configuration.GetValue("CostPlus:Probe:Enabled", true)
                 // In shadow mode the console app would answer a probe, and rate it through UPS.
                 && !CostPlusPollerMode.IsShadow(configuration);
@@ -74,7 +76,11 @@ namespace AuthenticationServer.CostPlus
             {
                 try
                 {
-                    if (CostPlusProbe.IsQuietHour(DateTime.Now.TimeOfDay, _quietStart, _quietEnd)) CostPlusProbe.Insert();
+                    if (CostPlusProbe.IsQuietHour(DateTime.Now.TimeOfDay, _quietStart, _quietEnd))
+                    {
+                        CostPlusProbe.Insert();
+                        _health.RecordProbeInserted();
+                    }
                 }
                 catch (Exception ex) { _logger.LogError(ex, "The CostPlus probe request could not be inserted."); }
 

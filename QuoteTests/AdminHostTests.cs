@@ -25,22 +25,28 @@ namespace FreightEstimator.QuoteTests
         [TearDown]
         public void TearDown() => Configuration.ConnectionStringSource = null;   // the app sets it at startup; a later test must not see a disposed host's
 
-        private static WebApplicationFactory<Program> App(string environment, params string[] allowedUsers) =>
+        internal static WebApplicationFactory<Program> App(string environment, params string[] allowedUsers) => App(environment, null, allowedUsers);
+
+        /// <param name="services">Replaces services in the app, for a test that needs a fake behind the page.</param>
+        internal static WebApplicationFactory<Program> App(string environment, Action<IServiceCollection> services, string[] allowedUsers) =>
             new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
             {
                 b.UseEnvironment(environment);
                 b.ConfigureAppConfiguration((_, config) =>
                     config.AddInMemoryCollection(allowedUsers.Select((user, i) => new KeyValuePair<string, string>("Admin:AllowedUsers:" + i, user))));
-                b.ConfigureTestServices(services => services
-                    .AddAuthentication(options =>
+                b.ConfigureTestServices(s =>
+                {
+                    s.AddAuthentication(options =>
                     {
                         options.DefaultAuthenticateScheme = TestSignIn.Scheme;
                         options.DefaultChallengeScheme = TestSignIn.Scheme;
                     })
-                    .AddScheme<AuthenticationSchemeOptions, TestSignIn>(TestSignIn.Scheme, _ => { }));
+                    .AddScheme<AuthenticationSchemeOptions, TestSignIn>(TestSignIn.Scheme, _ => { });
+                    services?.Invoke(s);
+                });
             });
 
-        private static HttpClient ClientFor(WebApplicationFactory<Program> app, string user = null)
+        internal static HttpClient ClientFor(WebApplicationFactory<Program> app, string user = null)
         {
             HttpClient client = app.CreateClient();
             if (user != null) client.DefaultRequestHeaders.Add(TestSignIn.Header, user);

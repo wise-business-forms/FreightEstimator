@@ -17,6 +17,9 @@ namespace AuthenticationServer.CostPlus
         private readonly Func<DateTime> _utcNow;
         private readonly DateTime _startedUtc;
         private long _lastSuccessTicks;   // 0: none yet
+        private long _lastAlertTicks, _lastProbeTicks;   // 0: none yet
+        // _droppedEvents is reserved for Poller Events (#51): nothing records a Poller Event yet, so it stays 0 until that ticket.
+        private long _idlePolls, _requestsHandled, _droppedEvents;
 
         public CostPlusPollerHealth(Func<DateTime> utcNow = null)
         {
@@ -25,6 +28,37 @@ namespace AuthenticationServer.CostPlus
         }
 
         public void RecordSuccessfulPoll() => Interlocked.Exchange(ref _lastSuccessTicks, _utcNow().Ticks);
+
+        /// <summary>A poll that found nothing to answer (counted, never an event).</summary>
+        public void RecordIdlePoll() => Interlocked.Increment(ref _idlePolls);
+
+        /// <summary>Requests this instance answered (or, in the Shadow stage, compared).</summary>
+        public void RecordRequestsHandled(int count) => Interlocked.Add(ref _requestsHandled, count);
+
+        /// <summary>The stall monitor sent an email.</summary>
+        public void RecordAlertSent() => Interlocked.Exchange(ref _lastAlertTicks, _utcNow().Ticks);
+
+        /// <summary>The probe put a request in the request table.</summary>
+        public void RecordProbeInserted() => Interlocked.Exchange(ref _lastProbeTicks, _utcNow().Ticks);
+
+        /// <summary>What this instance reports in its heartbeat (#50): the counters, and how long ago things last happened.</summary>
+        public PollerBeat ToBeat(string instanceId, string machine, string mode)
+        {
+            DateTime now = _utcNow();
+            return new PollerBeat
+            {
+                InstanceId = instanceId, Machine = machine, Mode = mode,
+                Uptime = now - _startedUtc,
+                SinceLastSuccessfulPoll = Since(now, Interlocked.Read(ref _lastSuccessTicks)),
+                LastAlertSentAgo = Since(now, Interlocked.Read(ref _lastAlertTicks)),
+                LastProbeInsertedAgo = Since(now, Interlocked.Read(ref _lastProbeTicks)),
+                IdlePolls = Interlocked.Read(ref _idlePolls),
+                RequestsHandled = Interlocked.Read(ref _requestsHandled),
+                DroppedEvents = Interlocked.Read(ref _droppedEvents)
+            };
+        }
+
+        private static TimeSpan? Since(DateTime now, long ticks) => ticks == 0 ? (TimeSpan?)null : now - new DateTime(ticks, DateTimeKind.Utc);
 
         /// <param name="oldestUnclaimedAge">Null when no request is waiting.</param>
         public Report Evaluate(TimeSpan? oldestUnclaimedAge)

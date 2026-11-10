@@ -937,6 +937,28 @@ IF COL_LENGTH('dbo.CostPlusShadowResult', 'ExplainedAt') IS NULL
     ALTER TABLE dbo.CostPlusShadowResult ADD ExplainedAt DATETIME2(3) NULL;
 GO
 
+-- What each CostPlus Poller instance last reported (#50, the Poller Monitor): one row per instance (machine and process
+-- id), rewritten about every 10 s. The Monitor reads it to show which instances are running, so an instance whose
+-- heartbeat has stopped is shown as stopped. Every time is the database's clock, so the machines' clocks never matter.
+-- Rows older than a day are removed by the poller. Throwaway monitoring data: nothing else reads it.
+IF OBJECT_ID('dbo.CostPlusPollerHeartbeat', 'U') IS NULL
+CREATE TABLE dbo.CostPlusPollerHeartbeat
+(
+    InstanceId            VARCHAR(100)  NOT NULL,        -- machine name and process id
+    Machine               VARCHAR(100)  NOT NULL,
+    Mode                  VARCHAR(10)   NOT NULL,        -- Shadow or Live
+    StartedAt             DATETIME2(3)  NOT NULL,
+    HeartbeatAt           DATETIME2(3)  NOT NULL,
+    LastSuccessfulPollAt  DATETIME2(3)  NULL,            -- NULL until a poll has succeeded
+    IdlePolls             BIGINT        NOT NULL,        -- polls that found nothing to answer
+    RequestsHandled       BIGINT        NOT NULL,
+    DroppedEvents         BIGINT        NOT NULL,        -- Poller Events that could not be recorded (#51)
+    LastAlertSentAt       DATETIME2(3)  NULL,            -- the stall monitor's last email
+    LastProbeInsertedAt   DATETIME2(3)  NULL,            -- the probe's last request
+    CONSTRAINT PK_CostPlusPollerHeartbeat PRIMARY KEY (InstanceId)
+);
+GO
+
 SET NOEXEC OFF;
 GO
 
@@ -948,6 +970,6 @@ FROM (VALUES ('Plants'), ('PlantCarrierCharges2017'), ('Requests_Rate'), ('Log_L
              ('CalculatedRateShadowLog'), ('LogCalculatedRateShadowComparison'),
              ('RateRequestPlant'), ('RecordRateRequestPlants'), ('RateRequestMatchKey'), ('RateRequestServiceRate'), ('RecordRateRequestMatchKeys'),
              ('Consumer'), ('Quote'), ('LogQuote'),
-             ('FreightRequests'), ('CostPlusRequestClaim'), ('CostPlusReferenceNumber'), ('CostPlusShadowResult')) o(name)
+             ('FreightRequests'), ('CostPlusRequestClaim'), ('CostPlusReferenceNumber'), ('CostPlusShadowResult'), ('CostPlusPollerHeartbeat')) o(name)
 LEFT JOIN sys.objects x ON x.name = o.name AND x.schema_id = SCHEMA_ID('dbo');
 GO

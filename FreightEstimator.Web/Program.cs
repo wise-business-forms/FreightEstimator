@@ -28,7 +28,12 @@ if (!builder.Environment.IsDevelopment())
 builder.Services.AddSingleton<AuthenticationServer.CostPlus.CostPlusPollerHealth>();
 builder.Services.AddSingleton<AuthenticationServer.CostPlus.CostPlusHealthCheck>();
 builder.Services.AddSingleton<AuthenticationServer.CostPlus.IStallAlertSender, AuthenticationServer.CostPlus.SmtpStallAlertSender>();
+builder.Services.AddSingleton<AuthenticationServer.CostPlus.IPollerHeartbeatStore, AuthenticationServer.CostPlus.SqlPollerHeartbeatStore>();
+builder.Services.AddSingleton<AuthenticationServer.CostPlus.IPollerMonitorSource>(services =>
+    new AuthenticationServer.CostPlus.CachedPollerMonitorSource(   // what the Poller Monitor reads, kept 2 s (#49, #50)
+        new AuthenticationServer.CostPlus.SqlPollerMonitorSource(services.GetRequiredService<AuthenticationServer.CostPlus.IPollerHeartbeatStore>())));
 builder.Services.AddHostedService<AuthenticationServer.CostPlus.CostPlusPollerService>();
+builder.Services.AddHostedService<AuthenticationServer.CostPlus.CostPlusHeartbeatService>();   // the instance's heartbeat for the Poller Monitor (#50)
 builder.Services.AddHostedService<AuthenticationServer.CostPlus.CostPlusStallMonitor>();   // alerts on a stall (#35)
 builder.Services.AddHostedService<AuthenticationServer.CostPlus.CostPlusProbeService>();   // quiet-hours probe request (#35)
 

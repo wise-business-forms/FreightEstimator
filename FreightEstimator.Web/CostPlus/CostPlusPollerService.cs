@@ -56,7 +56,8 @@ namespace AuthenticationServer.CostPlus
                     var cycle = new CostPlusPollCycle(_logger);
                     int answered = _shadow ? cycle.RunShadowOnce() : cycle.RunOnce();
                     _health.RecordSuccessfulPoll();   // the heartbeat: the poller reached the table, whether or not anything was waiting
-                    if (answered == 0) pause = IdlePause;
+                    if (answered == 0) { _health.RecordIdlePoll(); pause = IdlePause; }
+                    else _health.RecordRequestsHandled(answered);
                 }
                 catch (Exception ex)
                 {

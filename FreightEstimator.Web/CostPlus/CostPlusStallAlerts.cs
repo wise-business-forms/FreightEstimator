@@ -55,22 +55,26 @@ namespace AuthenticationServer.CostPlus
             _utcNow = utcNow ?? (() => DateTime.UtcNow);
         }
 
-        public void Observe(CostPlusPollerHealth.Report report)
+        /// <returns>Whether an alert was sent for this check.</returns>
+        public bool Observe(CostPlusPollerHealth.Report report)
         {
             DateTime now = _utcNow();
             if (!report.Healthy)
             {
-                if (_unhealthy && now - _lastAlertUtc < ReminderEvery) return;
+                if (_unhealthy && now - _lastAlertUtc < ReminderEvery) return false;
                 // Marked as alerted only once the send worked, so a failed send is tried again at the next check.
                 _sender.Send(_unhealthy ? "CostPlus poller still stalled" : "CostPlus poller stalled", string.Join(Environment.NewLine, report.Problems));
                 _unhealthy = true;
                 _lastAlertUtc = now;
+                return true;
             }
-            else if (_unhealthy)
+            if (_unhealthy)
             {
                 _sender.Send("CostPlus poller recovered", "The poller is polling again and no request is waiting too long.");
                 _unhealthy = false;
+                return true;
             }
+            return false;
         }
     }
 
@@ -80,12 +84,14 @@ namespace AuthenticationServer.CostPlus
         private static readonly TimeSpan CheckEvery = TimeSpan.FromSeconds(10);
 
         private readonly CostPlusHealthCheck _check;
+        private readonly CostPlusPollerHealth _health;
         private readonly CostPlusStallAlerts _alerts;
         private readonly ILogger<CostPlusStallMonitor> _logger;
 
-        public CostPlusStallMonitor(CostPlusHealthCheck check, IStallAlertSender sender, ILogger<CostPlusStallMonitor> logger)
+        public CostPlusStallMonitor(CostPlusHealthCheck check, CostPlusPollerHealth health, IStallAlertSender sender, ILogger<CostPlusStallMonitor> logger)
         {
             _check = check;
+            _health = health;
             _alerts = new CostPlusStallAlerts(sender);
             _logger = logger;
         }
@@ -97,7 +103,7 @@ namespace AuthenticationServer.CostPlus
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                try { _alerts.Observe(_check.Check()); }
+                try { if (_alerts.Observe(_check.Check())) _health.RecordAlertSent(); }
                 catch (Exception ex) { _logger.LogError(ex, "The CostPlus stall monitor could not check or send an alert."); }
 
                 try { await Task.Delay(CheckEvery, stoppingToken); }
