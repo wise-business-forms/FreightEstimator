@@ -17,6 +17,33 @@ Safeguards: a Development run refuses to start unless the `FreightEstimator` con
 
 The site root is the plant picker (`/`). The Plant page is at `/Plant/Index?loc=ALP`, Reports at `/Reports`, and the Quote API is `POST /api/v1/quotes` and `GET /api/v1/plants` (`X-Api-Key` header). The Rates and Log stubs, the Values sample API, the Admin stubs and the Web API Help Page were dropped, not ported.
 
+## The admin area (ADR 0006, #47)
+
+`/Admin/PollerMonitor` (and the **Admin** navbar item) is open only to the users named in the `Admin:AllowedUsers` setting. Reports and the rest of the site are unchanged.
+
+* **Set the users at deploy time**, as `DOMAIN\user` entries, case-insensitive. In `appsettings.Production.json` (or any configuration source): `"Admin": { "AllowedUsers": [ "WBF\\jdoe", "WBF\\pmenefee" ] }`. As an environment variable: `Admin__AllowedUsers__0=WBF\jdoe`, `Admin__AllowedUsers__1=...`. **When the setting is empty or missing, Production denies everyone**, so the page stays closed until someone is named.
+* **Turn on Windows Authentication and turn Anonymous Authentication off for the admin path only**, so Reports and the rest of the site stay open to everyone. IIS then asks a visitor to `/Admin` to sign in with their Windows account before the app sees the request. In the site's `web.config`:
+
+  ```xml
+  <location path="Admin">
+    <system.webServer>
+      <security>
+        <authentication>
+          <anonymousAuthentication enabled="false" />
+          <windowsAuthentication enabled="true" />
+        </authentication>
+      </security>
+    </system.webServer>
+  </location>
+  ```
+
+  The app itself never asks anyone to sign in: anyone who is not listed gets a 403, signed in or not. So if Anonymous Authentication is left on for `/Admin`, nobody is ever prompted and everyone, listed or not, is refused.
+* **The Admin navbar item shows only when the browser has already signed in to the site**, and a visitor who has not yet opened `/Admin` is anonymous on the other pages, so the first visit is by the page's address. Whether the browser then sends its credentials on the other pages depends on the IIS and browser setup; check it on the deployed site.
+* **Production is IIS only.** The app registers IIS's authentication scheme outside Development, so it is not meant to run on Kestrel in Production (it never does, per the hosting rule above).
+* **Development skips the check**, so a Debug run needs no setting and no Windows Authentication. The FreightEstimator-only database guard still applies.
+
+The tests cover the access rule and the page through a test sign-in; they cannot show IIS Windows Authentication itself. After deploying, check once from the IIS site: a listed user opens the page, an unlisted user gets 403, and the Admin item is absent for someone who has not signed in.
+
 ## Checking it
 
 * `QuoteTests` runs on net8.0. It runs the Plant page characterization tests (#15) against this app's `PlantController`, and `PlantPageHostTests` hosts the app in memory and checks routing, static assets, the rendered Plant page, a quote through the pipeline, and the connection-string wiring.

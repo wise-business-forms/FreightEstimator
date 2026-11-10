@@ -18,6 +18,12 @@ builder.Configuration.AddJsonFile(connectionStringsFile, optional: true, reloadO
 
 builder.Services.AddControllersWithViews();
 
+// The admin area (ADR 0006): open only to the users in Admin:AllowedUsers, identified by IIS Windows authentication. A
+// Development run skips the check, so it needs no authentication scheme (Kestrel has no Windows authentication here).
+builder.Services.AddSingleton<AuthenticationServer.Admin.AdminAccessPolicy>();
+if (!builder.Environment.IsDevelopment())
+    builder.Services.AddAuthentication(Microsoft.AspNetCore.Server.IIS.IISServerDefaults.AuthenticationScheme);
+
 // The CostPlus poller (ADR 0005): a background service in this app, off unless CostPlus:Poller:Enabled is true.
 builder.Services.AddSingleton<AuthenticationServer.CostPlus.CostPlusPollerHealth>();
 builder.Services.AddSingleton<AuthenticationServer.CostPlus.CostPlusHealthCheck>();
@@ -51,6 +57,7 @@ else
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseAuthentication();
 
 app.MapControllerRoute(
     name: "Default",
