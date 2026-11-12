@@ -1,0 +1,65 @@
+@using AuthenticationServer.ProductionQuotes
+@model QuoteLogReport.Page
+
+@{
+    ViewBag.Title = "Quote Log";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    DateTime from = ViewBag.From;
+    DateTime to = ViewBag.To;
+    string fromIso = from.ToString("yyyy-MM-dd");
+    string toIso = to.ToString("yyyy-MM-dd");
+}
+
+<div class="container-fluid" style="margin-top: 20px;">
+    <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 10px;">
+        <h2 style="margin: 0;">Quote Log</h2>
+        <span class="text-muted"><span id="total">@Model.Total</span> Quotes from @fromIso to @toIso</span>
+    </div>
+    <p class="text-muted" style="margin-bottom: 6px;">What production has answered, newest first.</p>
+    <hr style="margin-top: 6px;" />
+
+    <form method="get" action="@Url.Action("Index", "QuoteLog")" style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px;">
+        <label for="from" style="margin: 0;">From</label>
+        <input type="date" id="from" name="from" value="@fromIso" class="form-control form-control-sm" style="width: auto;" />
+        <label for="to" style="margin: 0;">To</label>
+        <input type="date" id="to" name="to" value="@toIso" class="form-control form-control-sm" style="width: auto;" />
+        <button type="submit" class="btn btn-sm btn-primary">Show</button>
+    </form>
+
+    @if (Model.Rows.Count == 0)
+    {
+        <p class="text-muted" id="none">No Quotes in this range.</p>
+    }
+    else
+    {
+        <table class="table table-bordered table-sm">
+            <thead>
+                <tr><th>Requested</th><th>Requested by</th><th>Ship to</th><th>Services</th><th>Outcome</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr data-request="@row.RequestId">
+                        <td data-col="when" style="white-space: nowrap;">@row.When.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td data-col="requestedby">@row.RequestedBy</td>
+                        <td data-col="shipto">@row.ShipTo</td>
+                        <td data-col="services">@row.Services</td>
+                        <td data-col="outcome">@row.Outcome</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div style="display: flex; gap: 12px; align-items: center;">
+            @if (Model.Number > 1)
+            {
+                <a href="@Url.Action("Index", "QuoteLog", new { from = fromIso, to = toIso, page = Model.Number - 1 })" class="btn btn-sm btn-outline-secondary">&#8592; Newer</a>
+            }
+            <span class="text-muted">Page @Model.Number of @Model.TotalPages</span>
+            @if (Model.Number < Model.TotalPages)
+            {
+                <a href="@Url.Action("Index", "QuoteLog", new { from = fromIso, to = toIso, page = Model.Number + 1 })" class="btn btn-sm btn-outline-secondary">Older &#8594;</a>
+            }
+        </div>
+    }
+</div>

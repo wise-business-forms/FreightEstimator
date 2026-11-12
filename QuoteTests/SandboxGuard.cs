@@ -22,5 +22,16 @@ namespace FreightEstimator.QuoteTests
             if (!string.Equals(builder.InitialCatalog, "FreightEstimator", StringComparison.OrdinalIgnoreCase))
                 Assert.Fail("Refusing to run: expected database FreightEstimator, found " + builder.InitialCatalog + ". UpsRate is never a test target.");
         }
+
+        /// <summary>
+        /// The Quote Log reads production UPSRate through its own UpsRateReadOnly setting (ADR 0007). Tests point that setting at the
+        /// FreightEstimator test database and must never at UPSRate: this refuses a connection string whose database is UPSRate.
+        /// </summary>
+        public static void RequireNotUpsRate(string connectionString)
+        {
+            var builder = new SqlConnectionStringBuilder(connectionString);
+            if (string.Equals(builder.InitialCatalog, "UPSRate", StringComparison.OrdinalIgnoreCase))
+                Assert.Fail("Refusing to run: the Quote Log connection names database UPSRate. UpsRate is never a test target.");
+        }
     }
 }

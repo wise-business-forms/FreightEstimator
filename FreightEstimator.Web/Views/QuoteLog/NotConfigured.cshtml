@@ -1,0 +1,12 @@
+@{
+    ViewBag.Title = "Quote Log";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container" style="margin-top: 20px;">
+    <h2>Quote Log</h2>
+    <hr />
+    <div class="alert alert-warning" id="not-configured">
+        The Quote Log is not configured. It reads production through a read-only connection, and the <code>UpsRateReadOnly</code> connection string has not been set on this server.
+    </div>
+</div>

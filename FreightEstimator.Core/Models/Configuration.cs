@@ -217,6 +217,14 @@ namespace AuthenticationServer.Models
         {
             get { return ConnectionString("FreightEstimator"); }
         }
+        /// <summary>
+        /// The Quote Log's read-only connection to production UPSRate (ADR 0007). Null or empty when not set, which the report
+        /// shows as "not configured": unlike the other connections it has no Web.config fallback and a missing value is not an error.
+        /// </summary>
+        public static string UpsRateReadOnlySqlConnection
+        {
+            get { return ConnectionStringSource?.Invoke("UpsRateReadOnly"); }
+        }
         public static string WiseLinkSqlConnection
         {
             get { return ConnectionString("WiseLink"); }
