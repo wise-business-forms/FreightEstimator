@@ -26,7 +26,7 @@ Adding a new known cause means a decision on record (an issue or ADR) and a new 
 
 ## Running it
 
-1. **Human step: copy a sample of stored calls into SANDBOX.** `Requests_Rate` and `Log_LTL` rows from production hold customer addresses, so the harness does not do this. Copy the rows into the SANDBOX `UpsRate` database (the newest few hundred of each is plenty), and make sure SANDBOX `Plants` and `PlantCarrierCharges2017` hold the real Plant Charges the comparison should use. The harness prices against whatever Plant Charges SANDBOX holds; it does not set its own.
+1. **Human step: copy a sample of stored calls into SANDBOX.** `Requests_Rate` and `Log_LTL` rows from production hold customer addresses, so the harness does not do this. Copy the rows into the SANDBOX `UpsRate` database (the newest few hundred of each is plenty), and make sure SANDBOX `Plants` and `PlantCharges` hold the real Plant Charges the comparison should use. The harness prices against whatever Plant Charges SANDBOX holds; it does not set its own.
 2. Build the test project (see the commands in the repo's README or `docs/agents/`) and run the explicit test:
 
    ```

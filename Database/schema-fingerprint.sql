@@ -24,7 +24,7 @@ SELECT 'TABLE '  + t.name + '.' + c.name
 FROM sys.tables t
 JOIN sys.columns c  ON c.object_id = t.object_id
 JOIN sys.types ty   ON ty.user_type_id = c.user_type_id
-WHERE t.name IN ('Plants', 'PlantCarrierCharges2017', 'Requests_Rate',
+WHERE t.name IN ('Plants', 'PlantCharges', 'PlantCarrierCharges2017', 'Requests_Rate',
                  'QuoteServiceCalculation', 'CalculatedRateShadowLog',
                  'RateRequestPlant', 'RateRequestMatchKey', 'RateRequestServiceRate',
                  'Log_LTL', 'PiedmontAcctsForSpecialAlpRates')

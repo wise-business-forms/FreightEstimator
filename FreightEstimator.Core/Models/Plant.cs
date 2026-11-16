@@ -97,7 +97,7 @@ namespace AuthenticationServer.Models
             SqlCommand cmd = new SqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "SELECT * FROM PlantCarrierCharges2017 WHERE PlantCode = '" + plantID + "'";
+            cmd.CommandText = "SELECT * FROM PlantCharges WHERE PlantCode = '" + plantID + "'";
 
             SqlDataReader drResults = cmd.ExecuteReader();
 

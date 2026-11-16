@@ -5,7 +5,7 @@ using System.Data.SqlClient;
 namespace FreightEstimator.QuoteTests
 {
     /// <summary>
-    /// Puts known Plant Charges into SANDBOX PlantCarrierCharges2017 for one plant and puts the plant's
+    /// Puts known Plant Charges into SANDBOX PlantCharges for one plant and puts the plant's
     /// original rows back afterwards, so no test depends on whatever values SANDBOX happens to hold.
     /// Seeding and restoring each run in one transaction: a failure part-way leaves the plant's rows as they
     /// were. Dispose restores. Refuses to run against anything but SANDBOX (SandboxGuard).
@@ -46,19 +46,19 @@ namespace FreightEstimator.QuoteTests
             using (var conn = Open())
             using (SqlTransaction tx = conn.BeginTransaction())
             {
-                using (var cmd = new SqlCommand("SELECT " + Columns + " FROM dbo.PlantCarrierCharges2017 WHERE PlantCode = @p", conn, tx))
+                using (var cmd = new SqlCommand("SELECT " + Columns + " FROM dbo.PlantCharges WHERE PlantCode = @p", conn, tx))
                 {
                     cmd.Parameters.AddWithValue("@p", plant);
                     new SqlDataAdapter(cmd).Fill(_original);
                 }
 
-                Exec(conn, tx, "DELETE FROM dbo.PlantCarrierCharges2017 WHERE PlantCode = @p", ("@p", plant));
+                Exec(conn, tx, "DELETE FROM dbo.PlantCharges WHERE PlantCode = @p", ("@p", plant));
 
-                int nextId = Convert.ToInt32(Scalar(conn, tx, "SELECT ISNULL(MAX(CarrierPlantChargesId), 0) + 1 FROM dbo.PlantCarrierCharges2017"));
+                int nextId = Convert.ToInt32(Scalar(conn, tx, "SELECT ISNULL(MAX(CarrierPlantChargesId), 0) + 1 FROM dbo.PlantCharges"));
                 foreach (Row r in rows)
                 {
                     Exec(conn, tx,
-                        "INSERT dbo.PlantCarrierCharges2017 (" + Columns + ") VALUES (@id, @c, @p, @pp, @ps, @nda, @sda, @g, @ts, @ndas, @ndam, @sdam, @s, 'Y')",
+                        "INSERT dbo.PlantCharges (" + Columns + ") VALUES (@id, @c, @p, @pp, @ps, @nda, @sda, @g, @ts, @ndas, @ndam, @sdam, @s, 'Y')",
                         ("@id", nextId++), ("@c", r.CarrierId), ("@p", plant), ("@pp", r.PerPackage), ("@ps", r.PerShipment),
                         ("@nda", r.NextDayAir), ("@sda", r.SecondDayAir), ("@g", r.Ground), ("@ts", r.ThreeDaySelect),
                         ("@ndas", r.NextDayAirSaver), ("@ndam", r.NextDayAirEarlyAM), ("@sdam", r.SecondDayAirAM), ("@s", r.Saver));
@@ -73,11 +73,11 @@ namespace FreightEstimator.QuoteTests
             using (var conn = Open())
             using (SqlTransaction tx = conn.BeginTransaction())
             {
-                Exec(conn, tx, "DELETE FROM dbo.PlantCarrierCharges2017 WHERE PlantCode = @p", ("@p", _plant));
+                Exec(conn, tx, "DELETE FROM dbo.PlantCharges WHERE PlantCode = @p", ("@p", _plant));
                 foreach (DataRow row in _original.Rows)
                 {
                     var values = row.ItemArray;
-                    using (var cmd = new SqlCommand("INSERT dbo.PlantCarrierCharges2017 (" + Columns + ") VALUES (" +
+                    using (var cmd = new SqlCommand("INSERT dbo.PlantCharges (" + Columns + ") VALUES (" +
                         string.Join(", ", Enumerable.Range(0, values.Length).Select(i => "@v" + i)) + ")", conn, tx))
                     {
                         for (int i = 0; i < values.Length; i++) cmd.Parameters.AddWithValue("@v" + i, values[i]);

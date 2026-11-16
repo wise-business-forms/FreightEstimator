@@ -17,7 +17,7 @@
 --   * Requests_Rate, Log_LTL, GetPlantCharges, LogRequest_Rate, LogResultsLTL, QuoteServiceCalculation,
 --     CalculatedRateShadowLog, RateRequestPlant, RateRequestMatchKey, RateRequestServiceRate, Consumer, Quote:
 --     the existing scripts Database/000 to 005, consolidated, with the three-part names removed.
---   * Plants and PlantCarrierCharges2017: column names and types read from UPSRate (schema only). Their keys
+--   * Plants and PlantCharges: column names and types read from UPSRate (schema only). Their keys
 --     and indexes were not read. Rows for both come from Database/FreightEstimator_seed.sql and a one-off copy.
 --   * FreightRequests: the CostPlus request/result layout, column names and types read from
 --     UPSRate.dbo.FreightRequests_SANDBOX (schema only; nothing there was changed). Not read: its primary key
@@ -25,7 +25,7 @@
 --   * CostPlusRequestClaim, CostPlusReferenceNumber, CostPlusShadowResult (#36) and the "CostPlus" Consumer: new, for the CostPlus poller
 --     (#31, ADR 0005).
 --
--- Loads no data except the "CostPlus" Consumer row. Plants and PlantCarrierCharges2017 rows are loaded
+-- Loads no data except the "CostPlus" Consumer row. Plants and PlantCharges rows are loaded
 -- separately (Database/FreightEstimator_seed.sql) before the app or the tests can quote.
 -- =====================================================================================================
 
@@ -72,8 +72,10 @@ CREATE TABLE dbo.Plants
 GO
 
 -- Markups are percentages (SandboxPlantCharges.Row). CarrierId is UPS, UPSCWT, GF or TI.
-IF OBJECT_ID('dbo.PlantCarrierCharges2017', 'U') IS NULL
-CREATE TABLE dbo.PlantCarrierCharges2017
+-- Renamed from PlantCarrierCharges2017 by Database/007. On a database that still has the old name, run 007 first
+-- (this guard stops a second, empty table being created beside it).
+IF OBJECT_ID('dbo.PlantCharges', 'U') IS NULL AND OBJECT_ID('dbo.PlantCarrierCharges2017', 'U') IS NULL
+CREATE TABLE dbo.PlantCharges
 (
     CarrierPlantChargesId  INT            NOT NULL,
     CarrierId              VARCHAR(50)    NOT NULL,
@@ -90,8 +92,8 @@ CREATE TABLE dbo.PlantCarrierCharges2017
     Saver                  NUMERIC(18,4)  NULL,
     Active                 VARCHAR(1)     NULL,
     -- No primary key: UPSRate holds rows that share a CarrierPlantChargesId (44 appears more than once).
-    INDEX IX_PlantCarrierCharges2017_Id (CarrierPlantChargesId),
-    INDEX IX_PlantCarrierCharges2017_Plant (PlantCode, CarrierId)
+    INDEX IX_PlantCharges_Id (CarrierPlantChargesId),
+    INDEX IX_PlantCharges_Plant (PlantCode, CarrierId)
 );
 GO
 
@@ -173,7 +175,7 @@ BEGIN
                NextDayAirEarlyAM,
                SecondDayAirAM,
                Saver
-        FROM PlantCarrierCharges2017
+        FROM PlantCharges
         WHERE CarrierId = @carrier
           AND PlantCode != 'ALP'
           AND Active = 'Y'
@@ -191,7 +193,7 @@ BEGIN
                NextDayAirEarlyAM,
                SecondDayAirAM,
                Saver
-        FROM PlantCarrierCharges2017
+        FROM PlantCharges
         WHERE CarrierId = @carrier
           AND PlantCode != 'ALZ'
           AND Active = 'Y'
@@ -964,7 +966,7 @@ GO
 
 -- Confirm what now exists in the current database; every row should say OK.
 SELECT DB_NAME() AS [Database], o.name AS Expected, CASE WHEN x.object_id IS NULL THEN 'MISSING' ELSE 'OK' END AS Status
-FROM (VALUES ('Plants'), ('PlantCarrierCharges2017'), ('Requests_Rate'), ('Log_LTL'), ('PiedmontAcctsForSpecialAlpRates'),
+FROM (VALUES ('Plants'), ('PlantCharges'), ('Requests_Rate'), ('Log_LTL'), ('PiedmontAcctsForSpecialAlpRates'),
              ('GetPlantCharges'), ('LogRequest_Rate'), ('LogResultsLTL'),
              ('QuoteServiceCalculation'), ('LogQuoteServiceCalculation'),
              ('CalculatedRateShadowLog'), ('LogCalculatedRateShadowComparison'),

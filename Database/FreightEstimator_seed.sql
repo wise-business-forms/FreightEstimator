@@ -8,7 +8,7 @@
 -- number is NOT copied: the app only checks that UpsShippingNumber is not NULL, so every active plant gets the
 -- placeholder 'SANDBOX', which cannot ship anything. Inactive plants keep NULL, so they stay unquotable.
 --
--- dbo.PlantCarrierCharges2017 (the Plant Charges, i.e. pricing) is deliberately not seeded here. The tests set
+-- dbo.PlantCharges (the Plant Charges, i.e. pricing) is deliberately not seeded here. The tests set
 -- their own known charges per plant and restore the originals afterwards.
 -- =====================================================================================================
 
