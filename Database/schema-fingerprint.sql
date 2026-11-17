@@ -24,7 +24,7 @@ SELECT 'TABLE '  + t.name + '.' + c.name
 FROM sys.tables t
 JOIN sys.columns c  ON c.object_id = t.object_id
 JOIN sys.types ty   ON ty.user_type_id = c.user_type_id
-WHERE t.name IN ('Plants', 'PlantCharges', 'PlantCarrierCharges2017', 'Requests_Rate',
+WHERE t.name IN ('Plants', 'PlantCharges', 'PlantCarrierCharges2017', 'Requests_Rate', 'UpsRateRequestLog',
                  'QuoteServiceCalculation', 'CalculatedRateShadowLog',
                  'RateRequestPlant', 'RateRequestMatchKey', 'RateRequestServiceRate',
                  'Log_LTL', 'PiedmontAcctsForSpecialAlpRates')
@@ -44,7 +44,7 @@ SELECT 'PROC ' + p.name + '.' + ISNULL(pa.name, '(no parameters)')
 FROM sys.procedures p
 LEFT JOIN sys.parameters pa ON pa.object_id = p.object_id
 LEFT JOIN sys.types ty      ON ty.user_type_id = pa.user_type_id
-WHERE p.name IN ('GetPlantCharges', 'LogResultsLTL', 'LogRequest_Rate', 'Log_Quote',
+WHERE p.name IN ('GetPlantCharges', 'LogResultsLTL', 'LogRequest_Rate', 'LogUpsRateRequest', 'Log_Quote',
                  'LogQuoteServiceCalculation', 'LogCalculatedRateShadowComparison',
                  'RecordRateRequestPlants', 'RecordRateRequestMatchKeys')
 
@@ -56,7 +56,7 @@ UNION ALL
 SELECT 'PROCBODY ' + p.name + ' ' + CONVERT(VARCHAR(64), HASHBYTES('SHA2_256',
            REPLACE(REPLACE(REPLACE(REPLACE(OBJECT_DEFINITION(p.object_id), CHAR(13), ''), CHAR(10), ''), CHAR(9), ''), ' ', '')), 2)
 FROM sys.procedures p
-WHERE p.name IN ('GetPlantCharges', 'LogResultsLTL', 'LogRequest_Rate', 'Log_Quote',
+WHERE p.name IN ('GetPlantCharges', 'LogResultsLTL', 'LogRequest_Rate', 'LogUpsRateRequest', 'Log_Quote',
                  'LogQuoteServiceCalculation', 'LogCalculatedRateShadowComparison',
                  'RecordRateRequestPlants', 'RecordRateRequestMatchKeys')
 

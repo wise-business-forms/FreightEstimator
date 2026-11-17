@@ -9,9 +9,11 @@ namespace FreightEstimator.QuoteTests
 {
     /// <summary>
     /// The Quote Log (#53, #54, ADR 0007): the Reports page that lists the Quotes production has answered, read through the
-    /// UpsRateReadOnly connection. Through the hosted app over HTTP. These tests never touch UPSRate: Requests_Rate has the same
-    /// layout in the FreightEstimator test database, so each test seeds rows there (on days of its own in the distant future) and
-    /// points UpsRateReadOnly at that database. SandboxGuard has checked it is FreightEstimator.
+    /// UpsRateReadOnly connection. Through the hosted app over HTTP. These tests never touch UPSRate. Production UPSRate calls its
+    /// table dbo.Requests_Rate and the report reads it by that name, but the FreightEstimator database renamed its own copy to
+    /// UpsRateRequestLog (Database/008). So the fixture creates a stand-in dbo.Requests_Rate (production's layout) in the
+    /// FreightEstimator test database if it is missing, each test seeds rows there (on days of its own in the distant future) and
+    /// UpsRateReadOnly is pointed at that database. SandboxGuard has checked it is FreightEstimator.
     /// </summary>
     public class QuoteLogReportTests
     {
@@ -25,7 +27,23 @@ namespace FreightEstimator.QuoteTests
             SandboxGuard.Require();
             _connectionString = System.Configuration.ConfigurationManager.ConnectionStrings["FreightEstimator"].ConnectionString;
             SandboxGuard.RequireNotUpsRate(_connectionString);
+            EnsureProductionShapedTable();
             _factory = HostWith(_connectionString);
+        }
+
+        /// <summary>The stand-in for production's dbo.Requests_Rate, in the FreightEstimator test database only.</summary>
+        private void EnsureProductionShapedTable()
+        {
+            using (var conn = new System.Data.SqlClient.SqlConnection(_connectionString))
+            {
+                conn.Open();
+                using (var cmd = new System.Data.SqlClient.SqlCommand(
+                    "IF OBJECT_ID('dbo.Requests_Rate', 'U') IS NULL CREATE TABLE dbo.Requests_Rate (" +
+                    "RequestId INT IDENTITY(1,1) NOT NULL, UserName VARCHAR(50) NULL, TargetUrl VARCHAR(200) NULL, Address VARCHAR(200) NULL, " +
+                    "City VARCHAR(200) NULL, State VARCHAR(50) NULL, Zip VARCHAR(50) NULL, Country VARCHAR(2) NULL, RequestDate DATETIME NULL, " +
+                    "RequestXml NVARCHAR(MAX) NULL, ResponseXml NVARCHAR(MAX) NULL, CONSTRAINT PK_Requests_Rate PRIMARY KEY (RequestId))", conn))
+                    cmd.ExecuteNonQuery();
+            }
         }
 
         [TearDown]
@@ -278,12 +296,13 @@ namespace FreightEstimator.QuoteTests
         {
             DateTime day = new DateTime(2091, 3, 9);
             Add(day.AddHours(12));
-            int requests = CountOf("Requests_Rate"), ltl = CountOf("Log_LTL"), calcs = CountOf("QuoteServiceCalculation"), plants = CountOf("RateRequestPlant");
+            int requests = CountOf("Requests_Rate"), requestLog = CountOf("UpsRateRequestLog"), ltl = CountOf("Log_LTL"), calcs = CountOf("QuoteServiceCalculation"), plants = CountOf("RateRequestPlant");
 
             await Get(Log(day, day));
             await Get("/Reports/QuoteLog");
 
             Assert.That(CountOf("Requests_Rate"), Is.EqualTo(requests));
+            Assert.That(CountOf("UpsRateRequestLog"), Is.EqualTo(requestLog));
             Assert.That(CountOf("Log_LTL"), Is.EqualTo(ltl));
             Assert.That(CountOf("QuoteServiceCalculation"), Is.EqualTo(calcs));
             Assert.That(CountOf("RateRequestPlant"), Is.EqualTo(plants), "the catch-up procedures write; the Quote Log must not call them");

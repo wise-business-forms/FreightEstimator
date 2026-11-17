@@ -13,7 +13,7 @@ namespace AuthenticationServer.Models.Reports
     /// </summary>
     public static class RateChangeData
     {
-        /// <summary>Brings the derived tables up to date with any new Requests_Rate rows.</summary>
+        /// <summary>Brings the derived tables up to date with any new UpsRateRequestLog rows.</summary>
         public static void CatchUp(SqlConnection conn)
         {
             using (var cmd = new SqlCommand("dbo.RecordRateRequestMatchKeys", conn) { CommandType = CommandType.StoredProcedure, CommandTimeout = 300 })

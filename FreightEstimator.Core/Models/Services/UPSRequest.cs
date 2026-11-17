@@ -198,7 +198,7 @@ namespace AuthenticationServer.Models.Services
             }
             catch (Exception ex) 
             {
-                Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _response, _response, ex.Message);
+                Log.LogUpsRateRequest("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _response, _response, ex.Message);
             }   
         }
        
@@ -236,13 +236,13 @@ namespace AuthenticationServer.Models.Services
                         Console.WriteLine($"Error: {response.StatusCode} - {response.StatusDescription}");
                     }
 
-                    //Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, _response, "UPS", "");
+                    //Log.LogUpsRateRequest("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, _response, "UPS", "");
                 }
                 catch (WebException ex)
                 {
                     // No reply at all (timeout, connection failure): an error status comes back as a response above.
                     _response = ex.Message.ToString();
-                    Log.LogRequest_Rate("", _shipment.Address, _shipment.City ?? string.Empty, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, ex.Message, "");
+                    Log.LogUpsRateRequest("", _shipment.Address, _shipment.City ?? string.Empty, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, ex.Message, "");
                     if (_options != null && _options.ThrowWhenCarrierDoesNotAnswer)
                     {
                         throw new CarrierUnavailableException("UPS did not answer: " + ex.Message, ex);
@@ -253,7 +253,7 @@ namespace AuthenticationServer.Models.Services
                     throw ex;
                 }
             }
-            Log.LogRequest_Rate("", _shipment.Address, _shipment.City ?? string.Empty, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, _response, "");
+            Log.LogUpsRateRequest("", _shipment.Address, _shipment.City ?? string.Empty, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, rateRequest, _response, "");
 
             return _response;
         }
@@ -442,7 +442,7 @@ namespace AuthenticationServer.Models.Services
                     }
                     catch (Exception ex)
                     {
-                        //Log.LogRequest_Rate("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _response, ex.Message, "UPS", "");
+                        //Log.LogUpsRateRequest("", _shipment.Address, _shipment.City, _shipment.State_selection, _shipment.Zip, _shipment.Country_selection, _response, ex.Message, "UPS", "");
                        
                     }
                 }

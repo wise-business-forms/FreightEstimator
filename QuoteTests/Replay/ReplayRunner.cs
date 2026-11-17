@@ -22,7 +22,7 @@ namespace FreightEstimator.QuoteTests.Replay
     /// legacy Quote path, run on a request rebuilt from the stored call, against the Plant Charges now in SANDBOX.
     /// The unified side is the Quote API's own path (EstimateParcel, EstimateGroundFreight, CalculatedRate.Apply).
     ///
-    /// The legacy path logs as it always has (Requests_Rate, Log_LTL, QuoteServiceCalculation, the shadow log). So that a
+    /// The legacy path logs as it always has (UpsRateRequestLog, Log_LTL, QuoteServiceCalculation, the shadow log). So that a
     /// replay does not feed the next one, <see cref="Run"/> removes what it logged, in SANDBOX, before it returns.
     /// </summary>
     public static class ReplayRunner
@@ -181,7 +181,7 @@ namespace FreightEstimator.QuoteTests.Replay
         }
 
         /// <summary>
-        /// Removes, from SANDBOX, the rows a replay's legacy path logged: Requests_Rate and Log_LTL rows added since the
+        /// Removes, from SANDBOX, the rows a replay's legacy path logged: UpsRateRequestLog and Log_LTL rows added since the
         /// replay began, and the per-Quote rows for the Quote IDs it made up. Disposed after the replay.
         /// </summary>
         private sealed class LoggedRowsCleanup : IDisposable
@@ -193,7 +193,7 @@ namespace FreightEstimator.QuoteTests.Replay
             public LoggedRowsCleanup(List<Guid> quoteIds)
             {
                 _quoteIds = quoteIds;
-                _ratesAfter = Max("SELECT ISNULL(MAX(RequestId), 0) FROM dbo.Requests_Rate");
+                _ratesAfter = Max("SELECT ISNULL(MAX(RequestId), 0) FROM dbo.UpsRateRequestLog");
                 _ltlAfter = Max("SELECT ISNULL(MAX(LTLRequestId), 0) FROM dbo.Log_LTL");
             }
 
@@ -201,7 +201,7 @@ namespace FreightEstimator.QuoteTests.Replay
             {
                 using (var conn = Open())
                 {
-                    Exec(conn, "DELETE FROM dbo.Requests_Rate WHERE RequestId > @after", _ratesAfter);
+                    Exec(conn, "DELETE FROM dbo.UpsRateRequestLog WHERE RequestId > @after", _ratesAfter);
                     Exec(conn, "DELETE FROM dbo.Log_LTL WHERE LTLRequestId > @after", _ltlAfter);
                     foreach (Guid id in _quoteIds)
                     {

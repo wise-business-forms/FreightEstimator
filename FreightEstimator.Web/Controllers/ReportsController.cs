@@ -155,7 +155,7 @@ namespace AuthenticationServer.Controllers
             {
                 conn.Open();
 
-                // Build WHERE clause for search and plant. Plant isn't stored on Requests_Rate, so
+                // Build WHERE clause for search and plant. Plant isn't stored on UpsRateRequestLog, so
                 // filter through RateRequestPlant (Database/003), catching it up with any new requests first.
                 var conditions = new List<string>();
                 if (hasSearch)
@@ -188,7 +188,7 @@ namespace AuthenticationServer.Controllers
                     }
                 };
 
-                var countCmd = new SqlCommand("SELECT COUNT(*) FROM Requests_Rate" + whereClause, conn);
+                var countCmd = new SqlCommand("SELECT COUNT(*) FROM UpsRateRequestLog" + whereClause, conn);
                 addFilterParameters(countCmd);
                 int totalCount = (int)countCmd.ExecuteScalar();
 
@@ -197,7 +197,7 @@ namespace AuthenticationServer.Controllers
 
                 var cmd = new SqlCommand(
                     @"SELECT RequestId, UserName, Address, City, State, Zip, Country, RequestDate, ResponseXml, RequestXml
-                      FROM Requests_Rate" + whereClause + @"
+                      FROM UpsRateRequestLog" + whereClause + @"
                       ORDER BY RequestDate DESC
                       OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY", conn);
 

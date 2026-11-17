@@ -24,7 +24,7 @@ namespace FreightEstimator.QuoteTests
         {
             using (var conn = Open())
             {
-                foreach (int id in _requestRows) Exec(conn, "DELETE FROM dbo.Requests_Rate WHERE RequestId = " + id);
+                foreach (int id in _requestRows) Exec(conn, "DELETE FROM dbo.UpsRateRequestLog WHERE RequestId = " + id);
                 foreach (int id in _ltlRows) Exec(conn, "DELETE FROM dbo.Log_LTL WHERE LTLRequestId = " + id);
             }
         }
@@ -40,7 +40,7 @@ namespace FreightEstimator.QuoteTests
             Assert.That(outcome.Skipped, Is.Empty);
             Assert.That(outcome.Rows, Is.Not.Empty);
             Assert.That(outcome.Rows.Select(r => r.CallSite), Is.All.EqualTo("GRID1Single"));
-            Assert.That(outcome.Rows.Select(r => r.Source), Is.All.EqualTo("Requests_Rate " + id));
+            Assert.That(outcome.Rows.Select(r => r.Source), Is.All.EqualTo("UpsRateRequestLog " + id));
             // KnownSchedule gives the UPS row real markups, so a non-CWT service differs by exactly its markup (#14);
             // a CWT service is priced the same way by both formulas.
             Assert.That(outcome.Rows.Where(r => r.IsCwtEligible).Select(r => r.Category), Is.All.AnyOf(DeltaCategory.Identical, DeltaCategory.RoundingNoise));
@@ -98,11 +98,11 @@ namespace FreightEstimator.QuoteTests
         {
             QuoteCase c = QuoteCase.All("parcel").First();
             int id = StoreUps(c, groundFreight: false);
-            int before = Count("dbo.Requests_Rate") + Count("dbo.QuoteServiceCalculation") + Count("dbo.CalculatedRateShadowLog") + Count("dbo.Log_LTL");
+            int before = Count("dbo.UpsRateRequestLog") + Count("dbo.QuoteServiceCalculation") + Count("dbo.CalculatedRateShadowLog") + Count("dbo.Log_LTL");
 
             Replay(c.Plant, new[] { id }, null);
 
-            Assert.That(Count("dbo.Requests_Rate") + Count("dbo.QuoteServiceCalculation") + Count("dbo.CalculatedRateShadowLog") + Count("dbo.Log_LTL"), Is.EqualTo(before));
+            Assert.That(Count("dbo.UpsRateRequestLog") + Count("dbo.QuoteServiceCalculation") + Count("dbo.CalculatedRateShadowLog") + Count("dbo.Log_LTL"), Is.EqualTo(before));
         }
 
         [Test]
@@ -114,7 +114,7 @@ namespace FreightEstimator.QuoteTests
             ReplayOutcome outcome = Replay(c.Plant, new[] { id }, null);
 
             Assert.That(outcome.Rows, Is.Empty);
-            Assert.That(outcome.Skipped.Single(), Does.Contain("Requests_Rate " + id).And.Contain("not an active plant"));
+            Assert.That(outcome.Skipped.Single(), Does.Contain("UpsRateRequestLog " + id).And.Contain("not an active plant"));
         }
 
         /// <summary>
@@ -172,7 +172,7 @@ namespace FreightEstimator.QuoteTests
         private int StoreRaw(string requestJson, string responseJson)
         {
             using (var conn = Open())
-            using (var cmd = new SqlCommand("INSERT dbo.Requests_Rate (UserName, Address, City, State, Zip, Country, RequestDate, RequestXml, ResponseXml) OUTPUT INSERTED.RequestId VALUES ('replay-test', '', '', '', '', 'US', GETDATE(), @q, @s)", conn))
+            using (var cmd = new SqlCommand("INSERT dbo.UpsRateRequestLog (UserName, Address, City, State, Zip, Country, RequestDate, RequestXml, ResponseXml) OUTPUT INSERTED.RequestId VALUES ('replay-test', '', '', '', '', 'US', GETDATE(), @q, @s)", conn))
             {
                 cmd.Parameters.AddWithValue("@q", requestJson);
                 cmd.Parameters.AddWithValue("@s", responseJson);

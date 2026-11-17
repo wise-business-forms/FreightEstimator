@@ -47,6 +47,9 @@ namespace AuthenticationServer.ProductionQuotes
             return new SqlCommand(sql, conn);
         }
 
+        // Production UPSRate still calls this table dbo.Requests_Rate (this app never renames anything there). The FreightEstimator database
+        // calls its own copy UpsRateRequestLog (Database/008), so this report keeps the production name and must not follow that rename.
+
         /// <summary>One page of the UPS Quotes production answered from <paramref name="from"/> to the end of <paramref name="to"/>, newest first.</summary>
         public static Page Load(SqlConnection conn, DateTime from, DateTime to, int page)
         {

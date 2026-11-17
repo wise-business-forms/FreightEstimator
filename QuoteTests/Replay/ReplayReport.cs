@@ -36,7 +36,7 @@ namespace FreightEstimator.QuoteTests.Replay
         /// <summary>What the unified module gives, rounded half-up to the cent.</summary>
         public decimal Unified { get; set; }
 
-        /// <summary>Where the response came from, e.g. "Requests_Rate 1234", so a divergence can be traced.</summary>
+        /// <summary>Where the response came from, e.g. "UpsRateRequestLog 1234", so a divergence can be traced.</summary>
         public string Source { get; set; }
 
         public decimal Delta => Unified - Legacy;

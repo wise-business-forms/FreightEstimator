@@ -11,8 +11,8 @@ For each stored call it rebuilds the request, answers the carrier with the store
 
 | Call site | Stored in | Compared |
 |---|---|---|
-| `GRID1Single` (UPS parcel) | `Requests_Rate`, a call with `PaymentDetails` | each service that carries Plant Charges |
-| `GRID2` (UPS Ground Freight) | `Requests_Rate`, a call with `FRSPaymentInformation` | the one service |
+| `GRID1Single` (UPS parcel) | `UpsRateRequestLog`, a call with `PaymentDetails` | each service that carries Plant Charges |
+| `GRID2` (UPS Ground Freight) | `UpsRateRequestLog`, a call with `FRSPaymentInformation` | the one service |
 | `LTL` | `Log_LTL` | each Logistics Partner option (not the API's cheapest-only view) |
 
 Each difference is classified (`QuoteTests/Replay/ReplayReport.cs`):
@@ -26,7 +26,7 @@ Adding a new known cause means a decision on record (an issue or ADR) and a new 
 
 ## Running it
 
-1. **Human step: copy a sample of stored calls into SANDBOX.** `Requests_Rate` and `Log_LTL` rows from production hold customer addresses, so the harness does not do this. Copy the rows into the SANDBOX `UpsRate` database (the newest few hundred of each is plenty), and make sure SANDBOX `Plants` and `PlantCharges` hold the real Plant Charges the comparison should use. The harness prices against whatever Plant Charges SANDBOX holds; it does not set its own.
+1. **Human step: copy a sample of stored calls into SANDBOX.** `Requests_Rate` and `Log_LTL` rows from production hold customer addresses, so the harness does not do this. Copy the rows into the SANDBOX FreightEstimator database (production's `Requests_Rate` goes into `UpsRateRequestLog`, which is the same table under its new name) (the newest few hundred of each is plenty), and make sure SANDBOX `Plants` and `PlantCharges` hold the real Plant Charges the comparison should use. The harness prices against whatever Plant Charges SANDBOX holds; it does not set its own.
 2. Build the test project (see the commands in the repo's README or `docs/agents/`) and run the explicit test:
 
    ```
@@ -42,7 +42,7 @@ Adding a new known cause means a decision on record (an issue or ADR) and a new 
 ## Safety
 
 * It refuses to run unless the configured `UpsRate` connection is recognisably SANDBOX (`SandboxGuard`), so it cannot read or write production.
-* The legacy path logs as it always has (`Requests_Rate`, `Log_LTL`, `QuoteServiceCalculation`, `CalculatedRateShadowLog`). After a run the harness deletes the rows it caused, in SANDBOX: `Requests_Rate` and `Log_LTL` rows added since the run began, and per-Quote rows for the Quote IDs it made up. Do not run it while something else is writing to SANDBOX's `Requests_Rate`, or those rows are removed too.
+* The legacy path logs as it always has (`UpsRateRequestLog`, `Log_LTL`, `QuoteServiceCalculation`, `CalculatedRateShadowLog`). After a run the harness deletes the rows it caused, in SANDBOX: `UpsRateRequestLog` and `Log_LTL` rows added since the run began, and per-Quote rows for the Quote IDs it made up. Do not run it while something else is writing to SANDBOX's `UpsRateRequestLog`, or those rows are removed too.
 
 ## Limits
 

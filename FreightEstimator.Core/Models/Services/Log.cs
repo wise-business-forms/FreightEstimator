@@ -13,7 +13,7 @@ namespace AuthenticationServer.Models.Services
         private static readonly System.Threading.AsyncLocal<bool> _writesSuppressed = new System.Threading.AsyncLocal<bool>();
 
         /// <summary>
-        /// Until the returned scope is disposed, the request log (Requests_Rate) and the Calculated Rate log
+        /// Until the returned scope is disposed, the request log (UpsRateRequestLog) and the Calculated Rate log
         /// (QuoteServiceCalculation) write nothing on this thread / async flow. For the CostPlus shadow run (#36), which asks UPS
         /// for a rate it compares but must leave nothing for reporting to see. Off by default: no live path uses it.
         /// </summary>
@@ -33,7 +33,7 @@ namespace AuthenticationServer.Models.Services
             public void Dispose() { _writesSuppressed.Value = _previous; }
         }
 
-        public static void LogRequest_Rate(RateResponse request)
+        public static void LogUpsRateRequest(RateResponse request)
         {
             //SqlConnection connLog = new SqlConnection(Configuration.FreightEstimatorSqlConnection);
             //connLog.Open();
@@ -283,7 +283,7 @@ namespace AuthenticationServer.Models.Services
             //connLog.Close();
         }
 
-        public static void LogRequest_Rate(string username, string address, string city, string state, string zip, string country, string request, string response, string direction)
+        public static void LogUpsRateRequest(string username, string address, string city, string state, string zip, string country, string request, string response, string direction)
         {
             if (WritesSuppressed) return;
             SqlConnection connLog = new SqlConnection(Configuration.FreightEstimatorSqlConnection);
@@ -292,7 +292,7 @@ namespace AuthenticationServer.Models.Services
             SqlCommand cmdLog = new SqlCommand();
             cmdLog.Connection = connLog;
             cmdLog.CommandType = CommandType.StoredProcedure;
-            cmdLog.CommandText = "LogRequest_Rate";
+            cmdLog.CommandText = "LogUpsRateRequest";
 
             SqlParameter pUserName = new SqlParameter("@UserName", SqlDbType.VarChar, 50);
             SqlParameter pTargetUrl = new SqlParameter("@TargetUrl", SqlDbType.VarChar, 200);
@@ -339,7 +339,7 @@ namespace AuthenticationServer.Models.Services
 
         /// <summary>
         /// Persists one service's Calculated Rate + markup breakdown for reporting. Additive only:
-        /// does not touch Requests_Rate/LogResultsLTL. Swallows failures deliberately, since a
+        /// does not touch UpsRateRequestLog/LogResultsLTL. Swallows failures deliberately, since a
         /// reporting write must never break the live quote flow.
         /// </summary>
         public static void LogQuoteServiceCalculation(QuoteServiceCalculation calculation)

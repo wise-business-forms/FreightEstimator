@@ -10,7 +10,7 @@ namespace AuthenticationServer.CostPlus
     /// The observe-only shadow run (#36, ADR 0005). The console app still answers every request. For each UPS-only request it has
     /// already answered, the poller works out its own result the same way as a live cycle, and stores both in
     /// dbo.CostPlusShadowResult so every divergence can be reviewed. It never claims a row and never writes to the request table.
-    /// UPS is asked, but nothing else is logged: no Quote, no Reference Number, no Requests_Rate or Calculated Rate rows, so
+    /// UPS is asked, but nothing else is logged: no Quote, no Reference Number, no UpsRateRequestLog or Calculated Rate rows, so
     /// reporting sees nothing of it.
     /// </summary>
     internal partial class CostPlusPollCycle

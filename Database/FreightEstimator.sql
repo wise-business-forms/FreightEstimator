@@ -14,7 +14,7 @@
 -- Needs SQL Server 2017+ (STRING_AGG, JSON); the target is SQL Server 2019.
 --
 -- Provenance of each part:
---   * Requests_Rate, Log_LTL, GetPlantCharges, LogRequest_Rate, LogResultsLTL, QuoteServiceCalculation,
+--   * UpsRateRequestLog, Log_LTL, GetPlantCharges, LogUpsRateRequest, LogResultsLTL, QuoteServiceCalculation,
 --     CalculatedRateShadowLog, RateRequestPlant, RateRequestMatchKey, RateRequestServiceRate, Consumer, Quote:
 --     the existing scripts Database/000 to 005, consolidated, with the three-part names removed.
 --   * Plants and PlantCharges: column names and types read from UPSRate (schema only). Their keys
@@ -102,8 +102,9 @@ GO
 -- -----------------------------------------------------------------------------------------------------
 GO
 
-IF OBJECT_ID('dbo.Requests_Rate', 'U') IS NULL
-CREATE TABLE dbo.Requests_Rate
+-- Renamed from Requests_Rate by Database/008. On a database that still has the old name, run 008 first.
+IF OBJECT_ID('dbo.UpsRateRequestLog', 'U') IS NULL AND OBJECT_ID('dbo.Requests_Rate', 'U') IS NULL
+CREATE TABLE dbo.UpsRateRequestLog
 (
     RequestId    INT IDENTITY(1,1) NOT NULL,
     UserName     VARCHAR(50)       NULL,
@@ -116,7 +117,7 @@ CREATE TABLE dbo.Requests_Rate
     RequestDate  DATETIME          NULL,
     RequestXml   NVARCHAR(MAX)     NULL,
     ResponseXml  NVARCHAR(MAX)     NULL,
-    CONSTRAINT PK_Requests_Rate PRIMARY KEY (RequestId)
+    CONSTRAINT PK_UpsRateRequestLog PRIMARY KEY (RequestId)
 );
 GO
 
@@ -208,7 +209,7 @@ GO
 -- Modifications:  2024-06-27 - Colin Schroeder - Changed parms @RequestXml, @ResponseXml from ntext to nvarchar(max) as part of UPS API updates
 -- Description:	<Description,,>
 -- =============================================
-CREATE OR ALTER PROCEDURE [dbo].[LogRequest_Rate]
+CREATE OR ALTER PROCEDURE [dbo].[LogUpsRateRequest]
     @UserName varchar(50),
     @TargetUrl varchar(200),
     @Address varchar(200),
@@ -223,7 +224,7 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO [dbo].[Requests_Rate]
+    INSERT INTO [dbo].[UpsRateRequestLog]
            ([UserName]
            ,[TargetUrl]
            ,[Address]
@@ -286,9 +287,9 @@ END
 GO
 
 
--- Target database: FreightEstimator (same database as Requests_Rate / LogRequest_Rate / LogResultsLTL)
+-- Target database: FreightEstimator (same database as UpsRateRequestLog / LogUpsRateRequest / LogResultsLTL)
 --
--- Purely additive: this script does not alter Requests_Rate, LogRequest_Rate, LogResultsLTL,
+-- Purely additive: this script does not alter UpsRateRequestLog, LogUpsRateRequest, LogResultsLTL,
 -- or any other existing table or stored procedure. It creates one new table and one new
 -- stored procedure so the app can persist, per service returned in a Quote, the Calculated
 -- Rate (the final marked-up total already shown on screen today) and the markup components
@@ -350,7 +351,7 @@ BEGIN
 END
 GO
 
--- Target database: FreightEstimator (same database as QuoteServiceCalculation, Requests_Rate, LogResultsLTL)
+-- Target database: FreightEstimator (same database as QuoteServiceCalculation, UpsRateRequestLog, LogResultsLTL)
 --
 -- Purely additive, and purely diagnostic: this script does not alter any existing table or
 -- stored procedure. It creates one new, throwaway table and one new stored procedure so the
@@ -401,10 +402,10 @@ BEGIN
 END
 GO
 
--- Target database: FreightEstimator (same database as Requests_Rate and Plants)
+-- Target database: FreightEstimator (same database as UpsRateRequestLog and Plants)
 --
--- Purely additive: this script does not alter Requests_Rate or any existing stored procedure.
--- Requests_Rate doesn't store which plant a quote shipped from; the Past Quotes report
+-- Purely additive: this script does not alter UpsRateRequestLog or any existing stored procedure.
+-- UpsRateRequestLog doesn't store which plant a quote shipped from; the Past Quotes report
 -- (ReportsController.Quotes) works it out by matching the request JSON's ship-from city/state
 -- against Plants. Doing that per row inside the report's query times out, so this table records
 -- the match once per request and lets the report's plant filter use an indexed lookup instead.
@@ -413,7 +414,7 @@ GO
 -- RecordRateRequestPlants can catch up from MAX(RequestId) without re-reading old requests.
 --
 -- Running this script performs the one-time backfill at the end, which reads every row of
--- Requests_Rate and may take several minutes. After that, the report calls
+-- UpsRateRequestLog and may take several minutes. After that, the report calls
 -- RecordRateRequestPlants on each plant-filtered load, which only reads requests newer than the
 -- last one recorded.
 
@@ -454,7 +455,7 @@ BEGIN
     -- against active plants that have a UPS shipping number.
     INSERT INTO dbo.RateRequestPlant (RequestId, PlantCode)
     SELECT r.RequestId, p.PlantCode
-    FROM dbo.Requests_Rate r
+    FROM dbo.UpsRateRequestLog r
     CROSS APPLY (
         SELECT
             CASE WHEN ISJSON(r.RequestXml) = 1
@@ -479,11 +480,11 @@ GO
 
 -- One-time backfill of existing requests.
 
--- Target database: FreightEstimator (same database as Requests_Rate, RateRequestPlant and QuoteServiceCalculation)
+-- Target database: FreightEstimator (same database as UpsRateRequestLog, RateRequestPlant and QuoteServiceCalculation)
 -- Requires: 003_create_rate_request_plant.sql. SQL Server 2017+ (STRING_AGG ... WITHIN GROUP).
 --
 -- Purely additive and purely derived: nothing here is a new fact. Both tables are re-derived from
--- Requests_Rate (and RateRequestPlant) and can be dropped and rebuilt at any time. They exist so the
+-- UpsRateRequestLog (and RateRequestPlant) and can be dropped and rebuilt at any time. They exist so the
 -- Compare and Rate Changes reports (ReportsController, Models/Reports/RateChanges.cs) can find a
 -- Quote's Match Group with an indexed lookup instead of parsing JSON per row, which times out.
 --
@@ -497,7 +498,7 @@ GO
 -- Negotiated Carrier Rates, read from the same JSON paths the Past Quotes report reads.
 --
 -- Running this script performs the one-time backfill at the end, which reads every row of
--- Requests_Rate and may take several minutes. After that, the reports call RecordRateRequestMatchKeys
+-- UpsRateRequestLog and may take several minutes. After that, the reports call RecordRateRequestMatchKeys
 -- on each load, which only reads requests newer than the last one recorded.
 
 IF OBJECT_ID('dbo.RateRequestMatchKey', 'U') IS NULL
@@ -571,7 +572,7 @@ BEGIN
            CASE WHEN ISJSON(r.RequestXml) = 1 THEN 1 ELSE 0 END AS RequestIsJson,
            CASE WHEN ISJSON(r.ResponseXml) = 1 THEN 1 ELSE 0 END AS ResponseIsJson
     INTO #batch
-    FROM dbo.Requests_Rate r
+    FROM dbo.UpsRateRequestLog r
     JOIN dbo.RateRequestPlant rp ON rp.RequestId = r.RequestId
     WHERE r.RequestId > @after AND r.RequestId <= @upTo;
 
@@ -966,8 +967,8 @@ GO
 
 -- Confirm what now exists in the current database; every row should say OK.
 SELECT DB_NAME() AS [Database], o.name AS Expected, CASE WHEN x.object_id IS NULL THEN 'MISSING' ELSE 'OK' END AS Status
-FROM (VALUES ('Plants'), ('PlantCharges'), ('Requests_Rate'), ('Log_LTL'), ('PiedmontAcctsForSpecialAlpRates'),
-             ('GetPlantCharges'), ('LogRequest_Rate'), ('LogResultsLTL'),
+FROM (VALUES ('Plants'), ('PlantCharges'), ('UpsRateRequestLog'), ('Log_LTL'), ('PiedmontAcctsForSpecialAlpRates'),
+             ('GetPlantCharges'), ('LogUpsRateRequest'), ('LogResultsLTL'),
              ('QuoteServiceCalculation'), ('LogQuoteServiceCalculation'),
              ('CalculatedRateShadowLog'), ('LogCalculatedRateShadowComparison'),
              ('RateRequestPlant'), ('RecordRateRequestPlants'), ('RateRequestMatchKey'), ('RateRequestServiceRate'), ('RecordRateRequestMatchKeys'),

@@ -20,7 +20,7 @@ R = reads, W = writes. "via proc" means through a stored procedure.
 | `Plants` | R | `Plant.cs`, `PlantDirectory.cs`, `LogisticsPartnerEstimationService.cs:378`, proc `RecordRateRequestPlants` | Plant addresses, UPS shipping numbers. Rows come from the seed script only. |
 | `PlantCharges` | R | `Plant.cs:100`, proc `GetPlantCharges` | Per-plant carrier charges. Name carries a year. |
 | `PiedmontAcctsForSpecialAlpRates` | R via proc | `GetPlantCharges` | Special ALP rate accounts. Columns inferred, not read from production. |
-| `Requests_Rate` | W via proc `LogRequest_Rate`; R | `Log.cs:295`, `ReportsController` (count, page), procs `RecordRateRequestPlants` and `RecordRateRequestMatchKeys` | Request and response log for every UPS quote. |
+| `UpsRateRequestLog` (was `Requests_Rate`) | W via proc `LogUpsRateRequest`; R | `Log.cs:295`, `ReportsController` (count, page), procs `RecordRateRequestPlants` and `RecordRateRequestMatchKeys` | Request and response log for every UPS quote. |
 | `Log_LTL` | W via proc `LogResultsLTL` | `LogisticsPartnerEstimationService.cs:666` | LTL request and result log. Never read by the app. Columns inferred. |
 | `QuoteServiceCalculation` | W via proc; R | `Log.cs:355`, `RateChangeData.cs:92` | Persisted Calculated Rate per service. |
 | `CalculatedRateShadowLog` | W via proc | `CalculatedRateShadowLog.cs` | Shadow comparison of the unified rate module (ADR 0003). Never read by app code. |

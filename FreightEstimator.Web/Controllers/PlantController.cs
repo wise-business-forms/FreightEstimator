@@ -451,7 +451,7 @@ namespace AuthenticationServer.Controllers
             // MORE INFORMATION
             ViewBag.PlantRates = Plant.Charges(shipment.PlantId);
 
-            Log.LogRequest_Rate(rateResponse);
+            Log.LogUpsRateRequest(rateResponse);
 
             
 

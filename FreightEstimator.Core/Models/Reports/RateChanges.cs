@@ -55,7 +55,7 @@ namespace AuthenticationServer.Models.Reports
         public decimal? NegotiatedRate { get; }
     }
 
-    /// <summary>One UPS Quote from Requests_Rate, as extracted into the derived tables.</summary>
+    /// <summary>One UPS Quote from UpsRateRequestLog, as extracted into the derived tables.</summary>
     public sealed class QuoteFacts
     {
         public QuoteFacts(int requestId, DateTime requestDate, MatchKey key, IEnumerable<ServiceRate> services)
@@ -234,7 +234,7 @@ namespace AuthenticationServer.Models.Reports
     public static class RateChanges
     {
         /// <summary>
-        /// How long after a Requests_Rate row its QuoteServiceCalculation rows can be logged. Both are
+        /// How long after a UpsRateRequestLog row its QuoteServiceCalculation rows can be logged. Both are
         /// written in the same web request, a few calls apart. See Database/004 for the check query.
         /// </summary>
         public static readonly TimeSpan CalculationWindow = TimeSpan.FromSeconds(30);

@@ -72,7 +72,7 @@ namespace FreightEstimator.QuoteTests
             string waiting = _costPlus.Add(SandboxCostPlus.For(c));   // not answered by the console app yet
             SandboxCostPlus.Result before = _costPlus.ResultOf(answered);
             int claims = _costPlus.ClaimCount(answered), quotes = _costPlus.QuoteCount(answered);
-            int requestLog = SandboxCostPlus.RowCount("dbo.Requests_Rate"), calcs = SandboxCostPlus.RowCount("dbo.QuoteServiceCalculation");
+            int requestLog = SandboxCostPlus.RowCount("dbo.UpsRateRequestLog"), calcs = SandboxCostPlus.RowCount("dbo.QuoteServiceCalculation");
             int allQuotes = SandboxCostPlus.RowCount("dbo.Quote"), shadowLog = SandboxCostPlus.RowCount("dbo.CalculatedRateShadowLog");
             long reference = ReferenceSequenceValue();
 
@@ -85,7 +85,7 @@ namespace FreightEstimator.QuoteTests
             Assert.That(_costPlus.QuoteCount(answered), Is.EqualTo(quotes));
             Assert.That(_costPlus.ClaimOf(waiting), Is.Null, "an unanswered request is left to the console app");
             Assert.That(_costPlus.ResultOf(waiting).DateRated, Is.Null);
-            Assert.That(SandboxCostPlus.RowCount("dbo.Requests_Rate"), Is.EqualTo(requestLog), "nothing in the request log for reporting");
+            Assert.That(SandboxCostPlus.RowCount("dbo.UpsRateRequestLog"), Is.EqualTo(requestLog), "nothing in the request log for reporting");
             Assert.That(SandboxCostPlus.RowCount("dbo.QuoteServiceCalculation"), Is.EqualTo(calcs));
             Assert.That(SandboxCostPlus.RowCount("dbo.Quote"), Is.EqualTo(allQuotes));
             Assert.That(SandboxCostPlus.RowCount("dbo.CalculatedRateShadowLog"), Is.EqualTo(shadowLog));
